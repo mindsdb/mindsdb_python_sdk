@@ -1,5 +1,5 @@
 # mindsdb_python_sdk
-It enable syou to connect to a midnsDB server and use it in a similar way as if you were running it locally
+It enables you to connect to a midnsDB server and use it in a similar way as if you were running it locally
 
 ```
 from mindsdb_client import *
