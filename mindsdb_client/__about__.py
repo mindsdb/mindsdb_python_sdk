@@ -1,0 +1,10 @@
+__title__ = 'mindsdb_client'
+__package_name__ = 'mindsdb_client'
+__version__ = '0.9.9'
+__description__ = "MindsDB client, provides an SDK to connect and use the mindsdb server capabilities to mindsdb native python library"
+__email__ = "jorge@mindsdb.com"
+__author__ = 'MindsDB Inc'
+__github__ = 'https://github.com/mindsdb/mindsdb_python_sdk'
+__pypi__ = 'https://pypi.org/project/mindsdb-client/'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2020- mindsdb'
