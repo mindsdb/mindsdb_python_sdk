@@ -48,3 +48,7 @@ class DataSources(object):
     def get_data(self, name):
         data = self._proxy.get_datasource_data(name)
         return data
+
+    def get_file(self, name):
+        content, filename = self._proxy.get_datasource_file(name)
+        return content, filename

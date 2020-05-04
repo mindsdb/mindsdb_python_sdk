@@ -102,6 +102,12 @@ class Proxy(object):
         r = self._get(f"/datasources/{name}/data")
         return r.json()
 
+    def get_datasource_file(self, name):
+        r = self._get(f"/datasources/{name}/download")
+        filename = r.headers['Content-Disposition'].split('filename=')[1]
+        content = r.content
+        return content, filename
+
     def get_predictors(self):
         r = self._get('/predictors')
         if self._is_success(r):
