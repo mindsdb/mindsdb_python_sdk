@@ -140,3 +140,8 @@ class Proxy(object):
             allow_redirects=True
         )
         return r.json()
+
+    def download_predictor(self, predictor_name):
+        p = self._get(f'/predictors/{predictor_name}/download')
+        return p.content
+

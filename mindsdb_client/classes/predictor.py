@@ -14,3 +14,6 @@ class Predictor(object):
 
     def predict(self, when):
         return self._proxy.predict(self._data['name'], when)
+
+    def download(self):
+        return self._proxy.download_predictor(self._data['name'])
