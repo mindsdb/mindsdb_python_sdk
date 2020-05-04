@@ -15,7 +15,7 @@ class DataSources(object):
 
     def update(self):
         data = self._proxy.get_datasources()
-        
+
         new_names = [x['name'] for x in data]
         unwanted_keys = set(self._datasources.keys()) - set(new_names)
         for key in unwanted_keys:
@@ -39,3 +39,8 @@ class DataSources(object):
     def delete(self, name):
         self._proxy.delete_datasource(name)
         self.update()
+
+    def analyze(self, name):
+        analysis = self._proxy.analyze_datasource(name)
+        self.update()
+        return analysis

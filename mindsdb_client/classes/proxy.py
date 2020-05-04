@@ -94,6 +94,10 @@ class Proxy(object):
         r = self._delete(f"/datasources/{name}")
         return self._is_success(r)
 
+    def analyze_datasource(self, name):
+        r = self._get(f"/datasources/{name}/analyze")
+        return r.json()
+
     def get_predictors(self):
         r = self._get('/predictors')
         if self._is_success(r):
