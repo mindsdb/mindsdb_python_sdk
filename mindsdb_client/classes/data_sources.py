@@ -15,6 +15,12 @@ class DataSources(object):
 
     def update(self):
         data = self._proxy.get_datasources()
+        
+        new_names = [x['name'] for x in data]
+        unwanted_keys = set(self._datasources.keys()) - set(new_names)
+        for key in unwanted_keys:
+            del self._datasources[key]
+
         for ds in data:
             if ds['name'] in self._datasources:
                 self._datasources[ds['name']].update(ds)
