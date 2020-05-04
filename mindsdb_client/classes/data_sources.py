@@ -44,3 +44,7 @@ class DataSources(object):
         analysis = self._proxy.analyze_datasource(name)
         self.update()
         return analysis
+
+    def get_data(self, name):
+        data = self._proxy.get_datasource_data(name)
+        return data

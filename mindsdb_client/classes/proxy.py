@@ -98,6 +98,10 @@ class Proxy(object):
         r = self._get(f"/datasources/{name}/analyze")
         return r.json()
 
+    def get_datasource_data(self, name):
+        r = self._get(f"/datasources/{name}/data")
+        return r.json()
+
     def get_predictors(self):
         r = self._get('/predictors')
         if self._is_success(r):
