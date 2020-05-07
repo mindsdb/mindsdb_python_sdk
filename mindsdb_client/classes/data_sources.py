@@ -1,19 +1,26 @@
 from mindsdb_client.classes.data_source import DataSource
+from typing import Optional, Any, List
 
 class DataSources(object):
-    _proxy = None
-    _datasources = {}
-    def __init__(self, proxy):
-        self._proxy = proxy
+    _client: Optional['MindsDB'] = None
+    _proxy: Optional['Proxy'] = None
+    _datasources: Optional[dict] = {}
+
+    def __init__(self, client: 'MindsDB') -> None:
+        self._client = client
+        self._proxy = client._proxy
         self.update()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self._datasources[key]
 
-    def names(self):
+    def __len__(self) -> int:
+        return len(self._datasources.keys())
+
+    def names(self) -> List[str]:
         return list(self._datasources.keys())
 
-    def update(self):
+    def update(self) -> None:
         data = self._proxy.get_datasources()
 
         new_names = [x['name'] for x in data]
@@ -23,11 +30,11 @@ class DataSources(object):
 
         for ds in data:
             if ds['name'] in self._datasources:
-                self._datasources[ds['name']].update(ds)
+                self._datasources[ds['name']]._set_data(ds)
             else:
-                self._datasources[ds['name']] = DataSource(ds)
+                self._datasources[ds['name']] = DataSource(ds, self._client)
 
-    def add(self, name: str, path: str = None, url: str = None):
+    def add(self, name: str, path: str = None, url: str = None) -> None:
         if isinstance(path, str) and len(path) > 0:
             self._proxy.put_datasource(name, path)
         elif isinstance(url, str) and len(url) > 0:
@@ -35,20 +42,3 @@ class DataSources(object):
         else:
             raise Exception('path or url must be declared')
         self.update()
-
-    def delete(self, name):
-        self._proxy.delete_datasource(name)
-        self.update()
-
-    def analyze(self, name):
-        analysis = self._proxy.analyze_datasource(name)
-        self.update()
-        return analysis
-
-    def get_data(self, name):
-        data = self._proxy.get_datasource_data(name)
-        return data
-
-    def get_file(self, name):
-        content, filename = self._proxy.get_datasource_file(name)
-        return content, filename

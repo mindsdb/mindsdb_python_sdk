@@ -1,13 +1,14 @@
 from mindsdb_client.classes.proxy import Proxy
 from mindsdb_client.classes.data_sources import DataSources
 from mindsdb_client.classes.predictors import Predictors
+from typing import Optional
 
 class MindsDB(object):
-    datasources = None
-    predictors = None
-    _proxy = None
+    datasources: Optional[DataSources] = None
+    predictors: Optional[Predictors] = None
+    _proxy: Optional['Proxy'] = None
 
-    def __init__(self, server: str, params: object):
+    def __init__(self, server: str, params: dict) -> None:
         if isinstance(params, object) is False:
             raise Exception()
         if 'token' not in params and not ('email' in params and 'password' in params):
@@ -25,5 +26,5 @@ class MindsDB(object):
             self._proxy.login(email=params['email'], password=params['password'])
 
         self._proxy.ping()
-        self.datasources = DataSources(self._proxy)
-        self.predictors = Predictors(self._proxy)
+        self.datasources = DataSources(self)
+        self.predictors = Predictors(self)
