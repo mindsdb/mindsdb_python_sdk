@@ -1,6 +1,6 @@
-# Contributing to Mindsdb Python SDK
+# Contributing to Mindsdb
 
-We love to receive contributions from the community and hear your opinions! We want to make contributing to this project as easily as it can be.
+We love to receive contributions from the community and hear your opinions! We want to make contributing to Mindsdb as easily as it can be.
 
 # How can you help us?
 
@@ -9,12 +9,12 @@ We love to receive contributions from the community and hear your opinions! We w
 * Discuss the code implementation
 * Submit a bug fix
 * Propose new features
-* Test Mindsdb Python SDK
+* Test Mindsdb
 
 # Code contributions
 In general, we follow the "fork-and-pull" Git workflow.
 
-1. Fork the Mindsdb Python SDK repository
+1. Fork the Mindsdb repository
 2. Clone the repository
 3. Make changes and commit them
 4. Push your local branch to your fork
@@ -25,7 +25,7 @@ In general, we follow the "fork-and-pull" Git workflow.
 >NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 
 # Feature and Bug reports
-We use GitHub issues to track bugs and features. Report them by opening a [new issue](https://github.com/mindsdb/mindsdb_python_sdk/issues/new/choose) and fill out all of the required inputs.
+We use GitHub issues to track bugs and features. Report them by opening a [new issue](https://github.com/mindsdb/mindsdb/issues/new/choose) and fill out all of the required inputs.
 
 # Code review process
 The Pull Request reviews are done on a regular basis. 
