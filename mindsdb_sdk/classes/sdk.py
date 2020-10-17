@@ -1,7 +1,7 @@
 from mindsdb_sdk.classes.proxy import Proxy
 from mindsdb_sdk.classes.datasources import DataSources
 from mindsdb_sdk.classes.predictors import Predictors
-from mindsdb_sdk.classes.config import config
+from mindsdb_sdk.classes.config import Config
 
 class SDK():
     def __init__(self, host, user=None, password=None, token=None):
