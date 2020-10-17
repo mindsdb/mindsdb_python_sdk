@@ -1,45 +1,46 @@
-from mindsdb_client.classes.predictor import Predictor
-from typing import Any, List, Optional
+class Predictors():
+    def __init__(self, proxy):
+        self._proxy = proxy
 
-class Predictors(object):
-    _proxy: Optional['Proxy'] = None
-    _client: Optional['MindsDB'] = None
-    _predictors: dict = {}
+    def list_info(self):
+        return self._proxy.get('/predictors')
 
-    def __init__(self, client: 'MindsDB') -> None:
-        self._proxy = client._proxy
-        self._client = client
-        self.update()
+    # 
+    def get(self, name):
+        self._proxy.get(f'/predictors/{name}')
+
+    def delete(self, name):
+        self._proxy.delete(f'/predictors/{name}')
     
-    def __getitem__(self, key: str) -> Any:
-        return self._predictors[key]
+    def put(self, name, datasource, to_predict, args=None):
+        if args is None:
+            args = {}
+        datasource = datasource['name'] if isinstance(datasource,dict) else datasource
+        self._proxy.put(f'/predictors/{name}', data={
+            'data_source_name': datasource
+            ,'kwargs': args
+            ,'to_predict': to_predict
+        })
+    
+    def predict(self, name, datasource, args=None):
+        if args is None:
+            args = {}
+        if isinstance(datasource, str) or (isinstance(datasource, dict) and 'created_at' in datasource and 'updated_at' in datasource and 'name' in datasource):
+            return self._proxy.post(f'/predictors/{name}/predict_datasource', data={
+                'data_source_name':datasource
+                ,'kwargs': args
+            })
+        else:
+            return self._proxy.post(f'/predictors/{name}/predict', data={
+                'when':datasource
+                ,'kwargs': args
+            })
 
-    def __len__(self) -> int:
-        return len(self._predictors.keys())
-
-    def names(self) -> List[str]:
-        return list(self._predictors.keys())
-
-    def update(self) -> None:
-        data = self._proxy.get_predictors()
-
-        new_names = [x['name'] for x in data]
-        unwanted_keys = set(self._predictors.keys()) - set(new_names)
-        for key in unwanted_keys:
-            del self._predictors[key]
-
-        for p in data:
-            if p['name'] in self._predictors:
-                self._predictors[p['name']]._set_data(p)
-            else:
-                self._predictors[p['name']] = Predictor(p, self._client)
-
-    def learn(self, name: str, data_source_name: str, to_predict: List[str]) -> 'Predictor':
-        self._proxy.learn_predictor(name, data_source_name, to_predict)
-        self.update()
-        return self._predictors[name]
-
-    def upload(self, file_path: str) -> bool:
-        success = self._proxy.upload_predictor(file_path)
-        self.update()
-        return success
+    '''
+    @TODO:
+    * Add custom predictor
+    * Fit custom predictor
+    * Upload predictor
+    * Download predictor
+    * Rename predictor
+    '''
