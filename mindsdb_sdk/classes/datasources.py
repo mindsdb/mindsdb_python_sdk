@@ -1,3 +1,38 @@
+import time
+
+
+class DataSource():
+    def __init__(self, proxy, name):
+        self._proxy = proxy
+        self.name = name
+        self._analysis = None
+
+    def get_info(self):
+        return self._proxy.get(f'/datasources/{self.name}')
+
+    @property
+    def analysis(self):
+        if self._analysis is None:
+            analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
+            while 'status' in analysis and analysis['status'] == 'analyzing':
+                time.sleep(3)
+                analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
+            self._analysis = analysis
+        return self._analysis
+
+    def __iter__(self):
+        return iter(list(self.analysis.keys()))
+
+    def __len__(self):
+        return len(list(self.analysis.keys()))
+
+    def __getitem__(self, k):
+        return self.analysis[k]
+
+    def __delete__(self):
+        self._proxy.delete(f'/datasources/{self.name}')
+
+
 class DataSources():
     def __init__(self, proxy):
         self._proxy = proxy
@@ -5,36 +40,38 @@ class DataSources():
     def list_info(self):
         return self._proxy.get('/datasources')
 
-    def keys(self):
-        self.ls_info()
-        return [x['name'] for x in self._proxy.get('/datasources')]
+    def list_datasources(self):
+        return [DataSource(self._proxy, x['name']) for x in self._proxy.get('/datasources')]
 
-    def __getitem__(self, key):
-        return self._proxy.get(f'/datasources/{key}')
+    def __getitem__(self, name):
+        return DataSource(self._proxy, name)
 
     def __len__(self) -> int:
-        return len(self.keys())
+        return len(self.list_datasources())
 
-    def __delete__(self, name):
-        self._proxy.delete(name)
-    
+    def __delitem__(self, name):
+        self._proxy.delete(f'/datasources/{name}')
+
     def __setitem__(self, name, params):
         '''
         params is a dictionary that can contain:
         * file - File path
+        * df - pandas dataframe
         * ulr - Url to file
         * source - file | url | <integration id>
+        * source_type - file | ??
 
         and if source == <integration id>:
             * query
             + additional integration specific params (see docs in mindsdb)
         '''
-        if 'file' in params:
-            # Do some file reading and post multipart
-            pass
-        else:
-            self._proxy.put(f'/datasources/{name}', json=params)
-
-    def analyze(self, datasource):
-        name = datasource['name'] if isinstance(datasource, dict) else datasource
-        return self._proxy.get(f'/datasources/{name}/analyze')
+        files = {}
+        data = {}
+        for k in params:
+            if k in ['file', 'df']:
+                files[k] = params[k]
+            else:
+                data[k] = params[k]
+        if len(files) == 0:
+            files = None
+        self._proxy.put(f'/datasources/{name}', files=files, data=data)
