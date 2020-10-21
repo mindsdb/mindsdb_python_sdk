@@ -20,7 +20,7 @@ class TestAll(unittest.TestCase):
         del self.datasources['test_2_file_datasource']
 
         self.datasources['test_2_file_datasource'] = {
-            'file': 'kin8nm.csv'
+            'file': 'datasets/kin8nm.csv'
         }
         self.assertTrue(isinstance(self.datasources['test_2_file_datasource'].get_info(),dict))
 
@@ -29,7 +29,7 @@ class TestAll(unittest.TestCase):
     def test_3_df_as_csv(self):
         del self.datasources['test_3_file_datasource']
 
-        df = pd.read_csv('us_health_insurance.csv')
+        df = pd.read_csv('datasets/us_health_insurance.csv')
 
         self.datasources['test_3_file_datasource'] = {
             'df': df
