@@ -28,6 +28,7 @@ jobs:
         pip install mindsdb
     - name: Run tests
       run: |
+          cd tests
           python3 test_datasources.py
           python3 test_predictors.py
           python3 test_pandas_accessor.py

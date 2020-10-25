@@ -17,7 +17,10 @@ class TestDatasources(unittest.TestCase):
         self.assertTrue(isinstance(ds_arr,list))
 
     def test_2_file_datasource(self):
-        del self.datasources['test_2_file_datasource']
+        try:
+            del self.datasources['test_2_file_datasource']
+        except Exception as e:
+            print(e)
 
         self.datasources['test_2_file_datasource'] = {
             'file': 'datasets/kin8nm.csv'
@@ -27,7 +30,10 @@ class TestDatasources(unittest.TestCase):
         self.assertTrue(len(self.datasources['test_2_file_datasource']) > 10)
 
     def test_3_df_as_csv(self):
-        del self.datasources['test_3_file_datasource']
+        try:
+            del self.datasources['test_3_file_datasource']
+        except Exception as e:
+            print(e)
 
         df = pd.read_csv('datasets/us_health_insurance.csv')
 
