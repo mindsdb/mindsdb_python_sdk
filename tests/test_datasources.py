@@ -5,7 +5,7 @@ import time
 from mindsdb_sdk import SDK
 import pandas as pd
 
-class TestAll(unittest.TestCase):
+class TestDatasources(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # @TODO Run mindsdb here
