@@ -28,9 +28,9 @@ jobs:
         pip install mindsdb
     - name: Run tests
       run: |
-          python3 -m unittest test_datasources.py
-          python3 -m unittest test_predictors.py
-          python3 -m unittest test_pandas_accessor.py
+          python3 test_datasources.py
+          python3 test_predictors.py
+          python3 test_pandas_accessor.py
       shell: bash
       env:
         CHECK_FOR_UPDATES: False

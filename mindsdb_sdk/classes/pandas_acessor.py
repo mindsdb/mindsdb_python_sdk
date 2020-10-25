@@ -46,6 +46,8 @@ class AutoML:
 
     def learn(self, to_predict, name=None):
         if self.mode == 'native':
+            from mindsdb_native import Predictor
+
             if name is None:
                 name = str(pd.util.hash_pandas_object(self._df).sum())
 
@@ -59,6 +61,8 @@ class AutoML:
 
     def predict(self, name=None):
         if self.mode == 'native':
+            from mindsdb_native import Predictor
+            
             if name is not None:
                 predictor = Predictor(name)
             else:
