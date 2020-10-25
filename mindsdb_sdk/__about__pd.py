@@ -1,0 +1,10 @@
+__title__ = 'pd_automl'
+__package_name__ = 'pd_automl'
+__version__ = '0.1.0'
+__description__ = "Pd automl provides a pandas dataframe accessor to allow using dataframes with MindsDB (either the local native library or a local or remote mindsdb server)"
+__email__ = "jorge@mindsdb.com"
+__author__ = 'MindsDB Inc'
+__github__ = 'https://github.com/mindsdb/mindsdb_python_sdk'
+__pypi__ = 'https://pypi.org/project/pd_automl/'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2020- mindsdb'
