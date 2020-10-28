@@ -41,7 +41,7 @@ class Proxy(object):
             del_tmp = False
             if 'df' in files:
                 del_tmp = True
-                files['df'].to_csv('tmp.csv')
+                files['df'].to_csv('tmp.csv', index=False)
                 files['file'] = 'tmp.csv'
                 del files['df']
 

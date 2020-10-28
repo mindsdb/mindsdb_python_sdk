@@ -36,7 +36,6 @@ class TestDatasources(unittest.TestCase):
             print(e)
 
         df = pd.read_csv('datasets/us_health_insurance.csv')
-
         self.datasources['test_3_file_datasource'] = {
             'df': df
         }
@@ -44,6 +43,16 @@ class TestDatasources(unittest.TestCase):
         self.assertTrue(isinstance(self.datasources['test_3_file_datasource'].get_info(),dict))
 
         self.assertTrue(len(self.datasources['test_3_file_datasource']) > 10)
+
+    def test_4_list(self):
+        for name in ['test_2_file_datasource', 'test_3_file_datasource']:
+            self.assertTrue(name in [x.name for x in self.datasources.list_datasources()])
+            self.assertTrue([x['name'] for x in self.datasources.list_info()])
+
+    def test_5_len(self):
+        self.assertTrue(len(self.datasources) >= 2)
+
+
 
 if __name__ == '__main__':
     unittest.main()
