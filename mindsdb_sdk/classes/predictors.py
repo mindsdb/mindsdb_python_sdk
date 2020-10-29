@@ -13,12 +13,12 @@ class Predictor():
         if args is None:
             args = {}
         if isinstance(datasource, str) or (isinstance(datasource, dict) and 'created_at' in datasource and 'updated_at' in datasource and 'name' in datasource):
-            return self._proxy.post(f'/predictors/{self.name}/predict_datasource', data={
+            return self._proxy.post(f'/predictors/{self.name}/predict_datasource', json={
                 'data_source_name':datasource
                 ,'kwargs': args
             })
         else:
-            return self._proxy.post(f'/predictors/{self.name}/predict', data={
+            return self._proxy.post(f'/predictors/{self.name}/predict', json={
                 'when':datasource
                 ,'kwargs': args
             })
@@ -47,7 +47,7 @@ class Predictors():
         if args is None:
             args = {}
         datasource = datasource['name'] if isinstance(datasource,dict) else datasource
-        self._proxy.put(f'/predictors/{name}', data={
+        self._proxy.put(f'/predictors/{name}', json={
             'data_source_name': datasource
             ,'kwargs': args
             ,'to_predict': to_predict

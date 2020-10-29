@@ -15,63 +15,34 @@ class TestPredictors(unittest.TestCase):
         cls.predictors = cls.sdk.predictors
 
     def test_1_list_info(self):
-        info_arr = self.datasources.list_info()
-        self.assertTrue(predictors(info_arr,list))
+        info_arr = self.predictors.list_info()
+        self.assertTrue(isinstance(info_arr,list))
 
-        pred_arr = self.datasources.list_predictor()
-        self.assertTrue(predictors(pred_arr,list))
+        pred_arr = self.predictors.list_predictor()
+        self.assertTrue(isinstance(pred_arr,list))
 
-    def test_2_train_predictor(self):
-        
-        pass
-
-'''
-class Predictors():
-    def __getitem__(self, name):
-        return Predictor(self._proxy, name)
-
-    def __len__(self) -> int:
-        return len(self.list_predictor())
-
-    def __delitem__(self, name):
-        self._proxy.delete(f'/predictors/{name}')
-
-    def learn(self, name, datasource, to_predict, args=None):
-        if args is None:
-            args = {}
-        datasource = datasource['name'] if isinstance(datasource,dict) else datasource
-        self._proxy.put(f'/predictors/{name}', data={
-            'data_source_name': datasource
-            ,'kwargs': args
-            ,'to_predict': to_predict
+    def test_2_train(self):
+        try:
+            del self.predictors['test_predictors_1']
+        except Exception as e:
+            print(e)
+        self.predictors.learn('test_predictors_1', 'test_2_file_datasource', 'y', args={
+            'stop_training_in_x_seconds': 30
         })
+        time.sleep(3)
+        pred = self.predictors['test_predictors_1']
+        self.assertTrue('status' in pred.get_info())
 
-class Predictor():
-    def __init__(self, proxy, name):
-        self._proxy = proxy
-        self.name = name
+    def test_3_predict(self):
+        pred = self.predictors['test_predictors_1']
+        while pred.get_info()['status'] != 'complete':
+            print('Predictor not done trainig, status: ', pred.get_info()['status'])
+            time.sleep(3)
 
-    def get_info(self):
-        return self._proxy.get(f'/predictors/{self.name}')
+        prediction = pred.predict(datasource={'theta3': 1})
+        self.assertTrue('prediction' in prediction)
+        self.assertTrue('prediction' in prediction)
 
-    def delete(self):
-        self._proxy.delete(f'/predictors/{self.name}')
-
-    def predict(self, datasource, args=None):
-        if args is None:
-            args = {}
-        if isinstance(datasource, str) or (isinstance(datasource, dict) and 'created_at' in datasource and 'updated_at' in datasource and 'name' in datasource):
-            return self._proxy.post(f'/predictors/{self.name}/predict_datasource', data={
-                'data_source_name':datasource
-                ,'kwargs': args
-            })
-        else:
-            return self._proxy.post(f'/predictors/{self.name}/predict', data={
-                'when':datasource
-                ,'kwargs': args
-            })
-
-'''
 
 if __name__ == '__main__':
     unittest.main()

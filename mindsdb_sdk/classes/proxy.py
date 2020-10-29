@@ -22,7 +22,8 @@ class Proxy(object):
         if data is not None:
             response = requests.post(self._host + '/api' + route, data=data, params=params)
         elif json is not None:
-            response = requests.post(self._host + '/api' + route, json=data, params=params)
+            print(1, route, json)
+            response = requests.post(self._host + '/api' + route, json=json, params=params)
         else:
             response = requests.post(self._host + '/api' + route, params=params)
 
@@ -58,7 +59,7 @@ class Proxy(object):
         elif data is not None:
             response = requests.put(self._host + '/api' + route, data=data, params=params)
         elif json is not None:
-            response = requests.put(self._host + '/api' + route, json=data, params=params)
+            response = requests.put(self._host + '/api' + route, json=json, params=params)
         else:
             response = requests.put(self._host + '/api' + route, params=params)
 
