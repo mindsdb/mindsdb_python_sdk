@@ -6,5 +6,5 @@ __email__ = "jorge@mindsdb.com"
 __author__ = 'MindsDB Inc'
 __github__ = 'https://github.com/mindsdb/mindsdb_python_sdk'
 __pypi__ = 'https://pypi.org/project/pd_automl/'
-__license__ = 'MIT'
+__license__ = 'GPL-3.0'
 __copyright__ = 'Copyright 2020- mindsdb'
