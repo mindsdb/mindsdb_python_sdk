@@ -2,6 +2,10 @@ class Predictor():
     def __init__(self, proxy, name):
         self._proxy = proxy
         self.name = name
+        try:
+            self.get_info()
+        except:
+            raise Exception(f'Predictor {name} does not exist')
 
     def get_info(self):
         return self._proxy.get(f'/predictors/{self.name}')
