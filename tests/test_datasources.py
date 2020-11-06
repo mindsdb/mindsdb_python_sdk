@@ -11,9 +11,7 @@ class TestDatasources(unittest.TestCase):
     def setUpClass(cls):
         cls.sp = Popen(
             ['python3', '-m', 'mindsdb', '--api', 'http'],
-            close_fds=True,
-            stdout=None,
-            stderr=None
+            close_fds=True
         )
         time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')

@@ -32,6 +32,7 @@ jobs:
           python test_datasources.py
           python test_predictors.py
           python test_pandas_accessor.py
+          cd ..
       shell: bash
       env:
         CHECK_FOR_UPDATES: False
