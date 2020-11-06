@@ -16,7 +16,7 @@ class TestPredictors(unittest.TestCase):
             stdout=None,
             stderr=None
         )
-        time.sleep(20)
+        time.sleep(40)
         # Note: Assumes datasources test already ran for the sake of not having to upload stuff again
         cls.sdk = SDK('http://127.0.0.1:47334')
         cls.datasources = cls.sdk.datasources
@@ -33,9 +33,9 @@ class TestPredictors(unittest.TestCase):
             cls.sp.kill()
         except Exception:
             pass
-        time.sleep(20)
+        time.sleep(40)
 
-        
+
     def test_1_list_info(self):
         info_arr = self.predictors.list_info()
         self.assertTrue(isinstance(info_arr,list))

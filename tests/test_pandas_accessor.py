@@ -13,7 +13,7 @@ class TestAccessor(unittest.TestCase):
             stdout=None,
             stderr=None
         )
-        time.sleep(20)
+        time.sleep(40)
 
     @classmethod
     def tearDownClass(cls):
@@ -25,7 +25,7 @@ class TestAccessor(unittest.TestCase):
             cls.sp.kill()
         except Exception:
             pass
-        time.sleep(20)
+        time.sleep(40)
 
 
     def test_1_native_flow(self):

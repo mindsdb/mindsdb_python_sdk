@@ -15,7 +15,7 @@ class TestDatasources(unittest.TestCase):
             stdout=None,
             stderr=None
         )
-        time.sleep(20)
+        time.sleep(40)
         cls.sdk = SDK('http://127.0.0.1:47334')
         cls.datasources = cls.sdk.datasources
 
@@ -29,7 +29,7 @@ class TestDatasources(unittest.TestCase):
             cls.sp.kill()
         except Exception:
             pass
-        time.sleep(20)
+        time.sleep(40)
 
     def test_1_list_info(self):
         ds_arr = self.datasources.list_info()
