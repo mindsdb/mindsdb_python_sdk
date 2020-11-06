@@ -1,11 +1,32 @@
 import unittest
 from mindsdb_sdk import AutoML, auto_ml_config
 import pandas as pd
+from subprocess import Popen
+
 
 class TestAccessor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        pass
+        cls.sp = Popen(
+            ['python3', '-m', 'mindsdb', '--api', 'http'],
+            close_fds=True,
+            stdout=None,
+            stderr=None
+        )
+        time.sleep(20)
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            conns = psutil.net_connections()
+            pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
+            if len(pid) > 0:
+                os.kill(pid[0], 9)
+            cls.sp.kill()
+        except Exception:
+            pass
+        time.sleep(20)
+
 
     def test_1_native_flow(self):
         auto_ml_config(mode='native')

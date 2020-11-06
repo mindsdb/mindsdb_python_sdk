@@ -4,16 +4,38 @@ import os.path
 import time
 from mindsdb_sdk import SDK
 import pandas as pd
+from subprocess import Popen
+
 
 class TestPredictors(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # @TODO Run mindsdb here
+        cls.sp = Popen(
+            ['python3', '-m', 'mindsdb', '--api', 'http'],
+            close_fds=True,
+            stdout=None,
+            stderr=None
+        )
+        time.sleep(20)
         # Note: Assumes datasources test already ran for the sake of not having to upload stuff again
         cls.sdk = SDK('http://127.0.0.1:47334')
         cls.datasources = cls.sdk.datasources
         cls.predictors = cls.sdk.predictors
 
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            conns = psutil.net_connections()
+            pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
+            if len(pid) > 0:
+                os.kill(pid[0], 9)
+            cls.sp.kill()
+        except Exception:
+            pass
+        time.sleep(20)
+
+        
     def test_1_list_info(self):
         info_arr = self.predictors.list_info()
         self.assertTrue(isinstance(info_arr,list))
