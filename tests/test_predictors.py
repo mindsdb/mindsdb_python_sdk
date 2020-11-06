@@ -51,8 +51,6 @@ class TestPredictors(unittest.TestCase):
         self.predictors.learn('test_predictors_1', 'test_2_file_datasource', 'y', args={
             'stop_training_in_x_seconds': 30
         })
-        # @TODO: REMOVE !
-        time.sleep(5)
         pred = self.predictors['test_predictors_1']
         self.assertTrue('status' in pred.get_info())
 

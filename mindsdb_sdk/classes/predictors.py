@@ -1,3 +1,6 @@
+import time
+
+
 class Predictor():
     def __init__(self, proxy, name):
         self._proxy = proxy
@@ -56,6 +59,8 @@ class Predictors():
             ,'kwargs': args
             ,'to_predict': to_predict
         })
+        # @TODO: Remove once https://github.com/mindsdb/mindsdb/issues/916 is fixed
+        time.sleep(5)
 
     '''
     @TODO:
