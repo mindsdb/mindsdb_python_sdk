@@ -1,6 +1,7 @@
 import requests
 import os
 
+
 class Proxy(object):
 
     def __init__(self, host, user=None, password=None, token=None) -> None:
@@ -42,18 +43,19 @@ class Proxy(object):
             del_tmp = False
             if 'df' in files:
                 del_tmp = True
-                files['df'].to_csv('tmp.csv', index=False)
-                files['file'] = 'tmp.csv'
+                files['df'].to_csv('tmp_upload_file.csv', index=False)
+                files['file'] = 'tmp_upload_file.csv'
                 del files['df']
 
-            files['file'] = open(files['file'],'rb')
-            data = {}
-            data['source_type'] = 'file'
+            with open(files['file'],'rb') as fp:
+                files['file'] = fp
+                data = {}
+                data['source_type'] = 'file'
 
-            response = requests.put(self._host + '/api' + route, files=files, data=data)
+                response = requests.put(self._host + '/api' + route, files=files, data=data)
 
             if del_tmp:
-                os.remove('tmp.csv')
+                os.remove('tmp_upload_file.csv')
 
 
         elif data is not None:
