@@ -16,7 +16,7 @@ class TestDatasources(unittest.TestCase):
             stderr=None
         )
         time.sleep(40)
-        cls.sdk = SDK('http://127.0.0.1:47334')
+        cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
 
     @classmethod
