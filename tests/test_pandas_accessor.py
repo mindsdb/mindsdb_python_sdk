@@ -8,7 +8,7 @@ class TestAccessor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sp = Popen(
-            ['python3', '-m', 'mindsdb', '--api', 'http'],
+            ['python', '-m', 'mindsdb', '--api', 'http'],
             close_fds=True
         )
         time.sleep(40)
