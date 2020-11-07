@@ -31,9 +31,9 @@ df = pd.DataFrame({
     })
 
 # Train a model on the dataframe
-predictor_ref = df.automl.learn('y')
+predictor_ref = df.auto_ml.learn('y')
 # Predict from the original dataframe
-predictions = df.automl.predict()
+predictions = df.auto_ml.predict()
 print(predictions[55])
 
 test_df = pd.DataFrame({
@@ -43,9 +43,9 @@ test_df = pd.DataFrame({
     })
 
 # Get (run) the analysis of test_df
-statistical_analysis = test_df.automl.analysis
+statistical_analysis = test_df.auto_ml.analysis
 print(statistical_analysis.keys())
 
 # Predict from the test dataframe
-for pred in test_df.automl.predict(predictor_ref):
+for pred in test_df.auto_ml.predict(predictor_ref):
     print(pred)
