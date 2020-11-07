@@ -61,7 +61,7 @@ class TestPredictors(unittest.TestCase):
         pred_arr = pred.predict(datasource={'theta3': 1})
         self.assertTrue(len(pred_arr) == 1)
         self.assertTrue('y' in pred_arr[0])
-        self.assertTrue(pred_arr[0][i]['predicted_value'] is not None)
+        self.assertTrue(pred_arr[0]['y']['predicted_value'] is not None)
 
 
 if __name__ == '__main__':
