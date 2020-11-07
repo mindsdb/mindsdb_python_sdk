@@ -11,12 +11,16 @@ class DataSource():
         return self._proxy.get(f'/datasources/{self.name}')
 
     @property
-    def analysis(self):
+    def analysis(self, wait_seconds=360):
         if self._analysis is None:
             analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
-            while 'status' in analysis and analysis['status'] == 'analyzing':
-                time.sleep(3)
+            for i in range(wait_seconds):
+                if 'status' in analysis and analysis['status'] == 'analyzing':
+                    time.sleep(10)
                 analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
+
+            if 'status' in analysis and analysis['status'] == 'analyzing':
+                raise Exception(f'Analysis not yet ready after waiting for {wait_seconds}, consider setting the `wait_seconds` to a higher value or reporting a bug if you think this should not take as long as it does for your dataset.')
             self._analysis = analysis
         return self._analysis
 
