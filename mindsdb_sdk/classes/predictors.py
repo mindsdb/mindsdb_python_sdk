@@ -6,7 +6,10 @@ class Predictor():
         self._proxy = proxy
         self.name = name
         try:
-            self.get_info()
+            for i in range(8):
+                self.get_info()
+                # @TODO: Remove once https://github.com/mindsdb/mindsdb/issues/916 is fixed
+                time.sleep(1)
         except:
             raise Exception(f'Predictor {name} does not exist')
 
@@ -59,8 +62,6 @@ class Predictors():
             ,'kwargs': args
             ,'to_predict': to_predict
         })
-        # @TODO: Remove once https://github.com/mindsdb/mindsdb/issues/916 is fixed
-        time.sleep(5)
 
     '''
     @TODO:
