@@ -2,7 +2,7 @@ import unittest
 from mindsdb_sdk import AutoML, auto_ml_config
 import pandas as pd
 from subprocess import Popen
-
+import time
 
 class TestAccessor(unittest.TestCase):
     @classmethod
