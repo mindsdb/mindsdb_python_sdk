@@ -36,9 +36,9 @@ class TestAccessor(unittest.TestCase):
             })
 
         # Train a model on the dataframe
-        predictor_ref = df.automl.learn('y')
+        predictor_ref = df.auto_ml.learn('y')
         # Predict from the original dataframe
-        predictions = df.automl.predict()
+        predictions = df.auto_ml.predict()
         assert len(predictions) == len(df)
 
         test_df = pd.DataFrame({
@@ -47,11 +47,11 @@ class TestAccessor(unittest.TestCase):
             })
 
         # Get (run) the analysis of test_df
-        statistical_analysis = test_df.automl.analysis
+        statistical_analysis = test_df.auto_ml.analysis
         assert len(statistical_analysis) > 8
 
         # Predict from the test dataframe
-        for pred in test_df.automl.predict(predictor_ref):
+        for pred in test_df.auto_ml.predict(predictor_ref):
             assert 'y' in pred and pred['y'] is not None
 
     def test_2_local_server_flow(self):

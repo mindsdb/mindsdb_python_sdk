@@ -17,11 +17,11 @@ def auto_ml_config(mode='native', connection_info=None):
         if 'token' in connection_info:
             os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['token']
     else:
-        raise Exeption(f'Invalid mode: {mode} for the pandas automl accessor!')
+        raise Exeption(f'Invalid mode: {mode} for the pandas auto_ml accessor!')
 
 
 
-@pd.api.extensions.register_dataframe_accessor("automl")
+@pd.api.extensions.register_dataframe_accessor("auto_ml")
 class AutoML:
     def __init__(self, pandas_obj):
         self._df = pandas_obj
