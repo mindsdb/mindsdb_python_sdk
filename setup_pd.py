@@ -2,7 +2,7 @@ import setuptools
 
 
 about = {}
-with open("mindsdb_client/__about__.py") as fp:
+with open("mindsdb_sdk/__about__.py") as fp:
     exec(fp.read(), about)
 
 
