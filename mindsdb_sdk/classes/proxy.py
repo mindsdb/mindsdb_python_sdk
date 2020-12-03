@@ -10,7 +10,7 @@ class Proxy(object):
 
         if token is not None:
             self._apikey = token
-        if user is not None:
+        if user is not None and password is not None:
             self._apikey = self.post('/api/login', json={'email': user, 'password': password})['token']
 
 
@@ -33,37 +33,34 @@ class Proxy(object):
 
         return response.json()
 
-    def put(self, route, data=None, json=None, params=None, files=None):
-        if params is None:
-            params = {}
-        if self._apikey is not None:
-            params['apiKey'] = self._apikey
+    def put(self, route, data=None, json=None, params=None, files=None, params_processing=True):
 
-        if files is not None:
-            del_tmp = False
-            if 'df' in files:
-                del_tmp = True
-                files['df'].to_csv('tmp_upload_file.csv', index=False)
-                files['file'] = 'tmp_upload_file.csv'
-                del files['df']
+        if params_processing:
+            if params is None:
+                params = {}
+            if self._apikey is not None:
+                params['apiKey'] = self._apikey
 
-            with open(files['file'],'rb') as fp:
-                files['file'] = fp
-                data = {}
-                data['source_type'] = 'file'
+            if files is not None:
+                del_tmp = False
+                if 'df' in files:
+                    del_tmp = True
+                    files['df'].to_csv('tmp_upload_file.csv', index=False)
+                    files['file'] = 'tmp_upload_file.csv'
+                    del files['df']
 
-                response = requests.put(self._host + '/api' + route, files=files, data=data)
+                with open(files['file'], 'rb') as fp:
+                    files['file'] = fp
+                    data = {}
+                    data['source_type'] = 'file'
 
-            if del_tmp:
-                os.remove('tmp_upload_file.csv')
+                    response = requests.put(self._host + '/api' + route, files=files, data=data)
+
+                if del_tmp:
+                    os.remove('tmp_upload_file.csv')
 
 
-        elif data is not None:
-            response = requests.put(self._host + '/api' + route, data=data, params=params)
-        elif json is not None:
-            response = requests.put(self._host + '/api' + route, json=json, params=params)
-        else:
-            response = requests.put(self._host + '/api' + route, params=params)
+        response = requests.put(self._host + '/api' + route, data=data, params=params, json=json, files=files)
 
         if response.status_code != 200:
             raise Exception(f'Error({response.status_code}) with message: {response.text} !')

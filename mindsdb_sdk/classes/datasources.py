@@ -1,4 +1,6 @@
 import time
+import os
+from tempfile import NamedTemporaryFile
 
 
 class DataSource():
@@ -8,13 +10,17 @@ class DataSource():
         self._analysis = None
 
     def get_info(self):
-        return self._proxy.get(f'/datasources/{self.name}')
+        try:
+            resp = self._proxy.get(f'/datasources/{self.name}')
+        except Exception:
+            return None
+        return resp
 
     @property
     def analysis(self, wait_seconds=360):
         if self._analysis is None:
             analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
-            for i in range(wait_seconds):
+            for _ in range(wait_seconds):
                 if 'status' in analysis and analysis['status'] == 'analyzing':
                     time.sleep(10)
                 analysis = self._proxy.get(f'/datasources/{self.name}/analyze')
@@ -68,14 +74,33 @@ class DataSources():
         and if source == <integration id>:
             * query
             + additional integration specific params (see docs in mindsdb)
+
+        UPDATE: the general or (single) datasource type is pandas.DataFrame
+        so only this type being handled in initial version
         '''
         files = {}
         data = {}
         for k in params:
-            if k in ['file', 'df']:
-                files[k] = params[k]
-            else:
+            if k not in ['file', 'df', 'source', 'source_type']:
                 data[k] = params[k]
-        if len(files) == 0:
+            else:
+                files[k] = params[k]
+
+        if not files:
             files = None
-        self._proxy.put(f'/datasources/{name}', files=files, data=data)
+            self._proxy.put(f'/datasources/{name}', files=files, data=data)
+            return
+
+        if 'df' in files:
+            with NamedTemporaryFile(mode='w+', newline='') as src_file:
+                files['df'].to_csv(path_or_buf=src_file, index=False)
+                src_file.flush()
+                src_file.seek(os.SEEK_SET)
+                files['file'] = (src_file.name.split('/')[-1], src_file, 'text/csv')
+
+                files['source_type'] = (None, 'file')
+                files['source'] = (None, src_file.name.split('/')[-1])
+                del files['df']
+
+                files['name'] = (None, name)
+                self._proxy.put(f'/datasources/{name}', files=files, data=data, params_processing=False)

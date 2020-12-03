@@ -1,6 +1,11 @@
 import os
 import pandas as pd
 
+from mindsdb_native import Predictor as NativePredictor
+from mindsdb_sdk.classes import proxy
+from mindsdb_sdk.classes import predictors
+
+
 def auto_ml_config(mode='native', connection_info=None):
     if mode == 'native':
         os.environ['MINDSDB_PANDAS_AUTOML_MODE'] = 'native'
@@ -12,12 +17,12 @@ def auto_ml_config(mode='native', connection_info=None):
             os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['user']
 
         if 'password' in connection_info:
-            os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['password']
+            os.environ['MINDSDB_PANDAS_AUTOML_PASSWORD'] = connection_info['password']
 
         if 'token' in connection_info:
-            os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['token']
+            os.environ['MINDSDB_PANDAS_AUTOML_TOKEN'] = connection_info['token']
     else:
-        raise Exeption(f'Invalid mode: {mode} for the pandas auto_ml accessor!')
+        raise Exception(f'Invalid mode: {mode} for the pandas auto_ml accessor!')
 
 
 
@@ -33,6 +38,8 @@ class AutoML:
             self.user = os.environ.get('MINDSDB_PANDAS_AUTOML_USER', None)
             self.password = os.environ.get('MINDSDB_PANDAS_AUTOML_PASSWORD', None)
             self.token = os.environ.get('MINDSDB_PANDAS_AUTOML_TOKEN', None)
+            self.proxy = proxy.Proxy(self.host, user=self.user, password=self.password, token=self.token)
+        self.predictor_class = predictors.Predictors(self.proxy) if self.mode == 'api' else NativePredictor
 
     @property
     def analysis(self):
@@ -41,32 +48,22 @@ class AutoML:
             if self._analysis is None:
                 self._analysis = analyse_dataset(self._df)
             return self._analysis
-        else:
-            raise Exception('API mode not supported for this call yet!')
+        raise Exception('API mode not supported for this call yet!')
 
     def learn(self, to_predict, name=None):
-        if self.mode == 'native':
-            from mindsdb_native import Predictor
 
-            if name is None:
-                name = str(pd.util.hash_pandas_object(self._df).sum())
+        if name is None:
+            name = str(pd.util.hash_pandas_object(self._df).sum())
+        self._predictor = self.predictor_class(name)
+        self._predictor.learn(from_data=self._df, to_predict=to_predict)
 
-            self._predictor = Predictor(name)
-            self._predictor.learn(from_data=self._df, to_predict=to_predict)
 
-            return name
+    def predict(self, name=None, when_data=None):
+
+        if name is not None:
+            predictor = self.predictor_class(name)
         else:
-            raise Exception('API mode not supported for this call yet!')
-
-
-    def predict(self, name=None):
-        if self.mode == 'native':
-            from mindsdb_native import Predictor
-            
-            if name is not None:
-                predictor = Predictor(name)
-            else:
-                predictor = self._predictor
+            predictor = self._predictor
+        if when_data is None:
             return predictor.predict(when_data=self._df)
-        else:
-            raise Exception('API mode not supported for this call yet!')
+        return predictor.predict(when_data=when_data)
