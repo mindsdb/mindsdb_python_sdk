@@ -2,6 +2,8 @@ import time
 import pandas as pd
 from pandas.util import hash_pandas_object
 from mindsdb_sdk.classes.datasources import DataSources, DataSource
+from mindsdb_sdk.helpers.net_helpers import sending_attempts
+from mindsdb_sdk.helpers.exceptions import PredictorException
 
 
 class Predictor():
@@ -17,11 +19,16 @@ class Predictor():
 
         return hash_pandas_object(data).sum()
 
+    @sending_attempts(exception_type=PredictorException)
     def get_info(self):
         return self._proxy.get(f'/predictors/{self.name}')
 
     def delete(self):
         self._proxy.delete(f'/predictors/{self.name}')
+
+    def wait_readiness(self):
+        while self.get_info()['status'] != 'complete':
+            time.sleep(3)
 
     def predict(self, when_data, args=None):
         self.get_info()
@@ -37,17 +44,8 @@ class Predictor():
             else:
                 raise Exception("unknown predict datasource")
 
-        to_raise = None
-        for _ in range(100):
-            try:
-                return self._proxy.post(url, json=json)
-            except Exception as e:
-                if "Resource temporarily unavailable" in str(e):
-                    to_raise = e
-                    time.sleep(1)
-                else:
-                    raise e
-        raise to_raise
+        self.wait_readiness()
+        return self._proxy.post(url, json=json)
 
     def learn(self, to_predict, from_data, args=None):
         if args is None:
@@ -76,14 +74,15 @@ class Predictors():
     def __init__(self, proxy):
         self._proxy = proxy
 
+    @sending_attempts(exception_type=PredictorException)
     def list_info(self):
         return self._proxy.get('/predictors')
 
     def  list_predictor(self):
-        return [Predictor(self._proxy, x['name']) for x in self._proxy.get('/predictors')]
+        return [Predictor(self._proxy, x['name']) for x in self.list_info()]
 
     def __getitem__(self, name):
-        predictors = (x['name'] for x in self._proxy.get('/predictors'))
+        predictors = (x['name'] for x in self.list_info())
         return Predictor(self._proxy, name) if name in predictors else None
 
     def __len__(self) -> int:

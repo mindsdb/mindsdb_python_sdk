@@ -1,6 +1,8 @@
 import time
 import os
 from tempfile import NamedTemporaryFile
+from mindsdb_sdk.helpers.net_helpers import sending_attempts
+from mindsdb_sdk.helpers.exceptions import DataSourceException
 
 
 class DataSource():
@@ -9,12 +11,9 @@ class DataSource():
         self.name = name
         self._analysis = None
 
+    @sending_attempts(exception_type=DataSourceException)
     def get_info(self):
-        try:
-            resp = self._proxy.get(f'/datasources/{self.name}')
-        except Exception:
-            return None
-        return resp
+        return self._proxy.get(f'/datasources/{self.name}')
 
     @property
     def analysis(self, wait_seconds=360):
@@ -47,11 +46,12 @@ class DataSources():
     def __init__(self, proxy):
         self._proxy = proxy
 
+    @sending_attempts(exception_type=DataSourceException)
     def list_info(self):
         return self._proxy.get('/datasources')
 
     def list_datasources(self):
-        return [DataSource(self._proxy, x['name']) for x in self._proxy.get('/datasources')]
+        return [DataSource(self._proxy, x['name']) for x in self.list_info()]
 
     def __getitem__(self, name):
         return DataSource(self._proxy, name)
@@ -91,16 +91,29 @@ class DataSources():
             self._proxy.put(f'/datasources/{name}', files=files, data=data)
             return
 
+        src_fd = None
         if 'df' in files:
-            with NamedTemporaryFile(mode='w+', newline='') as src_file:
-                files['df'].to_csv(path_or_buf=src_file, index=False)
-                src_file.flush()
-                src_file.seek(os.SEEK_SET)
-                files['file'] = (src_file.name.split('/')[-1], src_file, 'text/csv')
+            src_fd = NamedTemporaryFile(mode='w+', newline='')
+            files['df'].to_csv(path_or_buf=src_fd, index=False)
+            src_fd.flush()
+            src_fd.seek(os.SEEK_SET)
+            files['file'] = src_fd
+            del files['df']
+        if 'file' in files:
+            src = files['file']
+            if isinstance(src, str):
+                src_fd = open(src, 'r')
+            # check if it is a file-like object
+            elif hasattr(src, 'read'):
+                src_fd = src
+            else:
+                raise Exception(f"unknown type files['file']: {files['file']}")
 
-                files['source_type'] = (None, 'file')
-                files['source'] = (None, src_file.name.split('/')[-1])
-                del files['df']
+        with src_fd:
+            files['file'] = (src_fd.name.split('/')[-1], src_fd, 'text/csv')
 
-                files['name'] = (None, name)
-                self._proxy.put(f'/datasources/{name}', files=files, data=data, params_processing=False)
+            files['source_type'] = (None, 'file')
+            files['source'] = (None, src_fd.name.split('/')[-1])
+
+            files['name'] = (None, name)
+            self._proxy.put(f'/datasources/{name}', files=files, data=data, params_processing=False)

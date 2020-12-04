@@ -57,6 +57,8 @@ class AutoML:
         self._predictor = self.predictor_class(name)
         self._predictor.learn(from_data=self._df, to_predict=to_predict)
 
+        return name
+
 
     def predict(self, name=None, when_data=None):
 
