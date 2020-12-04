@@ -13,6 +13,7 @@ class TestAccessor(unittest.TestCase):
         )
         time.sleep(40)
 
+
     @classmethod
     def tearDownClass(cls):
         try:
@@ -25,10 +26,7 @@ class TestAccessor(unittest.TestCase):
             pass
         time.sleep(40)
 
-
-    def test_1_native_flow(self):
-        auto_ml_config(mode='native')
-
+    def flow_test_body(self, when=None):
         df = pd.DataFrame({
                 'x1': [x for x in range(100)]
                 ,'x2': [x*2 for x in range(100)]
@@ -51,17 +49,33 @@ class TestAccessor(unittest.TestCase):
         assert len(statistical_analysis) > 8
 
         # Predict from the test dataframe
-        for pred in test_df.auto_ml.predict(predictor_ref):
+        if when:
+            kwargs = {'when_data': when}
+        else:
+            kwargs = {'name': predictor_ref}
+        for pred in test_df.auto_ml.predict(**kwargs):
             assert 'y' in pred and pred['y'] is not None
 
-    def test_2_local_server_flow(self):
-        # @TOOD: Implement
-        return
+    def test_1_native_flow(self):
+        auto_ml_config(mode='native')
 
+        self.flow_test_body()
+
+    def test_2_local_server_flow(self):
+
+        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
+        return
         # We can swtich to using the API, for example on localhost, like this:
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
+        self.flow_test_body()
+
+    def test_3_local_server_flow_with_when_condition(self):
+        auto_ml_config(mode='api', connection_info={
+            'host': 'http://localhost:47334'
+        })
+        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
     def test_3_cloud_flow(self):
         # @TOOD: Implement
@@ -75,4 +89,4 @@ class TestAccessor(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
