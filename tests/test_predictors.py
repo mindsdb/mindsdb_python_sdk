@@ -58,11 +58,11 @@ class TestPredictors(unittest.TestCase):
             print('Predictor not done trainig, status: ', pred.get_info()['status'])
             time.sleep(3)
 
-        pred_arr = pred.predict(datasource={'theta3': 1})
+        pred_arr = pred.predict(when_data={'theta3': 1})
         self.assertTrue(len(pred_arr) == 1)
         self.assertTrue('y' in pred_arr[0])
         self.assertTrue(pred_arr[0]['y']['predicted_value'] is not None)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)
