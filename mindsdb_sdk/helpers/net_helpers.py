@@ -20,7 +20,7 @@ def sending_attempts(exception_type=Exception, attempts_number=3, delay=0.5):
                     time.sleep(delay)
             # Else executed if there was no loop breaks
             else:
-                raise exception_type(f"{type(to_raise): {to_raise}}") from to_raise  # noqa: pylint: disable=raising-bad-type
+                raise exception_type(f"{type(to_raise)}: {to_raise}") from to_raise  # noqa: pylint: disable=raising-bad-type
             return res
         return wrapper
     return decorator
