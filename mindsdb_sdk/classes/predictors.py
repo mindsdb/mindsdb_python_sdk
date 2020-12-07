@@ -3,7 +3,7 @@ import pandas as pd
 from pandas.util import hash_pandas_object
 from mindsdb_sdk.classes.datasources import DataSources, DataSource
 from mindsdb_sdk.helpers.net_helpers import sending_attempts
-from mindsdb_sdk.helpers.exceptions import PredictorException
+from mindsdb_sdk.helpers.exceptions import PredictorException, DataSourceException
 
 
 class Predictor():
@@ -55,7 +55,9 @@ class Predictor():
             datasource_name = f"{self.name}_datasource"
 
             datasource = DataSource(self._proxy, datasource_name)
-            if datasource.get_info() is None:
+            try:
+                datasource.get_info()
+            except DataSourceException:
                 datasources = DataSources(self._proxy)
                 datasources[datasource_name] = {'df': from_data}
 
