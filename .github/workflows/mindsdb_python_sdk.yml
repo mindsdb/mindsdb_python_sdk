@@ -26,14 +26,16 @@ jobs:
         pip install --no-cache-dir .
         pip install -r requirements.txt
         pip install mindsdb
-        python -m mindsdb &
-        sleep 20
     - name: Run tests
       run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
-          python test_datasources.py -v --no_backend_instance
-          python test_predictors.py -v --no_backend_instance
-          python test_pandas_accessor.py -v --no_backend_instance
+          echo -e "\n===============\ntest DataSources\n===============\n"
+          python test_datasources.py -v
+          echo -e "\n===============\ntest Predictors\n===============\n"
+          python test_predictors.py -v
+          echo -e "\n===============\ntest Accessor\n===============\n"
+          python test_pandas_accessor.py -v
           cd ..
       shell: bash
       env:
