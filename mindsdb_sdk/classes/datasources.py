@@ -54,7 +54,8 @@ class DataSources():
         return [DataSource(self._proxy, x['name']) for x in self.list_info()]
 
     def __getitem__(self, name):
-        return DataSource(self._proxy, name)
+        datasources = (x['name'] for x in self.list_info())
+        return DataSource(self._proxy, name) if name in datasources else None
 
     def __len__(self) -> int:
         return len(self.list_datasources())
