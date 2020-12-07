@@ -37,6 +37,7 @@ jobs:
           echo -e "\n===============\ntest Accessor\n===============\n"
           python test_pandas_accessor.py -v
           cd ..
+        fi
       shell: bash
       env:
         CHECK_FOR_UPDATES: False
