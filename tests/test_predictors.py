@@ -1,6 +1,7 @@
-import unittest
+import sys
 import os
 import os.path
+import unittest
 import time
 from mindsdb_sdk import SDK
 import pandas as pd
@@ -8,14 +9,17 @@ from subprocess import Popen
 
 
 class TestPredictors(unittest.TestCase):
+    start_backend = True
+
     @classmethod
     def setUpClass(cls):
-        cls.sp = Popen(
-            ['python', '-m', 'mindsdb', '--api', 'http'],
-            close_fds=True
-        )
-        time.sleep(40)
-        # Note: Assumes datasources test already ran for the sake of not having to upload stuff again
+        if cls.start_backend:
+            cls.sp = Popen(
+                ['python', '-m', 'mindsdb', '--api', 'http'],
+                close_fds=True
+            )
+            time.sleep(40)
+            # Note: Assumes datasources test already ran for the sake of not having to upload stuff again
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
         cls.predictors = cls.sdk.predictors
@@ -23,15 +27,16 @@ class TestPredictors(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            conns = psutil.net_connections()
-            pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
-            if len(pid) > 0:
-                os.kill(pid[0], 9)
-            cls.sp.kill()
-        except Exception:
-            pass
-        time.sleep(40)
+        if cls.start_backend:
+            try:
+                conns = psutil.net_connections()
+                pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
+                if len(pid) > 0:
+                    os.kill(pid[0], 9)
+                cls.sp.kill()
+            except Exception:
+                pass
+            time.sleep(40)
 
 
     def test_1_list_info(self):
@@ -65,4 +70,9 @@ class TestPredictors(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
+        # need to remove if from arg list
+        # mustn't provide it into unittest.main
+        sys.argv.pop()
+        TestPredictors.start_backend = False
     unittest.main(verbosity=2)
