@@ -18,7 +18,7 @@ class BaseAuthorizer:
 
 class CloudAuthorizer(BaseAuthorizer):
     def __init__(self, host, username, password, *args, **kwargs):
-        super.__init__(host, username, password, *args, **kwargs)
+        super().__init__(host, username, password, *args, **kwargs)
         self.base_url = self.host + '/cloud'
         self.token = self._get_api_token()
         self.instance_id = self._get_instance_id()
