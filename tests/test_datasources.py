@@ -50,8 +50,7 @@ class TestDatasources(unittest.TestCase):
         try:
             del datasources['test_2_file_datasource']
         except Exception as e:
-            print("in except", e)
-            print("after exception")
+            print(e)
 
         datasources['test_2_file_datasource'] = {'file': 'datasets/kin8nm.csv'}
         self.assertTrue(isinstance(datasources['test_2_file_datasource'].get_info(), dict))
