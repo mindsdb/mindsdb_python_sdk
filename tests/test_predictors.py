@@ -23,7 +23,7 @@ class TestPredictors(unittest.TestCase):
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
         cls.predictors = cls.sdk.predictors
-
+        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
 
     @classmethod
     def tearDownClass(cls):
@@ -51,7 +51,7 @@ class TestPredictors(unittest.TestCase):
             del self.predictors['test_predictors_1']
         except Exception as e:
             print(e)
-        self.predictors.learn('test_predictors_1', 'test_2_file_datasource', 'y', args={
+        self.predictors.learn('test_predictors_1', self.datasource_test_2_name, 'y', args={
             'stop_training_in_x_seconds': 30
         })
         pred = self.predictors['test_predictors_1']
