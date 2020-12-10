@@ -9,12 +9,15 @@ def for_status_raiser(func):
     is not 200"""
     def wrapper(*args, **kwargs):
         r = func(*args, **kwargs)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            raise Exception(f"Error with message: {r.text}") from e
         return r.json()
     return wrapper
 
 
-class Proxy(object):
+class Proxy:
 
     def __init__(self, host, user=None, password=None, token=None) -> None:
         self._host = host.rstrip('/')
@@ -33,10 +36,10 @@ class Proxy(object):
 
         print(1, route, json)
         return requests.post(self._host + '/api' + route,
-                             data=data,params=params,
+                             data=data,
+                             params=params,
                              json=json,
                              cookies=self._auth_cookies)
-
 
     @for_status_raiser
     def put(self, route, data=None, json=None, params=None, files=None, params_processing=True):
