@@ -106,7 +106,7 @@ class TestDatasources(unittest.TestCase):
 
     def analisys(self, datasources):
         # need to have a uniq name for each launch to avoid race condition in cloud
-        datasource_name = f'test_remote_analisys_{sys.platform}_python_sys.version.split(' ')[0]'
+        datasource_name = f"test_remote_analisys_{sys.platform}_python{sys.version.split(' ')[0]}"
         df = pd.DataFrame({
                 'z1': [x for x in range(100,110)]
                 ,'z2': [x*2 for x in range(100,110)]
