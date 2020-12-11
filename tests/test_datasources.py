@@ -54,11 +54,11 @@ class TestDatasources(unittest.TestCase):
         try:
             del datasources[self.datasource_test_2_name]
         except Exception as e:
-            print(e)
+            print(f"Attempting to delete {self.datasource_test_2_name} has finished with {e}")
 
         datasources[self.datasource_test_2_name] = {'file': 'datasets/kin8nm.csv'}
-        self.assertTrue(isinstance(datasources[self.datasource_test_2_name].get_info(), dict))
 
+        self.assertTrue(isinstance(datasources[self.datasource_test_2_name].get_info(), dict))
         self.assertTrue(len(datasources[self.datasource_test_2_name]) > 10)
 
 
@@ -72,13 +72,12 @@ class TestDatasources(unittest.TestCase):
         try:
             del datasources[self.datasource_test_3_name]
         except Exception as e:
-            print(e)
+            print(f"Attempting to delete {self.datasource_test_3_name} has finished with {e}")
 
         df = pd.read_csv('datasets/us_health_insurance.csv')
         datasources[self.datasource_test_3_name] = {'df': df}
 
         self.assertTrue(isinstance(datasources[self.datasource_test_3_name].get_info(),dict))
-
         self.assertTrue(len(datasources[self.datasource_test_3_name]) > 10)
 
     def test_3_df_as_csv_local(self):
@@ -110,7 +109,7 @@ class TestDatasources(unittest.TestCase):
         try:
             del datasources[datasource_name]
         except Exception as e:
-            print(e)
+            print(f"Attempting to delete {datasource_name} has finished with {e}")
 
         df = pd.DataFrame({
                 'z1': [x for x in range(100,110)]
