@@ -62,10 +62,19 @@ class TestAccessor(unittest.TestCase):
 
     def test_1_native_flow(self):
         auto_ml_config(mode='native')
-
         self.flow_test_body()
 
-    def test_2_local_server_flow(self):
+    def test_2_cloud_flow(self):
+
+        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
+        return
+        # We can swtich to using the API, for example on localhost, like this:
+        auto_ml_config(mode='api',
+                       connection_info={'host': 'https://cloud.mindsdb.com',
+                                        'user': 'george@cerebralab.com',
+                                        'password':'12345678'})
+        self.flow_test_body()
+    def test_2_local_flow(self):
 
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
         return
@@ -75,7 +84,7 @@ class TestAccessor(unittest.TestCase):
         })
         self.flow_test_body()
 
-    def test_3_local_server_flow_with_when_condition(self):
+    def test_3_local_flow_with_when_condition(self):
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
         return
         auto_ml_config(mode='api', connection_info={
@@ -83,15 +92,14 @@ class TestAccessor(unittest.TestCase):
         })
         self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
-    def test_3_cloud_flow(self):
-        # @TOOD: Implement
+    def test_3_cloud_flow_with_when_condition(self):
+        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
         return
-
-        auto_ml_config(mode='api', connection_info={
-            'host': 'cloud.mindsdb.com'
-            ,'user': 'george.hosu@mindsdb.com'
-            ,'password': 'my_secret password'
-        })
+        auto_ml_config(mode='api',
+                       connection_info={'host': 'https://cloud.mindsdb.com',
+                                        'user': 'george@cerebralab.com',
+                                        'password':'12345678'})
+        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
 
 if __name__ == '__main__':
