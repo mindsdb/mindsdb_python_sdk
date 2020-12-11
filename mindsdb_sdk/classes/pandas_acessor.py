@@ -12,6 +12,14 @@ def auto_ml_config(mode='native', connection_info=None):
     elif mode == 'api':
         os.environ['MINDSDB_PANDAS_AUTOML_MODE'] = 'api'
         os.environ['MINDSDB_PANDAS_AUTOML_HOST'] = connection_info['host']
+        # not gracefully but as temporary solution
+        # need to reset auth env for each instance with 'api' case
+        # to prevent collision
+        for env in ('MINDSDB_PANDAS_AUTOML_USER', 'MINDSDB_PANDAS_AUTOML_PASSWORD', 'MINDSDB_PANDAS_AUTOML_TOKEN'):
+            try:
+                del os.environ[env]
+            except KeyError:
+                pass
 
         if 'user' in connection_info:
             os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['user']
@@ -41,7 +49,6 @@ class AutoML:
             self.token = os.environ.get('MINDSDB_PANDAS_AUTOML_TOKEN', None)
             self.proxy = proxy.Proxy(self.host, user=self.user, password=self.password, token=self.token)
             self.remote_datasource_controller = datasources.DataSources(self.proxy)
-        if self.mode == 'api':
             self.predictor_class = predictors.Predictors(self.proxy)
         else:
             from mindsdb_native import Predictor as NativePredictor
