@@ -5,8 +5,19 @@ import os.path
 import time
 import json
 from subprocess import Popen
-import pandas as pd
+
 from mindsdb_sdk import SDK
+
+
+def get_integration_creds():
+    _var_name = 'DATABASE_CREDENTIALS_STRINGIFIED_JSON'
+    _var_value = os.getenv(_var_name)
+    if _var_value is None:
+        with open(os.path.join(os.path.expanduser("~"), '.mindsdb_credentials.json'), 'r') as fp:
+            _var_value = fp.read()
+    assert _var_value is not None, _var_name + ' ' + 'is not set'
+    return json.loads(_var_value)
+
 
 class TestDatasources(unittest.TestCase):
     start_backend = True
@@ -21,15 +32,15 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.integrations = cls.sdk.integrations
-        cls.cloud_sdk = SDK('https://cloud.mindsdb.com', user='george@cerebralab.com', password='12345678')
+        cls.cloud_sdk = SDK('https://cloud.mindsdb.com',
+                            user='george@cerebralab.com',
+                            password='12345678')
         cls.cloud_integrations = cls.cloud_sdk.integrations
 
         # need to have a uniq name for each launch to avoid race condition in cloud
         # mongo_darwin_python_3.8
         cls.integration_suffix = f"{sys.platform}_python{sys.version.split(' ')[0]}"
-        cls.integration_creds = None
-        with open(f'{os.path.expanduser("~")}/.mindsdb_credentials.json') as f:
-            cls.integration_creds = json.load(f)
+        cls.integration_creds = get_integration_creds()
 
     @classmethod
     def tearDownClass(cls):
