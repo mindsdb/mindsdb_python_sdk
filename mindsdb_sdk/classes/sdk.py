@@ -1,7 +1,7 @@
 from mindsdb_sdk.classes.proxy import Proxy
 from mindsdb_sdk.classes.datasources import DataSources
 from mindsdb_sdk.classes.predictors import Predictors
-from mindsdb_sdk.classes.config import Config
+from mindsdb_sdk.classes.intergrations import Integrations
 
 
 class SDK():
@@ -14,4 +14,4 @@ class SDK():
 
         self.datasources = DataSources(self.proxy)
         self.predictors = Predictors(self.proxy)
-        self.confg = Config(self.proxy)
+        self.integrations = Integrations(self.proxy)

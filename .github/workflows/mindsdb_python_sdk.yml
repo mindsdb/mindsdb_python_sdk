@@ -30,17 +30,20 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
+          echo -e "\n===============\ntest Integrations\n===============\n"
+          python test_integrations.py
           echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py -v
+          python test_datasources.py
           echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py -v
+          python test_predictors.py
           echo -e "\n===============\ntest Accessor\n===============\n"
-          python test_pandas_accessor.py -v
+          python test_pandas_accessor.py
           cd ..
         fi
       shell: bash
       env:
         CHECK_FOR_UPDATES: False
+        DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
 
   deploy:
     runs-on: ubuntu-latest

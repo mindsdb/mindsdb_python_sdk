@@ -98,4 +98,4 @@ if __name__ == '__main__':
         # mustn't provide it into unittest.main
         sys.argv.pop()
         TestPredictors.start_backend = False
-    unittest.main(verbosity=2)
+    unittest.main()

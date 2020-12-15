@@ -10,6 +10,10 @@ class DataSourceException(SDKException):
     pass
 
 
+class IntegrationException(SDKException):
+    pass
+
+
 class PredictorException(SDKException):
     pass
 
