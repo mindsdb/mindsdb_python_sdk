@@ -1,6 +1,6 @@
 __title__ = 'pd_auto_ml'
 __package_name__ = 'pd_auto_ml'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __description__ = "Pd auto_ml provides a pandas dataframe accessor to allow using dataframes with MindsDB (either the local native library or a local or remote mindsdb server)"
 __email__ = "jorge@mindsdb.com"
 __author__ = 'MindsDB Inc'
