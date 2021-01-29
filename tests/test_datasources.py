@@ -1,5 +1,5 @@
 import sys
-import os
+import time
 import pytest
 import pandas as pd
 from mindsdb_sdk import SDK
@@ -35,10 +35,11 @@ class TestDatasources:
             print(f"Attempting to delete {self.datasource_test_2_name} has finished with {e}")
 
         datasources[self.datasource_test_2_name] = {'file': 'datasets/kin8nm.csv'}
+        time.sleep(0.5)
+        ds = datasources[self.datasource_test_2_name]
 
-        assert isinstance(datasources[self.datasource_test_2_name].get_info(), dict)
-        assert len(datasources[self.datasource_test_2_name]) > 10
-
+        assert ds is not None and isinstance(ds.get_info(), dict)
+        assert len(ds) > 10
 
     @pytest.mark.parametrize("location",
                              ["local", "cloud"])
@@ -92,20 +93,16 @@ class TestDatasources:
             print(f"Attempting to delete {datasource_name} has finished with {e}")
 
         df = pd.DataFrame({
-                'z1': [x for x in range(100,110)]
+                'z1': [range(100,110)]
                 ,'z2': [x*2 for x in range(100,110)]
             })
         datasources[datasource_name] = {'df': df}
+        time.sleep(0.5)
 
-        assert isinstance(datasources[datasource_name].get_info(), dict)
+        ds = datasources[datasource_name]
+        assert ds is not None and isinstance(ds.get_info(), dict)
+        assert len(ds) > 10
 
-        assert len(datasources[datasource_name]) > 10
-
-        remote_datasource = datasources[datasource_name]
-        assert remote_datasource is not None
-
-        statistical_analysis = remote_datasource.analyze()
-        assert len(statistical_analysis) > 8
 
     @pytest.mark.parametrize("location",
                              ["local", "cloud"])
