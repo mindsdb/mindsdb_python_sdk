@@ -30,7 +30,7 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
-          pytest -sv test_datasources.py test_predictors.py test_pandas_accessor.py test_integrations.py
+          pytest -sv test_datasources.py test_predictors.py test_pandas_accessor.py
           cd ..
         fi
       shell: bash
