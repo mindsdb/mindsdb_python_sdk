@@ -124,7 +124,7 @@ class TestDatasources(unittest.TestCase):
         remote_datasource = datasources[datasource_name]
         self.assertTrue(remote_datasource is not None)
 
-        statistical_analysis = remote_datasource.analysis
+        statistical_analysis = remote_datasource.analyze()
         assert len(statistical_analysis) > 8
 
     def test_6_analisys_local(self):

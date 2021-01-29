@@ -17,13 +17,13 @@ class DataSource():
 
     @sending_attempts(exception_type=DataSourceException, delay=1)
     def _get_analyze_data(self):
-            return self._proxy.get(f'/datasources/{self.name}/analyze')
+        return self._proxy.get(f'/datasources/{self.name}/analyze')
 
-    @property
-    def analysis(self, wait_seconds=360):
+    def analyze(self, wait_seconds=360):
         if self._analysis is None:
+            threshold = time.time() + wait_seconds
             analysis = self._get_analyze_data()
-            for _ in range(wait_seconds):
+            while time.time() < threshold:
                 if 'status' in analysis and analysis['status'] == 'analyzing':
                     time.sleep(10)
                 analysis = self._get_analyze_data()
@@ -34,13 +34,13 @@ class DataSource():
         return self._analysis
 
     def __iter__(self):
-        return iter(list(self.analysis.keys()))
+        return iter(list(self.analyze().keys()))
 
     def __len__(self):
-        return len(list(self.analysis.keys()))
+        return len(list(self.analyze().keys()))
 
     def __getitem__(self, k):
-        return self.analysis[k]
+        return self.analyze()[k]
 
     def __delete__(self):
         self._proxy.delete(f'/datasources/{self.name}')
