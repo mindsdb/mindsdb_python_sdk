@@ -1,10 +1,8 @@
 import sys
-import unittest
 import os
 import os.path
-import time
 import json
-from subprocess import Popen
+import pytest
 
 from mindsdb_sdk import SDK
 
@@ -19,56 +17,30 @@ def get_integration_creds():
     return json.loads(_var_value)
 
 
-class TestDatasources(unittest.TestCase):
-    start_backend = True
+@pytest.mark.usefixtures("mindsdb")
+class TestDatasources:
+    sdk = SDK('http://localhost:47334')
+    integrations = sdk.integrations
+    cloud_sdk = SDK('https://cloud.mindsdb.com',
+                    user='george@cerebralab.com',
+                    password='12345678')
+    cloud_integrations = cloud_sdk.integrations
 
-    @classmethod
-    def setUpClass(cls):
-        if cls.start_backend:
-            cls.sp = Popen(
-                ['python', '-m', 'mindsdb', '--api', 'http'],
-                close_fds=True
-            )
-            time.sleep(40)
-        cls.sdk = SDK('http://localhost:47334')
-        cls.integrations = cls.sdk.integrations
-        cls.cloud_sdk = SDK('https://cloud.mindsdb.com',
-                            user='george@cerebralab.com',
-                            password='12345678')
-        cls.cloud_integrations = cls.cloud_sdk.integrations
+    # need to have a uniq name for each launch to avoid race condition in cloud
+    # mongo_darwin_python_3.8
+    integration_suffix = f"{sys.platform}_python{sys.version.split(' ')[0]}_{id(int)}"
+    integration_creds = get_integration_creds()
 
-        # need to have a uniq name for each launch to avoid race condition in cloud
-        # mongo_darwin_python_3.8
-        cls.integration_suffix = f"{sys.platform}_python{sys.version.split(' ')[0]}_{hash(os.uname())}"
-        cls.integration_creds = get_integration_creds()
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.start_backend:
-            try:
-                conns = psutil.net_connections()
-                pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
-                if len(pid) > 0:
-                    os.kill(pid[0], 9)
-                cls.sp.kill()
-            except Exception:
-                pass
-            time.sleep(40)
-
-    # def del_if_exist(self, integrations, integration_name):
-    #     if integration_name in integrations.list_integrations():
-    #         del integrations[integration_name]
-
-    def list_info(self, integrations):
+    @staticmethod
+    def list_info(integrations):
         intg_arr = integrations.list_integrations()
-        self.assertTrue(isinstance(intg_arr,list))
+        assert isinstance(intg_arr, list)
 
-    def test_1_list_info_local(self):
-        self.list_info(self.integrations)
-
-    def test_1_list_info_cloud(self):
-        self.list_info(self.cloud_integrations)
-
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_1_list_info(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.list_info(integrations)
 
     def add_integration(self, _type, integrations):
         origin_name = f"{_type}_{self.integration_suffix}"
@@ -81,13 +53,13 @@ class TestDatasources(unittest.TestCase):
         integration_params["type"] = _type
 
         integrations[origin_name] = {"params": integration_params}
-        self.assertTrue(isinstance(integrations[origin_name].get_info(), dict))
-        self.assertTrue(len(integrations[origin_name]) > 5)
+        assert isinstance(integrations[origin_name].get_info(), dict)
+        assert len(integrations[origin_name]) > 5
 
     def update_integration(self, _type, integrations, to_update=None):
         origin_name = f"{_type}_{self.integration_suffix}"
         integration = integrations[origin_name]
-        self.assertTrue(integration is not None)
+        assert integration is not None
         update_params = self.integration_creds[_type]
         update_params["type"] = _type
         # update only one field
@@ -98,16 +70,16 @@ class TestDatasources(unittest.TestCase):
 
         integration.update({"params": update_params})
 
-        self.assertTrue(not integration.get_info()["publish"])
+        assert not integration.get_info()["publish"]
         if to_update is not None:
             for k in to_update:
-                self.assertTrue(integration.get_info()[k] == to_update[k])
+                assert integration.get_info()[k] == to_update[k]
 
-    def test_2_add_clickhouse_local(self):
-        self.add_integration("clickhouse", self.integrations)
-
-    def test_2_clickhouse_cloud(self):
-        self.add_integration("clickhouse", self.cloud_integrations)
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_2_add_clickhouse(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.add_integration("clickhouse", integrations)
 
     # def test_3_update_clickhouse_local(self):
     #     self.update_integration("clickhouse", self.integrations)
@@ -115,11 +87,11 @@ class TestDatasources(unittest.TestCase):
     # def test_3_update_clickhouse_cloud(self):
     #     self.update_integration("clickhouse", self.cloud_integrations)
 
-    def test_4_add_mysql_local(self):
-        self.add_integration("mysql", self.integrations)
-
-    def test_4_add_myslq_cloud(self):
-        self.add_integration("mysql", self.cloud_integrations)
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_4_add_mysql(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.add_integration("mysql", integrations)
 
     # def test_5_update_mysql_local(self):
     #     self.update_integration("mysql", self.integrations)
@@ -127,11 +99,11 @@ class TestDatasources(unittest.TestCase):
     # def test_5_update_mysql_cloud(self):
     #     self.update_integration("mysql", self.cloud_integrations)
 
-    def test_6_add_mongo_local(self):
-        self.add_integration("mongodb", self.integrations)
-
-    def test_6_add_mongo_cloud(self):
-        self.add_integration("mongodb", self.cloud_integrations)
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_6_add_mongo(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.add_integration("mongodb", integrations)
 
     # def test_7_update_mongo_local(self):
     #     self.update_integration("mongodb", self.integrations)
@@ -139,11 +111,11 @@ class TestDatasources(unittest.TestCase):
     # def test_7_update_mongo_cloud(self):
     #     self.update_integration("mongodb", self.cloud_integrations)
 
-    def test_8_add_mariadb_local(self):
-        self.add_integration("mariadb", self.integrations)
-
-    def test_8_add_mariadb_cloud(self):
-        self.add_integration("mariadb", self.cloud_integrations)
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_8_add_mariadb_local(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.add_integration("mariadb", integrations)
 
     # def test_9_update_mariadb_local(self):
     #     self.update_integration("mariadb", self.integrations)
@@ -151,11 +123,11 @@ class TestDatasources(unittest.TestCase):
     # def test_9_update_mariadb_cloud(self):
     #     self.update_integration("mariadb", self.cloud_integrations)
 
-    def test_10_add_postgres_local(self):
-        self.add_integration("postgres", self.integrations)
-
-    def test_10_add_postgres_cloud(self):
-        self.add_integration("postgres", self.cloud_integrations)
+    @pytest.mark.parametrize("location",
+                             ["local", "cloud"])
+    def test_10_add_postgres(self, location):
+        integrations = self.integrations if location == 'local' else self.cloud_integrations
+        self.add_integration("postgres", integrations)
 
     # def test_11_update_postgres_local(self):
     #     self.update_integration("postgres", self.integrations)
@@ -174,11 +146,3 @@ class TestDatasources(unittest.TestCase):
 
     # def test_13_update_snowflake_cloud(self):
     #     self.update_integration("snowflake", self.cloud_integrations, to_update={'test': True})
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
-        # need to remove if from arg list
-        # mustn't provide it into unittest.main
-        sys.argv.pop()
-        TestDatasources.start_backend = False
-    unittest.main()

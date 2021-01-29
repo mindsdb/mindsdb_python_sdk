@@ -1,37 +1,13 @@
-import sys
-import unittest
-import time
-from subprocess import Popen
+import pytest
 import pandas as pd
 from mindsdb_sdk import AutoML, auto_ml_config
 
-class TestAccessor(unittest.TestCase):
-    start_backend = True
 
-    @classmethod
-    def setUpClass(cls):
-        if cls.start_backend:
-            cls.sp = Popen(
-                ['python', '-m', 'mindsdb', '--api', 'http'],
-                close_fds=True
-            )
-            time.sleep(40)
+@pytest.mark.usefixtures("mindsdb")
+class TestAccessor:
 
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.start_backend:
-            try:
-                conns = psutil.net_connections()
-                pid = [x.pid for x in conns if x.status == 'LISTEN' and x.laddr[1] == 47334 and x.pid is not None]
-                if len(pid) > 0:
-                    os.kill(pid[0], 9)
-                cls.sp.kill()
-            except Exception:
-                pass
-            time.sleep(40)
-
-    def flow_test_body(self, when=None):
+    @staticmethod
+    def flow_test_body(when=None):
         df = pd.DataFrame({
                 'x1': [x for x in range(100)]
                 ,'x2': [x*2 for x in range(100)]
@@ -100,12 +76,3 @@ class TestAccessor(unittest.TestCase):
                                         'user': 'george@cerebralab.com',
                                         'password':'12345678'})
         self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
-
-
-if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
-        # need to remove if from arg list
-        # mustn't provide it into unittest.main
-        sys.argv.pop()
-        TestAccessor.start_backend = False
-    unittest.main()
