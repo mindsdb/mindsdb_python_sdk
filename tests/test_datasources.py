@@ -93,7 +93,7 @@ class TestDatasources:
             print(f"Attempting to delete {datasource_name} has finished with {e}")
 
         df = pd.DataFrame({
-                'z1': [range(100,110)]
+                'z1': list(range(100,110))
                 ,'z2': [x*2 for x in range(100,110)]
             })
         datasources[datasource_name] = {'df': df}
