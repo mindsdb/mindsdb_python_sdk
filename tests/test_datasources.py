@@ -25,8 +25,8 @@ class TestDatasources(unittest.TestCase):
         cls.cloud_datasources = cls.cloud_sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud
         # test_2_file_datasource_darwin_python_3.8
-        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
-        cls.datasource_test_3_name = f"test_3_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
+        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
+        cls.datasource_test_3_name = f"test_3_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
 
     @classmethod
     def tearDownClass(cls):

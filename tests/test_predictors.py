@@ -29,8 +29,8 @@ class TestPredictors(unittest.TestCase):
         cls.cloud_predictors = cls.cloud_sdk.predictors
 
         # need to have a uniq resource name for each launch to avoid race condition in cloud
-        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
-        cls.predictor_test_1_name = f"test_predictor_1_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
+        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
+        cls.predictor_test_1_name = f"test_predictor_1_{sys.platform}_python{sys.version.split(' ')[0]}"
 
     @classmethod
     def tearDownClass(cls):
