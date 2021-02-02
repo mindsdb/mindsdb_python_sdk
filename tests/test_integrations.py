@@ -5,7 +5,7 @@ import os.path
 import time
 import json
 from subprocess import Popen
-
+import psutil
 from mindsdb_sdk import SDK
 
 
@@ -79,6 +79,8 @@ class TestDatasources(unittest.TestCase):
 
         integration_params = self.integration_creds[_type]
         integration_params["type"] = _type
+        integration_params["test"] = True
+        # integration_params["enabled"] = False
 
         integrations[origin_name] = {"params": integration_params}
         self.assertTrue(isinstance(integrations[origin_name].get_info(), dict))
@@ -106,8 +108,8 @@ class TestDatasources(unittest.TestCase):
     def test_2_add_clickhouse_local(self):
         self.add_integration("clickhouse", self.integrations)
 
-    def test_2_clickhouse_cloud(self):
-        self.add_integration("clickhouse", self.cloud_integrations)
+    # def test_2_clickhouse_cloud(self):
+    #     self.add_integration("clickhouse", self.cloud_integrations)
 
     # def test_3_update_clickhouse_local(self):
     #     self.update_integration("clickhouse", self.integrations)
@@ -118,8 +120,8 @@ class TestDatasources(unittest.TestCase):
     def test_4_add_mysql_local(self):
         self.add_integration("mysql", self.integrations)
 
-    def test_4_add_myslq_cloud(self):
-        self.add_integration("mysql", self.cloud_integrations)
+    # def test_4_add_myslq_cloud(self):
+    #     self.add_integration("mysql", self.cloud_integrations)
 
     # def test_5_update_mysql_local(self):
     #     self.update_integration("mysql", self.integrations)
@@ -130,8 +132,8 @@ class TestDatasources(unittest.TestCase):
     def test_6_add_mongo_local(self):
         self.add_integration("mongodb", self.integrations)
 
-    def test_6_add_mongo_cloud(self):
-        self.add_integration("mongodb", self.cloud_integrations)
+    # def test_6_add_mongo_cloud(self):
+    #     self.add_integration("mongodb", self.cloud_integrations)
 
     # def test_7_update_mongo_local(self):
     #     self.update_integration("mongodb", self.integrations)
@@ -142,8 +144,8 @@ class TestDatasources(unittest.TestCase):
     def test_8_add_mariadb_local(self):
         self.add_integration("mariadb", self.integrations)
 
-    def test_8_add_mariadb_cloud(self):
-        self.add_integration("mariadb", self.cloud_integrations)
+    # def test_8_add_mariadb_cloud(self):
+    #     self.add_integration("mariadb", self.cloud_integrations)
 
     # def test_9_update_mariadb_local(self):
     #     self.update_integration("mariadb", self.integrations)
@@ -154,8 +156,8 @@ class TestDatasources(unittest.TestCase):
     def test_10_add_postgres_local(self):
         self.add_integration("postgres", self.integrations)
 
-    def test_10_add_postgres_cloud(self):
-        self.add_integration("postgres", self.cloud_integrations)
+    # def test_10_add_postgres_cloud(self):
+    #     self.add_integration("postgres", self.cloud_integrations)
 
     # def test_11_update_postgres_local(self):
     #     self.update_integration("postgres", self.integrations)

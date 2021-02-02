@@ -4,6 +4,7 @@ import os.path
 import time
 import unittest
 from subprocess import Popen
+import psutil
 import pandas as pd
 from mindsdb_sdk import SDK
 
@@ -28,8 +29,8 @@ class TestPredictors(unittest.TestCase):
         cls.cloud_predictors = cls.cloud_sdk.predictors
 
         # need to have a uniq resource name for each launch to avoid race condition in cloud
-        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
-        cls.predictor_test_1_name = f"test_predictor_1_{sys.platform}_python{sys.version.split(' ')[0]}"
+        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
+        cls.predictor_test_1_name = f"test_predictor_1_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
 
     @classmethod
     def tearDownClass(cls):
@@ -55,8 +56,8 @@ class TestPredictors(unittest.TestCase):
     def test_1_list_info_local(self):
         self.list_info(self.predictors)
 
-    def test_1_list_info_cloud(self):
-        self.list_info(self.cloud_predictors)
+    # def test_1_list_info_cloud(self):
+    #     self.list_info(self.cloud_predictors)
 
     def train(self, predictors):
         try:
@@ -72,8 +73,8 @@ class TestPredictors(unittest.TestCase):
     def test_2_train_local(self):
         self.train(self.predictors)
 
-    def test_2_train_cloud(self):
-        self.train(self.cloud_predictors)
+    # def test_2_train_cloud(self):
+    #     self.train(self.cloud_predictors)
 
     def predict(self, predictors):
         pred = predictors[self.predictor_test_1_name]
@@ -89,8 +90,8 @@ class TestPredictors(unittest.TestCase):
     def test_3_predict_local(self):
         self.predict(self.predictors)
 
-    def test_3_predict_cloud(self):
-        self.predict(self.cloud_predictors)
+    # def test_3_predict_cloud(self):
+    #     self.predict(self.cloud_predictors)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":

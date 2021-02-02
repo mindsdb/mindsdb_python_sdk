@@ -4,6 +4,7 @@ import os
 import os.path
 import time
 from subprocess import Popen
+import psutil
 import pandas as pd
 from mindsdb_sdk import SDK
 
@@ -24,8 +25,8 @@ class TestDatasources(unittest.TestCase):
         cls.cloud_datasources = cls.cloud_sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud
         # test_2_file_datasource_darwin_python_3.8
-        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
-        cls.datasource_test_3_name = f"test_3_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
+        cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
+        cls.datasource_test_3_name = f"test_3_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}_{hash(int)}"
 
     @classmethod
     def tearDownClass(cls):
@@ -47,8 +48,8 @@ class TestDatasources(unittest.TestCase):
     def test_1_list_info_local(self):
         self.list_info(self.datasources)
 
-    def test_1_list_info_cloud(self):
-        self.list_info(self.cloud_datasources)
+    # def test_1_list_info_cloud(self):
+    #     self.list_info(self.cloud_datasources)
 
     def file_datasource(self, datasources):
         try:
@@ -65,8 +66,8 @@ class TestDatasources(unittest.TestCase):
     def test_2_file_datasource_local(self):
         self.file_datasource(self.datasources)
 
-    def test_2_file_datasource_cloud(self):
-        self.file_datasource(self.cloud_datasources)
+    # def test_2_file_datasource_cloud(self):
+    #     self.file_datasource(self.cloud_datasources)
 
     def df_as_csv(self, datasources):
         try:
@@ -83,8 +84,8 @@ class TestDatasources(unittest.TestCase):
     def test_3_df_as_csv_local(self):
         self.df_as_csv(self.datasources)
 
-    def test_3_df_as_csv_cloud(self):
-        self.df_as_csv(self.cloud_datasources)
+    # def test_3_df_as_csv_cloud(self):
+    #     self.df_as_csv(self.cloud_datasources)
 
     def check_list(self, datasources):
         for name in [self.datasource_test_2_name, self.datasource_test_3_name]:
@@ -94,14 +95,14 @@ class TestDatasources(unittest.TestCase):
     def test_4_list_local(self):
         self.check_list(self.datasources)
 
-    def test_4_list_cloud(self):
-        self.check_list(self.cloud_datasources)
+    # def test_4_list_cloud(self):
+    #     self.check_list(self.cloud_datasources)
 
     def test_5_len_local(self):
         self.assertTrue(len(self.datasources) >= 2)
 
-    def test_5_len_cloud(self):
-        self.assertTrue(len(self.cloud_datasources) >= 2)
+    # def test_5_len_cloud(self):
+    #     self.assertTrue(len(self.cloud_datasources) >= 2)
 
     def analisys(self, datasources):
         # need to have a uniq name for each launch to avoid race condition in cloud
@@ -130,8 +131,8 @@ class TestDatasources(unittest.TestCase):
     def test_6_analisys_local(self):
         self.analisys(self.datasources)
 
-    def test_6_analisys_cloud(self):
-        self.analisys(self.cloud_datasources)
+    # def test_6_analisys_cloud(self):
+    #     self.analisys(self.cloud_datasources)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
