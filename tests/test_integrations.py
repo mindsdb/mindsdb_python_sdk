@@ -5,7 +5,7 @@ import os.path
 import time
 import json
 from subprocess import Popen
-
+import psutil
 from mindsdb_sdk import SDK
 
 
@@ -39,7 +39,7 @@ class TestDatasources(unittest.TestCase):
 
         # need to have a uniq name for each launch to avoid race condition in cloud
         # mongo_darwin_python_3.8
-        cls.integration_suffix = f"{sys.platform}_python{sys.version.split(' ')[0]}"
+        cls.integration_suffix = f"{sys.platform}_python{sys.version.split(' ')[0]}_{hash(os.uname())}"
         cls.integration_creds = get_integration_creds()
 
     @classmethod
@@ -54,6 +54,10 @@ class TestDatasources(unittest.TestCase):
             except Exception:
                 pass
             time.sleep(40)
+
+    # def del_if_exist(self, integrations, integration_name):
+    #     if integration_name in integrations.list_integrations():
+    #         del integrations[integration_name]
 
     def list_info(self, integrations):
         intg_arr = integrations.list_integrations()
@@ -75,6 +79,8 @@ class TestDatasources(unittest.TestCase):
 
         integration_params = self.integration_creds[_type]
         integration_params["type"] = _type
+        integration_params["test"] = True
+        # integration_params["enabled"] = False
 
         integrations[origin_name] = {"params": integration_params}
         self.assertTrue(isinstance(integrations[origin_name].get_info(), dict))
@@ -102,74 +108,74 @@ class TestDatasources(unittest.TestCase):
     def test_2_add_clickhouse_local(self):
         self.add_integration("clickhouse", self.integrations)
 
-    def test_2_clickhouse_cloud(self):
-        self.add_integration("clickhouse", self.cloud_integrations)
+    # def test_2_clickhouse_cloud(self):
+    #     self.add_integration("clickhouse", self.cloud_integrations)
 
-    def test_3_update_clickhouse_local(self):
-        self.update_integration("clickhouse", self.integrations)
+    # def test_3_update_clickhouse_local(self):
+    #     self.update_integration("clickhouse", self.integrations)
 
-    def test_3_update_clickhouse_cloud(self):
-        self.update_integration("clickhouse", self.cloud_integrations)
+    # def test_3_update_clickhouse_cloud(self):
+    #     self.update_integration("clickhouse", self.cloud_integrations)
 
     def test_4_add_mysql_local(self):
         self.add_integration("mysql", self.integrations)
 
-    def test_4_add_myslq_cloud(self):
-        self.add_integration("mysql", self.cloud_integrations)
+    # def test_4_add_myslq_cloud(self):
+    #     self.add_integration("mysql", self.cloud_integrations)
 
-    def test_5_update_mysql_local(self):
-        self.update_integration("mysql", self.integrations)
+    # def test_5_update_mysql_local(self):
+    #     self.update_integration("mysql", self.integrations)
 
-    def test_5_update_mysql_cloud(self):
-        self.update_integration("mysql", self.cloud_integrations)
+    # def test_5_update_mysql_cloud(self):
+    #     self.update_integration("mysql", self.cloud_integrations)
 
     def test_6_add_mongo_local(self):
         self.add_integration("mongodb", self.integrations)
 
-    def test_6_add_mongo_cloud(self):
-        self.add_integration("mongodb", self.cloud_integrations)
+    # def test_6_add_mongo_cloud(self):
+    #     self.add_integration("mongodb", self.cloud_integrations)
 
-    def test_7_update_mongo_local(self):
-        self.update_integration("mongodb", self.integrations)
+    # def test_7_update_mongo_local(self):
+    #     self.update_integration("mongodb", self.integrations)
 
-    def test_7_update_mongo_cloud(self):
-        self.update_integration("mongodb", self.cloud_integrations)
+    # def test_7_update_mongo_cloud(self):
+    #     self.update_integration("mongodb", self.cloud_integrations)
 
     def test_8_add_mariadb_local(self):
         self.add_integration("mariadb", self.integrations)
 
-    def test_8_add_mariadb_cloud(self):
-        self.add_integration("mariadb", self.cloud_integrations)
+    # def test_8_add_mariadb_cloud(self):
+    #     self.add_integration("mariadb", self.cloud_integrations)
 
-    def test_9_update_mariadb_local(self):
-        self.update_integration("mariadb", self.integrations)
+    # def test_9_update_mariadb_local(self):
+    #     self.update_integration("mariadb", self.integrations)
 
-    def test_9_update_mariadb_cloud(self):
-        self.update_integration("mariadb", self.cloud_integrations)
+    # def test_9_update_mariadb_cloud(self):
+    #     self.update_integration("mariadb", self.cloud_integrations)
 
     def test_10_add_postgres_local(self):
         self.add_integration("postgres", self.integrations)
 
-    def test_10_add_postgres_cloud(self):
-        self.add_integration("postgres", self.cloud_integrations)
+    # def test_10_add_postgres_cloud(self):
+    #     self.add_integration("postgres", self.cloud_integrations)
 
-    def test_11_update_postgres_local(self):
-        self.update_integration("postgres", self.integrations)
+    # def test_11_update_postgres_local(self):
+    #     self.update_integration("postgres", self.integrations)
 
-    def test_11_update_postgres_cloud(self):
-        self.update_integration("postgres", self.cloud_integrations)
+    # def test_11_update_postgres_cloud(self):
+    #     self.update_integration("postgres", self.cloud_integrations)
 
-    def test_12_add_snowflake_local(self):
-        self.add_integration("snowflake", self.integrations)
+    # def test_12_add_snowflake_local(self):
+    #     self.add_integration("snowflake", self.integrations)
 
-    def test_12_add_snowflake_cloud(self):
-        self.add_integration("snowflake", self.cloud_integrations)
+    # def test_12_add_snowflake_cloud(self):
+    #     self.add_integration("snowflake", self.cloud_integrations)
 
-    def test_13_update_snowflake_local(self):
-        self.update_integration("snowflake", self.integrations, to_update={'test': True})
+    # def test_13_update_snowflake_local(self):
+    #     self.update_integration("snowflake", self.integrations, to_update={'test': True})
 
-    def test_13_update_snowflake_cloud(self):
-        self.update_integration("snowflake", self.cloud_integrations, to_update={'test': True})
+    # def test_13_update_snowflake_cloud(self):
+    #     self.update_integration("snowflake", self.cloud_integrations, to_update={'test': True})
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":

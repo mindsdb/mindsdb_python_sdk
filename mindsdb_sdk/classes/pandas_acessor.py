@@ -66,7 +66,7 @@ class AutoML:
             if datasource is None:
                 self.remote_datasource_controller[self._raw_name] = {'df': self._df}
                 datasource = self.remote_datasource_controller[self._raw_name]
-            self._analysis = datasource.analysis
+            self._analysis = datasource.analyze()
 
         return self._analysis
 

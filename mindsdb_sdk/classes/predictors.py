@@ -37,36 +37,31 @@ class Predictor():
             url = f'/predictors/{self.name}/predict'
 
         else:
-            data_hash = self._data_hash(when_data)
-            if data_hash in self.known_datasources:
-                json = {'data_source_name': self.known_datasources[data_hash]}
-                url = f'/predictors/{self.name}/predict_datasource'
-            else:
-                raise Exception("unknown predict datasource")
+            ds = self._check_datasource(when_data)
+            json = {'data_source_name': ds.name}
+            url = f'/predictors/{self.name}/predict_datasource'
 
         self.wait_readiness()
         return self._proxy.post(url, json=json)
 
+    def _check_datasource(self, df):
+        df_hash = self._data_hash(df)
+        name = f"datasource_{df_hash}"
+        datasource = DataSource(self._proxy, name)
+        try:
+            datasource.get_info()
+        except DataSourceException:
+            datasources = DataSources(self._proxy)
+            datasources[name] = {'df': df}
+        return datasource
+
     def learn(self, to_predict, from_data, args=None):
         if args is None:
             args = {}
-        datasource_hash = self._data_hash(from_data)
-        if datasource_hash not in self.known_datasources:
-            datasource_name = f"{self.name}_datasource"
-
-            datasource = DataSource(self._proxy, datasource_name)
-            try:
-                datasource.get_info()
-            except DataSourceException:
-                datasources = DataSources(self._proxy)
-                datasources[datasource_name] = {'df': from_data}
-
-            self.known_datasources[datasource_hash] = datasource_name
-        else:
-            datasource_name = self.known_datasources[datasource_hash]
+        ds = self._check_datasource(from_data)
 
         self._proxy.put(f'/predictors/{self.name}', json={
-            'data_source_name': datasource_name,
+            'data_source_name': ds.name,
             'kwargs': args,
             'to_predict': to_predict
         })

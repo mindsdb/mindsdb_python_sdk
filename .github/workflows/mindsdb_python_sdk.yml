@@ -30,14 +30,16 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
-          echo -e "\n===============\ntest Integrations\n===============\n"
-          python test_integrations.py
+          # echo -e "\n===============\ntest Integrations\n===============\n"
+          # python test_integrations.py
+          python -m mindsdb > /dev/null 2>&1 &
+          sleep 60
           echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py
+          python test_datasources.py -v --no_backend_instance
           echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py
+          python test_predictors.py -v --no_backend_instance
           echo -e "\n===============\ntest Accessor\n===============\n"
-          python test_pandas_accessor.py
+          python test_pandas_accessor.py -v --no_backend_instance
           cd ..
         fi
       shell: bash

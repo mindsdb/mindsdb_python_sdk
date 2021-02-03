@@ -1,9 +1,11 @@
 import sys
+import os
 import unittest
 import time
 from subprocess import Popen
 import pandas as pd
-from mindsdb_sdk import AutoML, auto_ml_config
+import psutil
+from mindsdb_sdk import auto_ml_config
 
 class TestAccessor(unittest.TestCase):
     start_backend = True
@@ -45,7 +47,7 @@ class TestAccessor(unittest.TestCase):
         assert len(predictions) == len(df)
 
         test_df = pd.DataFrame({
-                'x1': [x for x in range(100,110)]
+                'x1': list(range(100,110))
                 ,'x2': [x*2 for x in range(100,110)]
             })
 
@@ -77,7 +79,7 @@ class TestAccessor(unittest.TestCase):
     def test_2_local_flow(self):
 
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
+        # return
         # We can swtich to using the API, for example on localhost, like this:
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
@@ -86,7 +88,7 @@ class TestAccessor(unittest.TestCase):
 
     def test_3_local_flow_with_when_condition(self):
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
+        # return
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
