@@ -21,8 +21,8 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
-        cls.cloud_sdk = SDK('https://cloud.mindsdb.com', user='george@cerebralab.com', password='12345678')
-        cls.cloud_datasources = cls.cloud_sdk.datasources
+        # cls.cloud_sdk = SDK('https://cloud.mindsdb.com', user='george@cerebralab.com', password='12345678')
+        # cls.cloud_datasources = cls.cloud_sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud
         # test_2_file_datasource_darwin_python_3.8
         cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
