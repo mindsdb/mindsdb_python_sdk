@@ -80,7 +80,7 @@ class TestDatasources(unittest.TestCase):
         integration_params = self.integration_creds[_type]
         integration_params["type"] = _type
         integration_params["test"] = True
-        # integration_params["enabled"] = False
+        integration_params["publish"] = False
 
         integrations[origin_name] = {"params": integration_params}
         self.assertTrue(isinstance(integrations[origin_name].get_info(), dict))
@@ -94,13 +94,13 @@ class TestDatasources(unittest.TestCase):
         update_params["type"] = _type
         # update only one field
         # to make it private
-        update_params["enabled"] = False
+        update_params["publish"] = False
         if to_update is not None:
             update_params.update(to_update)
 
         integration.update({"params": update_params})
 
-        self.assertTrue(not integration.get_info()["publish"])
+        self.assertTrue(not integration.get_info()[""])
         if to_update is not None:
             for k in to_update:
                 self.assertTrue(integration.get_info()[k] == to_update[k])
