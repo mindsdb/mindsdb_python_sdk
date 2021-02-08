@@ -30,8 +30,8 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
-          # echo -e "\n===============\ntest Integrations\n===============\n"
-          # python test_integrations.py
+          echo -e "\n===============\ntest Integrations\n===============\n"
+          python test_integrations.py
           python -m mindsdb > /dev/null 2>&1 &
           sleep 60
           echo -e "\n===============\ntest DataSources\n===============\n"
