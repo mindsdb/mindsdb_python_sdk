@@ -22,20 +22,30 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip==20.2.4
         pip install --no-cache-dir .
         pip install -r requirements.txt
         pip install mindsdb
     - name: Run tests
       run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
-          python test_datasources.py
-          python test_predictors.py
-          python test_pandas_accessor.py
+          echo -e "\n===============\ntest Integrations\n===============\n"
+          python test_integrations.py
+          python -m mindsdb > /dev/null 2>&1 &
+          sleep 60
+          echo -e "\n===============\ntest DataSources\n===============\n"
+          python test_datasources.py -v --no_backend_instance
+          echo -e "\n===============\ntest Predictors\n===============\n"
+          python test_predictors.py -v --no_backend_instance
+          echo -e "\n===============\ntest Accessor\n===============\n"
+          python test_pandas_accessor.py -v --no_backend_instance
           cd ..
+        fi
       shell: bash
       env:
         CHECK_FOR_UPDATES: False
+        DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -49,7 +59,7 @@ jobs:
         python-version: '3.7'
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip==20.2.4
         pip install setuptools wheel twine
     - name: Build and publish
       env:
