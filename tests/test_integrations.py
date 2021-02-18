@@ -162,14 +162,14 @@ class TestDatasources(unittest.TestCase):
     # def test_11_update_postgres_cloud(self):
     #     self.update_integration("postgres", self.cloud_integrations)
 
-    # def test_12_add_snowflake_local(self):
-    #     self.add_integration("snowflake", self.integrations)
+    def test_12_add_snowflake_local(self):
+        self.add_integration("snowflake", self.integrations)
 
     # def test_12_add_snowflake_cloud(self):
     #     self.add_integration("snowflake", self.cloud_integrations)
 
-    # def test_13_update_snowflake_local(self):
-    #     self.update_integration("snowflake", self.integrations, to_update={'test': True})
+    def test_13_update_snowflake_local(self):
+        self.update_integration("snowflake", self.integrations, to_update={'test': True})
 
     # def test_13_update_snowflake_cloud(self):
     #     self.update_integration("snowflake", self.cloud_integrations, to_update={'test': True})
