@@ -3,12 +3,12 @@ It enables you to connect to a midnsDB server and use it in a similar way to min
 
 ## Install
 ```
-pip install mindsdb-client
+pip install mindsdb_sdk
 ```
 
-## example of usage
+## Example of usage
 ```
-from mindsdb_client import MindsDB
+from mindsdb_sdk import MindsDB
 
 # connect
 mdb = MindsDB(server='https://mindsdb.com', params={'email': 'test@email.com', 'password': 'secret'})
