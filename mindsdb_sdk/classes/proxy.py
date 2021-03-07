@@ -67,14 +67,15 @@ class Proxy:
                 if del_tmp:
                     os.remove('tmp_upload_file.csv')
 
+                return response
 
-        else:
-            response = self._authorizer('put',
-                                        self._host + '/api' + route,
-                                        data=data,
-                                        params=params,
-                                        json=json,
-                                        files=files)
+
+        response = self._authorizer('put',
+                                    self._host + '/api' + route,
+                                    data=data,
+                                    params=params,
+                                    json=json,
+                                    files=files)
 
 
         return response
