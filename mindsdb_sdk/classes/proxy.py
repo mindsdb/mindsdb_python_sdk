@@ -27,19 +27,17 @@ class Proxy:
             self._authorizer = authorizers.CloudAuthorizer(host, user, password, token=token)
         else:
             self._authorizer = authorizers.BaseAuthorizer(host, user, password, token=token)
-        self._auth_cookies = self._authorizer.auth_cookies
 
     @for_status_raiser
     def post(self, route, data=None, json=None, params=None):
         if params is None:
             params = {}
 
-        print(1, route, json)
-        return requests.post(self._host + '/api' + route,
-                             data=data,
-                             params=params,
-                             json=json,
-                             cookies=self._auth_cookies)
+        return self._authorizer('post',
+                                self._host + '/api' + route,
+                                data=data,
+                                params=params,
+                                json=json)
 
     @for_status_raiser
     def put(self, route, data=None, json=None, params=None, files=None, params_processing=True):
@@ -61,21 +59,22 @@ class Proxy:
                     data = {}
                     data['source_type'] = 'file'
 
-                    response = requests.put(self._host + '/api' + route,
-                                            files=files,
-                                            data=data,
-                                            cookies=self._auth_cookies)
+                    response = self._authorizer('put',
+                                                self._host + '/api' + route,
+                                                files=files,
+                                                data=data)
 
                 if del_tmp:
                     os.remove('tmp_upload_file.csv')
 
 
-        response = requests.put(self._host + '/api' + route,
-                                data=data,
-                                params=params,
-                                json=json,
-                                files=files,
-                                cookies=self._auth_cookies)
+        else:
+            response = self._authorizer('put',
+                                        self._host + '/api' + route,
+                                        data=data,
+                                        params=params,
+                                        json=json,
+                                        files=files)
 
 
         return response
@@ -85,9 +84,9 @@ class Proxy:
         if params is None:
             params = {}
 
-        return requests.get(self._host + '/api' + route,
-                            params=params,
-                            cookies=self._auth_cookies)
+        return self._authorizer('get',
+                                self._host + '/api' + route,
+                                params=params)
 
 
     @for_status_raiser
@@ -95,9 +94,9 @@ class Proxy:
         if params is None:
             params = {}
 
-        return  requests.delete(self._host + '/api' + route,
-                                params=params,
-                                cookies=self._auth_cookies)
+        return self._authorizer('delete',
+                                self._host + '/api' + route,
+                                params=params)
 
 
     def ping(self):
