@@ -15,3 +15,7 @@ class SDK():
         self.datasources = DataSources(self.proxy)
         self.predictors = Predictors(self.proxy)
         self.integrations = Integrations(self.proxy)
+
+    def ping():
+        res = self._proxy.get(f'/datasources/{self.name}/analyze')
+        return res.status_code == 200

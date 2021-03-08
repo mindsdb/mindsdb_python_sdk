@@ -43,5 +43,7 @@ class UrlTokenAuthorizer(BaseAuthorizer):
         self.token = url_token
 
     def __call__(self, req_type, url,  **kwargs):
-        kwargs['apikey'] = self.token
+        params = kwargs.get('params', {})
+        params['apikey'] = self.token
+        kwargs['params'] = params
         return getattr(requests, req_type)(url, **kwargs)
