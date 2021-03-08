@@ -16,5 +16,5 @@ class SDK():
         self.predictors = Predictors(self.proxy)
         self.integrations = Integrations(self.proxy)
 
-    def ping():
+    def ping(self):
         return self._proxy.ping()
