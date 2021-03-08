@@ -45,6 +45,10 @@ class TestDatasources(unittest.TestCase):
         ds_arr = datasources.list_info()
         self.assertTrue(isinstance(ds_arr,list))
 
+    def test_0_ping(self):
+        online = self.sdk.ping()
+        self.assertTrue(online)
+
     def test_1_list_info_local(self):
         self.list_info(self.datasources)
 

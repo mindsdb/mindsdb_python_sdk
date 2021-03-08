@@ -5,8 +5,8 @@ from mindsdb_sdk.classes.intergrations import Integrations
 
 
 class SDK():
-    def __init__(self, host, user=None, password=None, token=None):
-        self.proxy = Proxy(host, user, password, token)
+    def __init__(self, host, user=None, password=None, token=None, url_token=None):
+        self.proxy = Proxy(host, user, password, token, url_token)
         if self.proxy.ping():
             print(f'Connected to mindsdb host: {host} !')
         else:
@@ -15,3 +15,6 @@ class SDK():
         self.datasources = DataSources(self.proxy)
         self.predictors = Predictors(self.proxy)
         self.integrations = Integrations(self.proxy)
+
+    def ping(self):
+        return self.proxy.ping()
