@@ -8,13 +8,6 @@ class BaseAuthorizer:
         self.password = password
         self.token = kwargs.get('token', None)
 
-    @property
-    def auth_cookies(self):
-        cookies = {}
-        if self.token:
-            cookies.update({'apiKey': self.token})
-        return cookies
-
     def __call__(self, req_type, url,  **kwargs):
         return getattr(requests, req_type)(url, **kwargs)
 
@@ -43,3 +36,12 @@ class CloudAuthorizer(BaseAuthorizer):
         kwargs['cookies'] = self.auth_cookies
         return getattr(requests, req_type)(url, **kwargs)
 
+
+class UrlTokenAuthorizer(BaseAuthorizer):
+    def __init__(self, host, username, password, url_token):
+        super().__init__(host, username, password)
+        self.token = url_token
+
+    def __call__(self, req_type, url,  **kwargs):
+        kwargs['apikey'] = self.token
+        return getattr(requests, req_type)(url, **kwargs)

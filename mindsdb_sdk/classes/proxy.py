@@ -19,11 +19,13 @@ def for_status_raiser(func):
 
 class Proxy:
 
-    def __init__(self, host, user=None, password=None, token=None) -> None:
+    def __init__(self, host, user=None, password=None, token=None, url_token=None):
         self._host = host.rstrip('/')
         self._apikey = None
 
-        if (user is not None and password is not None) or token is not None:
+        if url_token is not None:
+            self._authorizer = authorizers.UrlTokenAuthorizer(host, user, password, url_token)
+        elif (user is not None and password is not None) or token is not None:
             self._authorizer = authorizers.CloudAuthorizer(host, user, password, token=token)
         else:
             self._authorizer = authorizers.BaseAuthorizer(host, user, password, token=token)
