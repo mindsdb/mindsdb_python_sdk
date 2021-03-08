@@ -17,5 +17,4 @@ class SDK():
         self.integrations = Integrations(self.proxy)
 
     def ping():
-        res = self._proxy.get(f'/datasources/{self.name}/analyze')
-        return res.status_code == 200
+        return self._proxy.ping()

@@ -9,7 +9,7 @@ import pandas as pd
 from mindsdb_sdk import SDK
 
 class TestDatasources(unittest.TestCase):
-    start_backend = False
+    start_backend = True
 
     @classmethod
     def setUpClass(cls):
@@ -48,8 +48,6 @@ class TestDatasources(unittest.TestCase):
     def test_0_ping(self):
         online = self.sdk.ping()
         self.assertTrue(online)
-        print('\n\n\n')
-        exit()
 
     def test_1_list_info_local(self):
         self.list_info(self.datasources)
