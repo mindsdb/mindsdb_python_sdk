@@ -23,6 +23,11 @@ predictor = mdb.predictors.learn(
     to_predict=['rental_price']
 )
 
+# waiting when learning will finished
+while predictor.get_info()['status'] != 'complete':
+    print("training process is still in progress")
+    time.sleep(10)
+
 # predict
 result = predictor.predict({'number_of_rooms': '2','number_of_bathrooms': '1', 'sqft': '1190'})
 ```
