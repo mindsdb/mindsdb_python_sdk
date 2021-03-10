@@ -7,6 +7,7 @@ import json
 from subprocess import Popen
 import psutil
 from mindsdb_sdk import SDK
+from common import generate_credentials
 
 
 def get_integration_creds():
@@ -32,10 +33,10 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.integrations = cls.sdk.integrations
-        # cls.cloud_sdk = SDK('https://cloud.mindsdb.com',
-        #                     user='george@cerebralab.com',
-        #                     password='12345678')
-        # cls.cloud_integrations = cls.cloud_sdk.integrations
+        cloud_host = "https://clouda.mindsdb.com"
+        cloud_user, cloud_pass = generate_credentials(cloud_host)
+        cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
+        cls.cloud_integrations = cls.cloud_sdk.integrations
 
         # need to have a uniq name for each launch to avoid race condition in cloud
         # mongo_darwin_python_3.8
@@ -55,10 +56,6 @@ class TestDatasources(unittest.TestCase):
                 pass
             time.sleep(40)
 
-    # def del_if_exist(self, integrations, integration_name):
-    #     if integration_name in integrations.list_integrations():
-    #         del integrations[integration_name]
-
     def list_info(self, integrations):
         intg_arr = integrations.list_integrations()
         self.assertTrue(isinstance(intg_arr,list))
@@ -66,8 +63,8 @@ class TestDatasources(unittest.TestCase):
     def test_1_list_info_local(self):
         self.list_info(self.integrations)
 
-    # def test_1_list_info_cloud(self):
-    #     self.list_info(self.cloud_integrations)
+    def test_1_list_info_cloud(self):
+        self.list_info(self.cloud_integrations)
 
 
     def add_integration(self, _type, integrations):

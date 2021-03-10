@@ -7,6 +7,7 @@ from subprocess import Popen
 import psutil
 import pandas as pd
 from mindsdb_sdk import SDK
+from common import generate_credentials
 
 class TestDatasources(unittest.TestCase):
     start_backend = True
@@ -21,8 +22,10 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
-        # cls.cloud_sdk = SDK('https://cloud.mindsdb.com', user='george@cerebralab.com', password='12345678')
-        # cls.cloud_datasources = cls.cloud_sdk.datasources
+        cloud_host = "https://clouda.mindsdb.com"
+        cloud_user, cloud_pass = generate_credentials(cloud_host)
+        cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
+        cls.cloud_datasources = cls.cloud_sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud
         # test_2_file_datasource_darwin_python_3.8
         cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
@@ -52,8 +55,8 @@ class TestDatasources(unittest.TestCase):
     def test_1_list_info_local(self):
         self.list_info(self.datasources)
 
-    # def test_1_list_info_cloud(self):
-    #     self.list_info(self.cloud_datasources)
+    def test_1_list_info_cloud(self):
+        self.list_info(self.cloud_datasources)
 
     def file_datasource(self, datasources):
         try:
@@ -70,8 +73,8 @@ class TestDatasources(unittest.TestCase):
     def test_2_file_datasource_local(self):
         self.file_datasource(self.datasources)
 
-    # def test_2_file_datasource_cloud(self):
-    #     self.file_datasource(self.cloud_datasources)
+    def test_2_file_datasource_cloud(self):
+        self.file_datasource(self.cloud_datasources)
 
     def df_as_csv(self, datasources):
         try:
@@ -88,8 +91,8 @@ class TestDatasources(unittest.TestCase):
     def test_3_df_as_csv_local(self):
         self.df_as_csv(self.datasources)
 
-    # def test_3_df_as_csv_cloud(self):
-    #     self.df_as_csv(self.cloud_datasources)
+    def test_3_df_as_csv_cloud(self):
+        self.df_as_csv(self.cloud_datasources)
 
     def check_list(self, datasources):
         for name in [self.datasource_test_2_name, self.datasource_test_3_name]:
@@ -99,14 +102,14 @@ class TestDatasources(unittest.TestCase):
     def test_4_list_local(self):
         self.check_list(self.datasources)
 
-    # def test_4_list_cloud(self):
-    #     self.check_list(self.cloud_datasources)
+    def test_4_list_cloud(self):
+        self.check_list(self.cloud_datasources)
 
     def test_5_len_local(self):
         self.assertTrue(len(self.datasources) >= 2)
 
-    # def test_5_len_cloud(self):
-    #     self.assertTrue(len(self.cloud_datasources) >= 2)
+    def test_5_len_cloud(self):
+        self.assertTrue(len(self.cloud_datasources) >= 2)
 
     def analisys(self, datasources):
         # need to have a uniq name for each launch to avoid race condition in cloud
@@ -135,8 +138,8 @@ class TestDatasources(unittest.TestCase):
     def test_6_analisys_local(self):
         self.analisys(self.datasources)
 
-    # def test_6_analisys_cloud(self):
-    #     self.analisys(self.cloud_datasources)
+    def test_6_analisys_cloud(self):
+        self.analisys(self.cloud_datasources)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
