@@ -7,7 +7,8 @@ from subprocess import Popen
 import psutil
 import pandas as pd
 from mindsdb_sdk import SDK
-from common import generate_credentials
+
+import common
 
 class TestDatasources(unittest.TestCase):
     start_backend = True
@@ -22,8 +23,8 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
-        cloud_host = "https://clouda.mindsdb.com"
-        cloud_user, cloud_pass = generate_credentials(cloud_host)
+        cloud_host = common.CLOUD_HOST
+        cloud_user, cloud_pass = common.generate_credentials(cloud_host)
         cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
         cls.cloud_datasources = cls.cloud_sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud

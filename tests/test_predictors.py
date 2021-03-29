@@ -8,6 +8,7 @@ import psutil
 import pandas as pd
 from mindsdb_sdk import SDK
 
+import common
 
 class TestPredictors(unittest.TestCase):
     start_backend = True
@@ -24,9 +25,11 @@ class TestPredictors(unittest.TestCase):
         cls.sdk = SDK('http://localhost:47334')
         cls.datasources = cls.sdk.datasources
         cls.predictors = cls.sdk.predictors
-        # cls.cloud_sdk = SDK('https://cloud.mindsdb.com', user='george@cerebralab.com', password='12345678')
-        # cls.cloud_datasources = cls.cloud_sdk.datasources
-        # cls.cloud_predictors = cls.cloud_sdk.predictors
+        cloud_host = common.CLOUD_HOST
+        cloud_user, cloud_pass = common.generate_credentials(cloud_host)
+        cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
+        cls.cloud_datasources = cls.cloud_sdk.datasources
+        cls.cloud_predictors = cls.cloud_sdk.predictors
 
         # need to have a uniq resource name for each launch to avoid race condition in cloud
         cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
@@ -56,8 +59,8 @@ class TestPredictors(unittest.TestCase):
     def test_1_list_info_local(self):
         self.list_info(self.predictors)
 
-    # def test_1_list_info_cloud(self):
-    #     self.list_info(self.cloud_predictors)
+    def test_1_list_info_cloud(self):
+        self.list_info(self.cloud_predictors)
 
     def train(self, predictors):
         try:
@@ -73,8 +76,8 @@ class TestPredictors(unittest.TestCase):
     def test_2_train_local(self):
         self.train(self.predictors)
 
-    # def test_2_train_cloud(self):
-    #     self.train(self.cloud_predictors)
+    def test_2_train_cloud(self):
+        self.train(self.cloud_predictors)
 
     def predict(self, predictors):
         pred = predictors[self.predictor_test_1_name]
@@ -90,8 +93,8 @@ class TestPredictors(unittest.TestCase):
     def test_3_predict_local(self):
         self.predict(self.predictors)
 
-    # def test_3_predict_cloud(self):
-    #     self.predict(self.cloud_predictors)
+    def test_3_predict_cloud(self):
+        self.predict(self.cloud_predictors)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":

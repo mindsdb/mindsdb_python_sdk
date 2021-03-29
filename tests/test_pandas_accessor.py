@@ -6,12 +6,15 @@ from subprocess import Popen
 import pandas as pd
 import psutil
 from mindsdb_sdk import auto_ml_config
+import common
 
 class TestAccessor(unittest.TestCase):
     start_backend = True
 
     @classmethod
     def setUpClass(cls):
+        cls.cloud_host = common.CLOUD_HOST
+        cls.cloud_user, cls.cloud_pass = common.generate_credentials(cls.cloud_host)
         if cls.start_backend:
             cls.sp = Popen(
                 ['python', '-m', 'mindsdb', '--api', 'http'],
@@ -69,12 +72,12 @@ class TestAccessor(unittest.TestCase):
     def test_2_cloud_flow(self):
 
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
+        # return
         # We can swtich to using the API, for example on localhost, like this:
         auto_ml_config(mode='api',
-                       connection_info={'host': 'https://cloud.mindsdb.com',
-                                        'user': 'george@cerebralab.com',
-                                        'password':'12345678'})
+                       connection_info={'host': self.cloud_host,
+                                        'user': self.cloud_user,
+                                        'password': self.cloud_pass})
         self.flow_test_body()
     def test_2_local_flow(self):
 
@@ -96,11 +99,11 @@ class TestAccessor(unittest.TestCase):
 
     def test_3_cloud_flow_with_when_condition(self):
         # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
+        # return
         auto_ml_config(mode='api',
-                       connection_info={'host': 'https://cloud.mindsdb.com',
-                                        'user': 'george@cerebralab.com',
-                                        'password':'12345678'})
+                       connection_info={'host': self.cloud_host,
+                                        'user': self.cloud_user,
+                                        'password': self.cloud_pass})
         self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
 

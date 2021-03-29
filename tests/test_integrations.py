@@ -7,7 +7,7 @@ import json
 from subprocess import Popen
 import psutil
 from mindsdb_sdk import SDK
-from common import generate_credentials
+import common
 
 
 def get_integration_creds():
@@ -33,8 +33,8 @@ class TestDatasources(unittest.TestCase):
             time.sleep(40)
         cls.sdk = SDK('http://localhost:47334')
         cls.integrations = cls.sdk.integrations
-        cloud_host = "https://clouda.mindsdb.com"
-        cloud_user, cloud_pass = generate_credentials(cloud_host)
+        cloud_host = common.CLOUD_HOST
+        cloud_user, cloud_pass = common.generate_credentials(cloud_host)
         cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
         cls.cloud_integrations = cls.cloud_sdk.integrations
 
