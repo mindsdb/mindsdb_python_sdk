@@ -4,8 +4,6 @@ import requests
 
 
 CLOUD_HOST = "https://stockholm_0_http.mindsdb.com/"
-CLOUD_USER = "test@mindsdb.com"
-CLOUD_PASSWORD = "footest"
 
 def register_user(host, email, password, timeout=2400):
     invitation_code = os.getenv("CLOUD_INVITE_CODE", None)
@@ -38,13 +36,11 @@ def doit_once(func):
         if not os.path.exists(creds_path):
             user, password = func(host)
             register_user(host, user, password)
-            print(f"registering '{user}/{password}'")
             with open(creds_path, "w") as f:
                 f.writelines([user+'\n', password+'\n'])
         else:
             with open(creds_path, "r") as f:
                 user, password = f.readlines()
-                print(f"reading '{user}/{password}' from credentials.txt")
         return user.rstrip(), password.rstrip()
     return wrapper
 

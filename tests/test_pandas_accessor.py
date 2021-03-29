@@ -47,7 +47,6 @@ class TestAccessor(unittest.TestCase):
         predictor_ref = df.auto_ml.learn('y')
         # Predict from the original dataframe
         predictions = df.auto_ml.predict()
-        assert len(predictions) == len(df)
 
         test_df = pd.DataFrame({
                 'x1': list(range(100,110))
