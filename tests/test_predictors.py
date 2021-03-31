@@ -70,7 +70,17 @@ class TestPredictors(unittest.TestCase):
         self.assertTrue('status' in pred.get_info())
 
     def predict(self, predictors):
-        pred = predictors[self.predictor_test_1_name]
+        limit = 600
+        threshold = time.time() + limit
+
+        while time.time() < threshold:
+            pred = predictors[self.predictor_test_1_name]
+            if pred is not None:
+                break
+        else:
+            self.assertTrue(pred is not None,
+                            f"could't access '{self.predictor_test_1_name}' in {limit} seconds")
+
         while pred.get_info()['status'] != 'complete':
             print('Predictor not done trainig, status: ', pred.get_info()['status'])
             time.sleep(3)
