@@ -3,6 +3,7 @@ import time
 import requests
 
 
+ENV = os.getenv('TEST_ENV', 'all')
 CLOUD_HOST = "https://stockholm_0_http.mindsdb.com/"
 
 def register_user(host, email, password, timeout=2400):
