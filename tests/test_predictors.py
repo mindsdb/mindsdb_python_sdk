@@ -58,6 +58,18 @@ class TestPredictors(unittest.TestCase):
         pred_arr = predictors.list_predictor()
         self.assertTrue(isinstance(pred_arr,list))
 
+    def wait_predictor(self, predictors, predictor_name, waiting_limit=600):
+        threshold = time.time() + waiting_limit
+
+        while time.time() < threshold:
+            pred = predictors[predictor_name]
+            if pred is not None:
+                break
+        else:
+            self.assertTrue(pred is not None,
+                            f"could't access '{predictor_name}' in {waiting_limit} seconds")
+        return pred
+
     def train(self, predictors):
         try:
             del predictors[self.predictor_test_1_name]
@@ -66,21 +78,11 @@ class TestPredictors(unittest.TestCase):
         predictors.learn(self.predictor_test_1_name, self.datasource_test_2_name, 'y', args={
             'stop_training_in_x_seconds': 30
         })
-        pred = predictors[self.predictor_test_1_name]
+        pred = self.wait_predictor(predictors, self.predictor_test_1_name)
         self.assertTrue('status' in pred.get_info())
 
     def predict(self, predictors):
-        limit = 600
-        threshold = time.time() + limit
-
-        while time.time() < threshold:
-            pred = predictors[self.predictor_test_1_name]
-            if pred is not None:
-                break
-        else:
-            self.assertTrue(pred is not None,
-                            f"could't access '{self.predictor_test_1_name}' in {limit} seconds")
-
+        pred = self.wait_predictor(predictors, self.predictor_test_1_name)
         while pred.get_info()['status'] != 'complete':
             print('Predictor not done trainig, status: ', pred.get_info()['status'])
             time.sleep(3)
