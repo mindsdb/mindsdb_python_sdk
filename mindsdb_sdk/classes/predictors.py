@@ -19,7 +19,7 @@ class Predictor():
 
         return hash_pandas_object(data).sum()
 
-    @sending_attempts(exception_type=PredictorException)
+    @sending_attempts(exception_type=PredictorException, attempts_number=60, delay=10)
     def get_info(self):
         return self._proxy.get(f'/predictors/{self.name}')
 
