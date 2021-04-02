@@ -70,21 +70,21 @@ class TestAccessor(unittest.TestCase):
         auto_ml_config(mode='native')
         self.flow_test_body()
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
+    @unittest.skipIf(common.ENV == 'cloud', "launched for local")
     def test_2_local_flow(self):
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
         self.flow_test_body()
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
+    @unittest.skipIf(common.ENV == 'cloud', "launched for local")
     def test_3_local_flow_with_when_condition(self):
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
         self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
+    @unittest.skipIf(common.ENV == 'local', "launched for cloud")
     def test_2_cloud_flow(self):
         auto_ml_config(mode='api',
                        connection_info={'host': self.cloud_host,
@@ -92,7 +92,7 @@ class TestAccessor(unittest.TestCase):
                                         'password': self.cloud_pass})
         self.flow_test_body()
 
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
+    @unittest.skipIf(common.ENV == 'local', "launched for cloud")
     def test_3_cloud_flow_with_when_condition(self):
         auto_ml_config(mode='api',
                        connection_info={'host': self.cloud_host,

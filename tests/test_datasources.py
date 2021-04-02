@@ -21,13 +21,15 @@ class TestDatasources(unittest.TestCase):
                 close_fds=True
             )
             time.sleep(40)
-        cls.sdk = SDK('http://localhost:47334')
-        cls.datasources = cls.sdk.datasources
+
         if common.ENV in ('all', 'cloud'):
             cloud_host = common.CLOUD_HOST
             cloud_user, cloud_pass = common.generate_credentials(cloud_host)
-            cls.cloud_sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
-            cls.cloud_datasources = cls.cloud_sdk.datasources
+            cls.sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
+            cls.datasources = cls.cloud_sdk.datasources
+        else:
+            cls.sdk = SDK('http://localhost:47334')
+            cls.datasources = cls.sdk.datasources
         # need to have a uniq name for each launch to avoid race condition in cloud
         # test_2_file_datasource_darwin_python_3.8
         cls.datasource_test_2_name = f"test_2_file_datasource_{sys.platform}_python{sys.version.split(' ')[0]}"
@@ -102,63 +104,35 @@ class TestDatasources(unittest.TestCase):
         statistical_analysis = remote_datasource.analyze()
         assert len(statistical_analysis) > 8
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_0_ping_local(self):
+
+    def test_0_ping(self):
         online = self.sdk.ping()
         self.assertTrue(online)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_1_list_info_local(self):
+
+    def test_1_list_info(self):
         self.list_info(self.datasources)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_2_file_datasource_local(self):
+
+    def test_2_file_datasource(self):
         self.file_datasource(self.datasources)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_3_df_as_csv_local(self):
+
+    def test_3_df_as_csv(self):
         self.df_as_csv(self.datasources)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_4_list_local(self):
+
+    def test_4_list(self):
         self.check_list(self.datasources)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_5_len_local(self):
+
+    def test_5_len(self):
         self.assertTrue(len(self.datasources) >= 2)
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for cloud")
-    def test_6_analisys_local(self):
+
+    def test_6_analisys(self):
         self.analisys(self.datasources)
 
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_0_ping_cloud(self):
-        online = self.cloud_sdk.ping()
-        self.assertTrue(online)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_1_list_info_cloud(self):
-        self.list_info(self.cloud_datasources)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_2_file_datasource_cloud(self):
-        self.file_datasource(self.cloud_datasources)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_3_df_as_csv_cloud(self):
-        self.df_as_csv(self.cloud_datasources)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_4_list_cloud(self):
-        self.check_list(self.cloud_datasources)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_5_len_cloud(self):
-        self.assertTrue(len(self.cloud_datasources) >= 2)
-
-    @unittest.skipIf(common.ENV == 'local', "launched for local")
-    def test_6_analisys_cloud(self):
-        self.analisys(self.cloud_datasources)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
