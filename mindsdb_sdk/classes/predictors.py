@@ -27,7 +27,7 @@ class Predictor():
         self._proxy.delete(f'/predictors/{self.name}')
 
     def wait_readiness(self):
-        while self.get_info()['status'] != 'complete':
+        while self.get_info()['status'] not in ['complete', 'error']:
             time.sleep(2)
 
     def predict(self, when_data, args=None):
