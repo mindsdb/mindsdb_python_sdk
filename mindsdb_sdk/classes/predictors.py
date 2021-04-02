@@ -106,8 +106,12 @@ class Predictors():
 
         if wait:
             if predictor is None:
-                raise Exception(f'Issue training predictor {name}')
+                raise Exception(f'Issue starting training for predictor {name}')
             predictor.wait_readiness()
+            if predictor.get_info()['status'] == 'error':
+                raise Exception('Error training predictor, full dump: {}'.format(predictor.get_info()))
+
+        return True
 
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
