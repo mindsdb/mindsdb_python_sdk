@@ -28,7 +28,7 @@ class Predictor():
 
     def wait_readiness(self):
         while self.get_info()['status'] != 'complete':
-            time.sleep(3)
+            time.sleep(2)
 
     def predict(self, when_data, args=None):
         self.get_info()
@@ -88,7 +88,7 @@ class Predictors():
     def __delitem__(self, name):
         self._proxy.delete(f'/predictors/{name}')
 
-    def learn(self, name, datasource, to_predict, args=None):
+    def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
         if args is None:
             args = {}
@@ -98,11 +98,32 @@ class Predictors():
             'kwargs': args,
             'to_predict': to_predict
         })
+        if wait:
+            for i in range(180):
+                time.sleep(2)
+                predictor = self.__getitem__(name)
+                if predictor is not None:
+                    break
+
+        if wait:
+            if predictor is None:
+                raise Exception(f'Issue training predictor {name}')
+            predictor.wait_readiness()
 
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
 
 
+
+threshold = time.time() + waiting_limit
+
+while time.time() < threshold:
+    pred = predictors[predictor_name]
+    if pred is not None:
+        break
+else:
+    self.assertTrue(pred is not None,
+                    f"could't access '{predictor_name}' in {waiting_limit} seconds")
     '''
     @TODO:
     * Add custom predictor

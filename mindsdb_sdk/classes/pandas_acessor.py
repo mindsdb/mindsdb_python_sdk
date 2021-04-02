@@ -70,12 +70,12 @@ class AutoML:
 
         return self._analysis
 
-    def learn(self, to_predict, name=None):
+    def learn(self, to_predict, name=None, args=None, wait=True):
 
         if name is None:
             name = self._raw_name
         self._predictor = self.predictor_class(name)
-        self._predictor.learn(from_data=self._df, to_predict=to_predict)
+        self._predictor.learn(from_data=self._df, to_predict=to_predict, wait=wait, args=args)
 
         return name
 

@@ -58,18 +58,6 @@ class TestPredictors(unittest.TestCase):
         pred_arr = predictors.list_predictor()
         self.assertTrue(isinstance(pred_arr,list))
 
-    def wait_predictor(self, predictors, predictor_name, waiting_limit=600):
-        threshold = time.time() + waiting_limit
-
-        while time.time() < threshold:
-            pred = predictors[predictor_name]
-            if pred is not None:
-                break
-        else:
-            self.assertTrue(pred is not None,
-                            f"could't access '{predictor_name}' in {waiting_limit} seconds")
-        return pred
-
     def train(self, predictors):
         try:
             del predictors[self.predictor_test_1_name]
@@ -78,15 +66,9 @@ class TestPredictors(unittest.TestCase):
         predictors.learn(self.predictor_test_1_name, self.datasource_test_2_name, 'y', args={
             'stop_training_in_x_seconds': 30
         })
-        pred = self.wait_predictor(predictors, self.predictor_test_1_name)
         self.assertTrue('status' in pred.get_info())
 
     def predict(self, predictors):
-        pred = self.wait_predictor(predictors, self.predictor_test_1_name)
-        while pred.get_info()['status'] != 'complete':
-            print('Predictor not done trainig, status: ', pred.get_info()['status'])
-            time.sleep(3)
-
         pred_arr = pred.predict(when_data={'theta3': 1})
         self.assertTrue(len(pred_arr) == 1)
         self.assertTrue('y' in pred_arr[0])
