@@ -41,7 +41,6 @@ class Predictor():
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
 
-        self.wait_readiness()
         return self._proxy.post(url, json=json)
 
     def _check_datasource(self, df):
@@ -114,16 +113,6 @@ class Predictors():
         return Predictor(self._proxy, name)
 
 
-
-threshold = time.time() + waiting_limit
-
-while time.time() < threshold:
-    pred = predictors[predictor_name]
-    if pred is not None:
-        break
-else:
-    self.assertTrue(pred is not None,
-                    f"could't access '{predictor_name}' in {waiting_limit} seconds")
     '''
     @TODO:
     * Add custom predictor
