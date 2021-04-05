@@ -54,7 +54,7 @@ class Predictor():
             datasources[name] = {'df': df}
         return datasource
 
-    def learn(self, to_predict, from_data, args=None):
+    def learn(self, to_predict, from_data, args=None, wait=True):
         if args is None:
             args = {}
         ds = self._check_datasource(from_data)
@@ -64,6 +64,11 @@ class Predictor():
             'kwargs': args,
             'to_predict': to_predict
         })
+
+        if wait:
+            self.wait_readiness()
+            if self.get_info()['status'] == 'error':
+                raise Exception('Error training predictor, full dump: {}'.format(predictor.get_info()))
 
 
 class Predictors():
@@ -92,7 +97,7 @@ class Predictors():
         if args is None:
             args = {}
         datasource = datasource['name'] if isinstance(datasource, dict) else datasource
-            
+
         self._proxy.put(f'/predictors/{name}', json={
             'data_source_name': datasource,
             'kwargs': args,
