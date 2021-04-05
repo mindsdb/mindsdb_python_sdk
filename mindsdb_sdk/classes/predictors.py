@@ -53,7 +53,7 @@ class Predictor():
             datasources = DataSources(self._proxy)
             datasources[name] = {'df': df}
         return datasource
-
+    
     def learn(self, to_predict, from_data, args=None, wait=True):
         if args is None:
             args = {}
