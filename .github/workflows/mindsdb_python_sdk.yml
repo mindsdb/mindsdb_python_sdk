@@ -25,7 +25,7 @@ jobs:
         python -m pip install --upgrade pip==20.2.4
         pip install --no-cache-dir .
         pip install -r requirements.txt
-        pip install mindsdb
+        pip install mindsdb==2.25.3
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
