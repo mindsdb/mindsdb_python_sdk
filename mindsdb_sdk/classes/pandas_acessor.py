@@ -65,7 +65,6 @@ class AutoML:
                 datasource = self.remote_datasource_controller[self._raw_name]
             self._analysis = datasource.analyze()
         else:
-
             from mindsdb_native.libs.controllers.functional import analyse_dataset
             self._analysis = analyse_dataset(self._df)
 

@@ -52,7 +52,7 @@ jobs:
           echo -e "\n===============\ntest Predictors\n===============\n"
           python test_predictors.py -v #--no_backend_instance
           echo -e "\n===============\ntest Accessor\n===============\n"
-          python test_pandas_accessor.py -v #--no_backend_instance
+          # python test_pandas_accessor.py -v #--no_backend_instance
 
           cd ..
         fi
@@ -89,10 +89,10 @@ jobs:
         mv mindsdb_sdk/__about__pd.py mindsdb_sdk/__about__.py
         mv setup_pd.py setup.py
 
-    - name: Build and publish auto_ml
-      env:
-        TWINE_USERNAME:  __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python setup.py sdist
-        twine upload dist/*
+#    - name: Build and publish auto_ml
+#      env:
+#        TWINE_USERNAME:  __token__
+#        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+#      run: |
+#        python setup.py sdist
+#        twine upload dist/*
