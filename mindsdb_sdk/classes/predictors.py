@@ -92,11 +92,13 @@ class Predictors():
         if args is None:
             args = {}
         datasource = datasource['name'] if isinstance(datasource, dict) else datasource
+            
         self._proxy.put(f'/predictors/{name}', json={
             'data_source_name': datasource,
             'kwargs': args,
             'to_predict': to_predict
         })
+
         if wait:
             for i in range(180):
                 time.sleep(2)
