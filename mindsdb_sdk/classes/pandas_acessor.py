@@ -58,34 +58,39 @@ class AutoML:
     def analysis(self):
         if self._analysis is not None:
             return self._analysis
-        if self.mode == 'native':
-            from mindsdb_native.libs.controllers.functional import analyse_dataset
-            self._analysis = analyse_dataset(self._df)
-        else:
+        if self.mode == 'api':
             datasource = self.remote_datasource_controller[self._raw_name]
             if datasource is None:
                 self.remote_datasource_controller[self._raw_name] = {'df': self._df}
                 datasource = self.remote_datasource_controller[self._raw_name]
             self._analysis = datasource.analyze()
+        else:
+            from mindsdb_native.libs.controllers.functional import analyse_dataset
+            self._analysis = analyse_dataset(self._df)
 
         return self._analysis
 
     def learn(self, to_predict, name=None, args=None, wait=True):
 
-        if name is None:
-            name = self._raw_name
-        self._predictor = self.predictor_class(name)
-        self._predictor.learn(from_data=self._df, to_predict=to_predict, wait=wait, args=args)
+        if self.mode == 'api':
+            pass
+        else:
+            if name is None:
+                name = self._raw_name
+            self._predictor = self.predictor_class(name)
+            self._predictor.learn(from_data=self._df, to_predict=to_predict, args=args)
 
         return name
 
 
     def predict(self, name=None, when_data=None):
-
-        if name is not None:
-            predictor = self.predictor_class(name)
+        if self.mode == 'api':
+            pass
         else:
-            predictor = self._predictor
-        if when_data is None:
-            return predictor.predict(when_data=self._df)
-        return predictor.predict(when_data=when_data)
+            if name is not None:
+                predictor = self.predictor_class(name)
+            else:
+                predictor = self._predictor
+            if when_data is None:
+                return predictor.predict(when_data=self._df)
+            return predictor.predict(when_data=when_data)
