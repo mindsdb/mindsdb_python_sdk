@@ -26,7 +26,7 @@ class TestDatasources(unittest.TestCase):
             cloud_host = common.CLOUD_HOST
             cloud_user, cloud_pass = common.generate_credentials(cloud_host)
             cls.sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
-            cls.datasources = cls.cloud_sdk.datasources
+            cls.datasources = cls.sdk.datasources
         else:
             cls.sdk = SDK('http://localhost:47334')
             cls.datasources = cls.sdk.datasources
