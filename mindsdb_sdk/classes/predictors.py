@@ -35,11 +35,13 @@ class Predictor():
         if isinstance(when_data, dict):
             json = when_data
             url = f'/predictors/{self.name}/predict'
-
-        else:
+        elif isinstance(when_data, str):
             ds = self._check_datasource(when_data)
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
+        else:
+            print('Failure to predict with when_data of wrong type: ', type(when_data), ' Containing data: ', when_data)
+            raise Exception(f'Got unexpected type: {type(when_data)} for when_data')
 
         return self._proxy.post(url, json=json)
 
@@ -68,7 +70,7 @@ class Predictor():
         if wait:
             self.wait_readiness()
             if self.get_info()['status'] == 'error':
-                raise Exception('Error training predictor, full dump: {}'.format(predictor.get_info()))
+                raise Exception('Error training predictor, full dump: {}'.format(self.get_info()))
 
 
 class Predictors():
