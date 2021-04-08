@@ -91,6 +91,8 @@ class AutoML:
                 predictor = self.predictor_class(name)
             else:
                 predictor = self._predictor
+            
             if when_data is None:
-                return predictor.predict(when_data=self._df)
+                when_data = self._df
+            
             return predictor.predict(when_data=when_data)
