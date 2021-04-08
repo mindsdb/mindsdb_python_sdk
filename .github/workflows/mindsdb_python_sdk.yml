@@ -29,16 +29,16 @@ jobs:
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          cd tests
-          echo -e "\n===============CLOUD ENVIRONMENT===============\n"
-          export TEST_ENV=cloud
-          echo -e "\n===============\ntest Integrations\n===============\n"
-          python test_integrations.py -v --no_backend_instance
-          echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py -v --no_backend_instance
-          echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py -v --no_backend_instance
-          echo -e "\n===============\ntest Accessor\n===============\n"
+          #cd tests
+          #echo -e "\n===============CLOUD ENVIRONMENT===============\n"
+          #export TEST_ENV=cloud
+          #echo -e "\n===============\ntest Integrations\n===============\n"
+          #python test_integrations.py -v --no_backend_instance
+          #echo -e "\n===============\ntest DataSources\n===============\n"
+          #python test_datasources.py -v --no_backend_instance
+          #echo -e "\n===============\ntest Predictors\n===============\n"
+          #python test_predictors.py -v --no_backend_instance
+          #echo -e "\n===============\ntest Accessor\n===============\n"
           # python test_pandas_accessor.py -v --no_backend_instance
 
           echo -e "\n===============LOCAL ENVIRONMENT===============\n"
@@ -46,13 +46,13 @@ jobs:
           sleep 60
           export TEST_ENV=local
           echo -e "\n===============\ntest Integrations\n===============\n"
-          python test_integrations.py -v #--no_backend_instance
+          python test_integrations.py -v
           echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py -v #--no_backend_instance
+          python test_datasources.py -v
           echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py -v #--no_backend_instance
+          python test_predictors.py -v
           echo -e "\n===============\ntest Accessor\n===============\n"
-          # python test_pandas_accessor.py -v #--no_backend_instance
+          # python test_pandas_accessor.py -v
 
           cd ..
         fi

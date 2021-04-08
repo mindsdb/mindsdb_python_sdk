@@ -33,7 +33,7 @@ class Predictor():
     def predict(self, when_data, args=None):
         self.get_info()
         if isinstance(when_data, dict):
-            json = when_data
+            json = {'when': when_data}
             url = f'/predictors/{self.name}/predict'
 
         else:
@@ -41,6 +41,7 @@ class Predictor():
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
 
+        print('PREDICT FOR: ', json)
         return self._proxy.post(url, json=json)
 
     def _check_datasource(self, df):
@@ -53,7 +54,7 @@ class Predictor():
             datasources = DataSources(self._proxy)
             datasources[name] = {'df': df}
         return datasource
-    
+
     def learn(self, to_predict, from_data, args=None, wait=True):
         if args is None:
             args = {}
@@ -94,15 +95,17 @@ class Predictors():
 
     def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
+        print(1)
         if args is None:
             args = {}
         datasource = datasource['name'] if isinstance(datasource, dict) else datasource
-
+        print(2)
         self._proxy.put(f'/predictors/{name}', json={
             'data_source_name': datasource,
             'kwargs': args,
             'to_predict': to_predict
         })
+        print('Sent train request to mindsdb !')
 
         if wait:
             for i in range(180):
