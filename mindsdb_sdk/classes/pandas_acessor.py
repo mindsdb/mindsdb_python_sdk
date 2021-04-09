@@ -78,7 +78,7 @@ class AutoML:
             if name is None:
                 name = self._raw_name
             self._predictor = self.predictor_class(name)
-            self._predictor.learn(from_data=self._df, to_predict=to_predict, args=args)
+            self._predictor.learn(from_data=self._df, to_predict=to_predict, **args)
 
         return name
 
@@ -91,8 +91,8 @@ class AutoML:
                 predictor = self.predictor_class(name)
             else:
                 predictor = self._predictor
-            
+
             if when_data is None:
                 when_data = self._df
-            
+
             return predictor.predict(when_data=when_data)

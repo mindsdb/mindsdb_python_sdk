@@ -66,11 +66,11 @@ class TestAccessor(unittest.TestCase):
         for pred in test_df.auto_ml.predict(**kwargs):
             assert 'y' in pred and pred['y'] is not None
 
-    def test_1_config(self):
+    def test_1_native(self):
         auto_ml_config(mode='native')
         self.flow_test_body()
 
-    def test_2_local_flow(self):
+    def test_2_local_http(self):
         if common.ENV != 'local':
             return
         auto_ml_config(mode='api', connection_info={
@@ -78,7 +78,7 @@ class TestAccessor(unittest.TestCase):
         })
         self.flow_test_body()
 
-    def test_3_cloud_flow(self):
+    def test_3_cloud_http(self):
         if common.ENV != 'cloud':
             return
         auto_ml_config(mode='api',
