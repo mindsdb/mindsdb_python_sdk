@@ -27,21 +27,23 @@ class Predictor():
         self._proxy.delete(f'/predictors/{self.name}')
 
     def wait_readiness(self):
-        while self.get_info()['status'] != 'complete':
-            time.sleep(3)
+        while self.get_info()['status'] not in ['complete', 'error']:
+            time.sleep(2)
 
     def predict(self, when_data, args=None):
         self.get_info()
         if isinstance(when_data, dict):
-            json = when_data
+            json = {'when': when_data}
             url = f'/predictors/{self.name}/predict'
-
-        else:
+        elif isinstance(when_data, str):
             ds = self._check_datasource(when_data)
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
+        else:
+            print('Failure to predict with when_data of wrong type: ', type(when_data), ' Containing data: ', when_data)
+            raise Exception(f'Got unexpected type: {type(when_data)} for when_data')
 
-        self.wait_readiness()
+        print('PREDICT FOR: ', json)
         return self._proxy.post(url, json=json)
 
     def _check_datasource(self, df):
@@ -55,7 +57,7 @@ class Predictor():
             datasources[name] = {'df': df}
         return datasource
 
-    def learn(self, to_predict, from_data, args=None):
+    def learn(self, to_predict, from_data, args=None, wait=True):
         if args is None:
             args = {}
         ds = self._check_datasource(from_data)
@@ -65,6 +67,11 @@ class Predictor():
             'kwargs': args,
             'to_predict': to_predict
         })
+
+        if wait:
+            self.wait_readiness()
+            if self.get_info()['status'] == 'error':
+                raise Exception('Error training predictor, full dump: {}'.format(self.get_info()))
 
 
 class Predictors():
@@ -88,16 +95,35 @@ class Predictors():
     def __delitem__(self, name):
         self._proxy.delete(f'/predictors/{name}')
 
-    def learn(self, name, datasource, to_predict, args=None):
+    def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
+        print(1)
         if args is None:
             args = {}
         datasource = datasource['name'] if isinstance(datasource, dict) else datasource
+        print(2)
         self._proxy.put(f'/predictors/{name}', json={
             'data_source_name': datasource,
             'kwargs': args,
             'to_predict': to_predict
         })
+        print('Sent train request to mindsdb !')
+
+        if wait:
+            for i in range(180):
+                time.sleep(2)
+                predictor = self.__getitem__(name)
+                if predictor is not None:
+                    break
+
+        if wait:
+            if predictor is None:
+                raise Exception(f'Issue starting training for predictor {name}')
+            predictor.wait_readiness()
+            if predictor.get_info()['status'] == 'error':
+                raise Exception('Error training predictor, full dump: {}'.format(predictor.get_info()))
+
+        return True
 
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
