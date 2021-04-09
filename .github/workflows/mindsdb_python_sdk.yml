@@ -51,7 +51,7 @@ jobs:
           python test_datasources.py -v
           echo -e "\n===============\ntest Predictors\n===============\n"
           python test_predictors.py -v
-          echo -e "\n===============\ntest Accessor\n===============\n"
+          #echo -e "\n===============\ntest Accessor\n===============\n"
           #python test_pandas_accessor.py -v
           echo -e "\n===============\ntest Accessor\n===============\n"
           python test_timeseries.py -v
