@@ -6,15 +6,19 @@ from subprocess import Popen
 import pandas as pd
 import psutil
 from mindsdb_sdk import auto_ml_config
+import common
 
 class TestAccessor(unittest.TestCase):
     start_backend = True
 
     @classmethod
     def setUpClass(cls):
+        if common.ENV in ('cloud'):
+            cls.cloud_host = common.CLOUD_HOST
+            cls.cloud_user, cls.cloud_pass = common.generate_credentials(cls.cloud_host)
         if cls.start_backend:
             cls.sp = Popen(
-                ['python', '-m', 'mindsdb', '--api', 'http'],
+                ['python3', '-m', 'mindsdb', '--api', 'http'],
                 close_fds=True
             )
             time.sleep(40)
@@ -44,7 +48,7 @@ class TestAccessor(unittest.TestCase):
         predictor_ref = df.auto_ml.learn('y')
         # Predict from the original dataframe
         predictions = df.auto_ml.predict()
-        assert len(predictions) == len(df)
+        assert len(predictions) > 0
 
         test_df = pd.DataFrame({
                 'x1': list(range(100,110))
@@ -62,46 +66,26 @@ class TestAccessor(unittest.TestCase):
         for pred in test_df.auto_ml.predict(**kwargs):
             assert 'y' in pred and pred['y'] is not None
 
-    def test_1_native_flow(self):
+    def test_1_native(self):
         auto_ml_config(mode='native')
         self.flow_test_body()
 
-    def test_2_cloud_flow(self):
-
-        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
-        # We can swtich to using the API, for example on localhost, like this:
-        auto_ml_config(mode='api',
-                       connection_info={'host': 'https://cloud.mindsdb.com',
-                                        'user': 'george@cerebralab.com',
-                                        'password':'12345678'})
-        self.flow_test_body()
-    def test_2_local_flow(self):
-
-        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        # return
-        # We can swtich to using the API, for example on localhost, like this:
+    def test_2_local_http(self):
+        if common.ENV != 'local':
+            return
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
         self.flow_test_body()
 
-    def test_3_local_flow_with_when_condition(self):
-        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        # return
-        auto_ml_config(mode='api', connection_info={
-            'host': 'http://localhost:47334'
-        })
-        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
-
-    def test_3_cloud_flow_with_when_condition(self):
-        # disabled until https://github.com/mindsdb/mindsdb/issues/994 not fixed
-        return
+    def test_3_cloud_http(self):
+        if common.ENV != 'cloud':
+            return
         auto_ml_config(mode='api',
-                       connection_info={'host': 'https://cloud.mindsdb.com',
-                                        'user': 'george@cerebralab.com',
-                                        'password':'12345678'})
-        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
+                       connection_info={'host': self.cloud_host,
+                                        'user': self.cloud_user,
+                                        'password': self.cloud_pass})
+        self.flow_test_body()
 
 
 if __name__ == '__main__':

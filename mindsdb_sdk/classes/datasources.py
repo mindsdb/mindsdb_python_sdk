@@ -23,9 +23,8 @@ class DataSource():
         if self._analysis is None:
             threshold = time.time() + wait_seconds
             analysis = self._get_analyze_data()
-            while time.time() < threshold:
-                if 'status' in analysis and analysis['status'] == 'analyzing':
-                    time.sleep(10)
+            while time.time() < threshold and ('status' in analysis and analysis['status'] == 'analyzing'):
+                time.sleep(10)
                 analysis = self._get_analyze_data()
 
             if 'status' in analysis and analysis['status'] == 'analyzing':

@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.6,3.7,3.8]
+        python-version: [3.7,3.8]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,29 +23,47 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip==20.2.4
-        pip install --no-cache-dir .
         pip install -r requirements.txt
+        pip install --no-cache-dir .
         pip install mindsdb
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           cd tests
+
+          #echo -e "\n===============CLOUD ENVIRONMENT===============\n"
+          #export TEST_ENV=cloud
+          #echo -e "\n===============\ntest Integrations\n===============\n"
+          #python test_integrations.py -v --no_backend_instance
+          #echo -e "\n===============\ntest DataSources\n===============\n"
+          #python test_datasources.py -v --no_backend_instance
+          #echo -e "\n===============\ntest Predictors\n===============\n"
+          #python test_predictors.py -v --no_backend_instance
+          #echo -e "\n===============\ntest Accessor\n===============\n"
+          #python test_pandas_accessor.py -v --no_backend_instance
+
+          echo -e "\n===============LOCAL ENVIRONMENT===============\n"
+          sleep 5
+          export TEST_ENV=local
           echo -e "\n===============\ntest Integrations\n===============\n"
-          python test_integrations.py
-          python -m mindsdb > /dev/null 2>&1 &
-          sleep 60
+          python test_integrations.py -v
           echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py -v --no_backend_instance
+          python test_datasources.py -v
           echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py -v --no_backend_instance
-          echo -e "\n===============\ntest Accessor\n===============\n"
-          python test_pandas_accessor.py -v --no_backend_instance
+          python test_predictors.py -v
+          echo -e "\n===============\ntest Timeseries\n===============\n"
+          python test_timeseries.py -v
+
+          echo -e "\n===============\ntest Accessor (NATIVE ONLY)\n===============\n"
+          export TEST_ENV=native
+          python test_pandas_accessor.py -v
           cd ..
         fi
       shell: bash
       env:
         CHECK_FOR_UPDATES: False
         DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
+        CLOUD_INVITE_CODE: ${{ secrets.CLOUD_INVITE_CODE }}
 
   deploy:
     runs-on: ubuntu-latest

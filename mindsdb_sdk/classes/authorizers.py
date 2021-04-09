@@ -25,11 +25,15 @@ class CloudAuthorizer(BaseAuthorizer):
         json = {'email': self.username, 'password': self.password}
         r = requests.post(token_url, json=json)
         r.raise_for_status()
-        return r.cookies['apiKey']
 
+        if 'apiKey' in r.cookies:
+            return r.cookies['apiKey']
+        else:
+            return r.cookies['session']
+        
     @property
     def auth_cookies(self):
-        return {'apiKey': self.token}
+        return {'apiKey': self.token, 'session': self.token}
 
 
     def __call__(self, req_type, url,  **kwargs):
