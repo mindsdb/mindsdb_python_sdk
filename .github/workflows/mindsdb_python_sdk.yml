@@ -29,7 +29,8 @@ jobs:
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          #cd tests
+          cd tests
+
           #echo -e "\n===============CLOUD ENVIRONMENT===============\n"
           #export TEST_ENV=cloud
           #echo -e "\n===============\ntest Integrations\n===============\n"
@@ -39,11 +40,10 @@ jobs:
           #echo -e "\n===============\ntest Predictors\n===============\n"
           #python test_predictors.py -v --no_backend_instance
           #echo -e "\n===============\ntest Accessor\n===============\n"
-          # python test_pandas_accessor.py -v --no_backend_instance
+          #python test_pandas_accessor.py -v --no_backend_instance
 
           echo -e "\n===============LOCAL ENVIRONMENT===============\n"
-          #python -m mindsdb > /dev/null 2>&1 &
-          sleep 60
+          sleep 5
           export TEST_ENV=local
           echo -e "\n===============\ntest Integrations\n===============\n"
           python test_integrations.py -v
@@ -52,7 +52,7 @@ jobs:
           echo -e "\n===============\ntest Predictors\n===============\n"
           python test_predictors.py -v
           echo -e "\n===============\ntest Accessor\n===============\n"
-          # python test_pandas_accessor.py -v
+          python test_pandas_accessor.py -v
 
           cd ..
         fi

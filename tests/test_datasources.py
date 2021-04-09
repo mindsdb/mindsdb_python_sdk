@@ -22,7 +22,7 @@ class TestDatasources(unittest.TestCase):
             )
             time.sleep(40)
 
-        if common.ENV in ('all', 'cloud'):
+        if common.ENV in ('cloud'):
             cloud_host = common.CLOUD_HOST
             cloud_user, cloud_pass = common.generate_credentials(cloud_host)
             cls.sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)

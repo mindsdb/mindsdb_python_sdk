@@ -13,12 +13,12 @@ class TestAccessor(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        if common.ENV in ('all', 'cloud'):
+        if common.ENV in ('cloud'):
             cls.cloud_host = common.CLOUD_HOST
             cls.cloud_user, cls.cloud_pass = common.generate_credentials(cls.cloud_host)
         if cls.start_backend:
             cls.sp = Popen(
-                ['python', '-m', 'mindsdb', '--api', 'http'],
+                ['python3', '-m', 'mindsdb', '--api', 'http'],
                 close_fds=True
             )
             time.sleep(40)
@@ -66,39 +66,26 @@ class TestAccessor(unittest.TestCase):
         for pred in test_df.auto_ml.predict(**kwargs):
             assert 'y' in pred and pred['y'] is not None
 
-    def test_1_native_flow(self):
+    def test_1_config(self):
         auto_ml_config(mode='native')
         self.flow_test_body()
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for local")
     def test_2_local_flow(self):
+        if common.ENV != 'local':
+            return
         auto_ml_config(mode='api', connection_info={
             'host': 'http://localhost:47334'
         })
         self.flow_test_body()
 
-    @unittest.skipIf(common.ENV == 'cloud', "launched for local")
-    def test_3_local_flow_with_when_condition(self):
-        auto_ml_config(mode='api', connection_info={
-            'host': 'http://localhost:47334'
-        })
-        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
-
-    @unittest.skipIf(common.ENV == 'local', "launched for cloud")
-    def test_2_cloud_flow(self):
+    def test_3_cloud_flow(self):
+        if common.ENV != 'cloud':
+            return
         auto_ml_config(mode='api',
                        connection_info={'host': self.cloud_host,
                                         'user': self.cloud_user,
                                         'password': self.cloud_pass})
         self.flow_test_body()
-
-    @unittest.skipIf(common.ENV == 'local', "launched for cloud")
-    def test_3_cloud_flow_with_when_condition(self):
-        auto_ml_config(mode='api',
-                       connection_info={'host': self.cloud_host,
-                                        'user': self.cloud_user,
-                                        'password': self.cloud_pass})
-        self.flow_test_body(when={"when": {"x1": 1000, "x2": 2000}})
 
 
 if __name__ == '__main__':
