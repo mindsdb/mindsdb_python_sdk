@@ -77,6 +77,8 @@ class AutoML:
         else:
             if name is None:
                 name = self._raw_name
+            if args is None:
+                args = {}
             self._predictor = self.predictor_class(name)
             self._predictor.learn(from_data=self._df, to_predict=to_predict, **args)
 
