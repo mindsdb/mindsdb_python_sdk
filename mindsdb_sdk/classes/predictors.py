@@ -39,6 +39,9 @@ class Predictor():
             ds = self._check_datasource(when_data)
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
+        elif isinstance(when_data, DataSource):
+            json = {'data_source_name': when_data.name}
+            url = f'/predictors/{self.name}/predict_datasource'
         else:
             print('Failure to predict with when_data of wrong type: ', type(when_data), ' Containing data: ', when_data)
             raise Exception(f'Got unexpected type: {type(when_data)} for when_data')
