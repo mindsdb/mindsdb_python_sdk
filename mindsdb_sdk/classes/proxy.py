@@ -49,12 +49,6 @@ class Proxy:
                 params = {}
 
             if files is not None:
-                del_tmp = False
-                if 'df' in files:
-                    del_tmp = True
-                    files['df'].to_csv('tmp_upload_file.csv', index=False)
-                    files['file'] = 'tmp_upload_file.csv'
-                    del files['df']
 
                 with open(files['file'], 'rb') as fp:
                     files['file'] = fp
@@ -65,9 +59,6 @@ class Proxy:
                                                 self._host + '/api' + route,
                                                 files=files,
                                                 data=data)
-
-                if del_tmp:
-                    os.remove('tmp_upload_file.csv')
 
                 return response
 

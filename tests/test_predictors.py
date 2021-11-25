@@ -77,6 +77,53 @@ class TestPredictors(unittest.TestCase):
         self.assertTrue('y' in pred_arr[0])
         self.assertTrue(pred_arr[0]['y']['predicted_value'] is not None)
 
+    def test_4_generate(self):
+        predictor_name = 'lwr' + self.predictor_test_1_name
+        try:
+            del self.predictors[predictor_name]
+        except Exception as e:
+            pass
+
+        predictor = self.predictors.generate(predictor_name, self.datasource_test_2_name, problem_definition={'target': 'y'})
+
+        self.assertTrue('status' in predictor.get_info())
+
+    def test_5_edit_json_ai(self):
+        # Get the json ai
+        predictor = self.predictors[self.predictor_test_1_name]
+
+        json_ai = predictor.get_info()['json_ai']
+
+        self.assertIn('problem_definition', json_ai)
+
+        predictor.edit_json_ai(json_ai)
+
+    def test_6_edit_code(self):
+        predictor = self.predictors[self.predictor_test_1_name]
+
+        code = predictor.get_info()['code']
+        predictor.edit_code(code)
+
+    def test_7_train(self):
+        predictor = self.predictors['lwr' + self.predictor_test_1_name]
+
+        predictor.train(self.datasource_test_2_name)
+
+    def test_8_update(self):
+        predictor = self.predictors[self.predictor_test_1_name]
+        predictor.update()
+
+    # TODO api not works
+    # def test_9_adjust(self):
+    #     predictor = self.predictors[self.predictor_test_1_name]
+    #     predictor.adjust(self.datasource_test_2_name)
+
+    def test_9_rename(self):
+        predictor = self.predictors[self.predictor_test_1_name]
+        predictor.rename('x_' + self.predictor_test_1_name)
+
+
+
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[-1] == "--no_backend_instance":
         # need to remove if from arg list
