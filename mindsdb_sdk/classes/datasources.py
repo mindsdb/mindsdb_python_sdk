@@ -53,7 +53,9 @@ class DataSource():
 
         if isinstance(k, slice):
             offset = k.start
-            limit = k.stop - k.start
+            if offset is None:
+                offset = 0
+            limit = k.stop - offset
 
             return self.get_data(offset=offset, limit=limit)['data']
 
@@ -122,7 +124,7 @@ class DataSources():
             src_fd = NamedTemporaryFile(mode='w+', newline='')
             files['df'].to_csv(path_or_buf=src_fd, index=False)
             src_fd.flush()
-            src_fd.seek(os.SEEK_SET)
+            src_fd.seek(0, os.SEEK_SET)
             files['file'] = src_fd
             del files['df']
         if 'file' in files:

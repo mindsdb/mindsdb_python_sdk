@@ -48,32 +48,33 @@ class TestPredictors(unittest.TestCase):
 
     def test_1_train(self):
         try:
+            del self.predictors['covid_predictor']
+        except Exception as e:
+            print(f"Attempting to delete {'covid_predictor'} has finished with {e}")
+
+        try:
             del self.datasources['covid_data']
         except Exception as e:
             print(f"Attempting to delete covid_data has finished with {e}")
 
         self.datasources['covid_data'] = {'file': 'datasets/covid_ICU.csv'}
 
-        try:
-            del self.predictors['covid_predictor']
-        except Exception as e:
-            print(f"Attempting to delete {'covid_predictor'} has finished with {e}")
-
         self.predictors.learn('covid_predictor', 'covid_data', 'pnew_case', args={
             'stop_training_in_x_seconds': 30,
             'timeseries_settings': {
                 'order_by': ['time'],
                 'group_by': ['state'],
+                'allow_incomplete_history': True,
                 'window': 5,
                 'use_previous_target': False
             }
         })
-
         self.assertTrue('status' in self.predictors['covid_predictor'].get_info())
 
     def test_2_predict(self):
         pred_arr = self.predictors['covid_predictor'].predict(when_data={'time': '2020-07-26', 'state': 'AK'})
         print(pred_arr)
+
         self.assertTrue(len(pred_arr) == 1)
         self.assertTrue('pnew_case' in pred_arr[0])
         self.assertTrue(pred_arr[0]['pnew_case']['predicted_value'] is not None)
