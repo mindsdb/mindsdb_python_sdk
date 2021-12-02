@@ -6,31 +6,27 @@ from mindsdb_sdk.classes import predictors
 from mindsdb_sdk.classes import datasources
 
 
-def auto_ml_config(mode='native', connection_info=None):
-    if mode == 'native':
-        os.environ['MINDSDB_PANDAS_AUTOML_MODE'] = 'native'
-    elif mode == 'api':
-        os.environ['MINDSDB_PANDAS_AUTOML_MODE'] = 'api'
-        os.environ['MINDSDB_PANDAS_AUTOML_HOST'] = connection_info['host']
-        # not gracefully but as temporary solution
-        # need to reset auth env for each instance with 'api' case
-        # to prevent collision
-        for env in ('MINDSDB_PANDAS_AUTOML_USER', 'MINDSDB_PANDAS_AUTOML_PASSWORD', 'MINDSDB_PANDAS_AUTOML_TOKEN'):
-            try:
-                del os.environ[env]
-            except KeyError:
-                pass
+def auto_ml_config(connection_info=None):
 
-        if 'user' in connection_info:
-            os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['user']
+    os.environ['MINDSDB_PANDAS_AUTOML_HOST'] = connection_info['host']
+    # not gracefully but as temporary solution
+    # need to reset auth env for each instance with 'api' case
+    # to prevent collision
+    for env in ('MINDSDB_PANDAS_AUTOML_USER', 'MINDSDB_PANDAS_AUTOML_PASSWORD', 'MINDSDB_PANDAS_AUTOML_TOKEN'):
+        try:
+            del os.environ[env]
+        except KeyError:
+            pass
 
-        if 'password' in connection_info:
-            os.environ['MINDSDB_PANDAS_AUTOML_PASSWORD'] = connection_info['password']
+    if 'user' in connection_info:
+        os.environ['MINDSDB_PANDAS_AUTOML_USER'] = connection_info['user']
 
-        if 'token' in connection_info:
-            os.environ['MINDSDB_PANDAS_AUTOML_TOKEN'] = connection_info['token']
-    else:
-        raise Exception(f'Invalid mode: {mode} for the pandas auto_ml accessor!')
+    if 'password' in connection_info:
+        os.environ['MINDSDB_PANDAS_AUTOML_PASSWORD'] = connection_info['password']
+
+    if 'token' in connection_info:
+        os.environ['MINDSDB_PANDAS_AUTOML_TOKEN'] = connection_info['token']
+
 
 
 @pd.api.extensions.register_dataframe_accessor("auto_ml")
@@ -39,62 +35,67 @@ class AutoML:
         self._df = pandas_obj
         self._predictor = None
         self._analysis = None
-        self.mode = os.environ['MINDSDB_PANDAS_AUTOML_MODE']
-        self._raw_name = str(pd.util.hash_pandas_object(self._df).sum())
+        self._ds_name = str(pd.util.hash_pandas_object(self._df).sum())
 
-        if self.mode == 'api':
-            self.host = os.environ['MINDSDB_PANDAS_AUTOML_HOST']
-            self.user = os.environ.get('MINDSDB_PANDAS_AUTOML_USER', None)
-            self.password = os.environ.get('MINDSDB_PANDAS_AUTOML_PASSWORD', None)
-            self.token = os.environ.get('MINDSDB_PANDAS_AUTOML_TOKEN', None)
-            self.proxy = proxy.Proxy(self.host, user=self.user, password=self.password, token=self.token)
-            self.remote_datasource_controller = datasources.DataSources(self.proxy)
-            self.predictor_class = predictors.Predictors(self.proxy)
-        else:
-            from mindsdb_native import Predictor as NativePredictor
-            self.predictor_class = NativePredictor
+        self.host = os.environ['MINDSDB_PANDAS_AUTOML_HOST']
+        self.user = os.environ.get('MINDSDB_PANDAS_AUTOML_USER', None)
+        self.password = os.environ.get('MINDSDB_PANDAS_AUTOML_PASSWORD', None)
+        self.token = os.environ.get('MINDSDB_PANDAS_AUTOML_TOKEN', None)
+        self.proxy = proxy.Proxy(self.host, user=self.user, password=self.password, token=self.token)
+        self.datasource_controller = datasources.DataSources(self.proxy)
+        self.predictor_controller = predictors.Predictors(self.proxy)
+
 
     @property
     def analysis(self):
         if self._analysis is not None:
             return self._analysis
-        if self.mode == 'api':
-            datasource = self.remote_datasource_controller[self._raw_name]
-            if datasource is None:
-                self.remote_datasource_controller[self._raw_name] = {'df': self._df}
-                datasource = self.remote_datasource_controller[self._raw_name]
-            self._analysis = datasource.analyze()
-        else:
-            from mindsdb_native.libs.controllers.functional import analyse_dataset
-            self._analysis = analyse_dataset(self._df)
+
+        datasource = self.get_datatasource()
+        self._analysis = datasource.analyze()
 
         return self._analysis
 
+    def get_datatasource(self):
+        # Upload if necessary
+
+        datasource = self.datasource_controller[self._ds_name]
+        if datasource is None:
+            self.datasource_controller[self._ds_name] = {'df': self._df}
+            datasource = self.datasource_controller[self._ds_name]
+        return datasource
+
+
     def learn(self, to_predict, name=None, args=None, wait=True):
+        self.get_datatasource()
 
-        if self.mode == 'api':
-            pass
-        else:
-            if name is None:
-                name = self._raw_name
-            if args is None:
-                args = {}
-            self._predictor = self.predictor_class(name)
-            self._predictor.learn(from_data=self._df, to_predict=to_predict, **args)
+        if name is None:
+            name = self._ds_name
+        if args is None:
+            args = {}
 
+        # recreate
+        if self.predictor_controller[name] is not None:
+            self.predictor_controller[name].delete()
+
+        self._predictor = self.predictor_controller.learn(
+            name,
+            datasource=self._ds_name,
+            to_predict=to_predict,
+            wait=wait,
+            **args
+        )
         return name
 
 
     def predict(self, name=None, when_data=None):
-        if self.mode == 'api':
-            pass
+
+        if name is not None:
+            predictor = self.predictor_controller[name]
         else:
-            if name is not None:
-                predictor = self.predictor_class(name)
-            else:
-                predictor = self._predictor
+            predictor = self._predictor
 
-            if when_data is None:
-                when_data = self._df
+        if when_data is None:
+            when_data = self._df
 
-            return predictor.predict(when_data=when_data)
+        return predictor.predict(when_data=when_data)
