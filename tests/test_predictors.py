@@ -15,6 +15,7 @@ class TestPredictors(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.is_cloud = common.ENV in ('cloud')
         if cls.start_backend:
             cls.sp = Popen(
                 ['python', '-m', 'mindsdb', '--api', 'http'],
@@ -99,6 +100,9 @@ class TestPredictors(unittest.TestCase):
         predictor.edit_json_ai(json_ai)
 
     def test_6_edit_code(self):
+        if self.is_cloud:
+            return
+
         predictor = self.predictors[self.predictor_test_1_name]
 
         code = predictor.get_info()['code']

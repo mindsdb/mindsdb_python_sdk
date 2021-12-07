@@ -63,7 +63,6 @@ jobs:
       env:
         CHECK_FOR_UPDATES: False
         DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
-        CLOUD_INVITE_CODE: ${{ secrets.CLOUD_INVITE_CODE }}
 
   deploy:
     runs-on: ubuntu-latest

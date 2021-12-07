@@ -33,7 +33,11 @@ class CloudAuthorizer(BaseAuthorizer):
         
     @property
     def auth_cookies(self):
-        return {'apiKey': self.token, 'session': self.token}
+        return {
+            'apiKey': self.token,
+            'session': self.token,
+            'confirmed': '1'
+        }
 
 
     def __call__(self, req_type, url,  **kwargs):
