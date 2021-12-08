@@ -63,6 +63,8 @@ jobs:
       env:
         CHECK_FOR_UPDATES: False
         DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
+        CLOUD_TEST_EMAIL: ${{ secrets.CLOUD_TEST_EMAIL }}
+        CLOUD_TEST_PASSWORD: ${{ secrets.CLOUD_TEST_PASSWORD }}
 
   deploy:
     runs-on: ubuntu-latest

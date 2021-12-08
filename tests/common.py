@@ -54,11 +54,18 @@ def doit_once(func):
 # @doit_once
 def generate_credentials(host):
     if host == CLOUD_HOST:
-        creds_path = Path(__file__).parent.parent / "credentials.json"
+        user = os.environ.get('CLOUD_TEST_EMAIL', None)
+        password = os.environ.get('CLOUD_TEST_PASSWORD', None)
 
-        with open(creds_path, "r") as fd:
-            creds = json.load(fd)
+        if user is None or password is None:
 
-        return creds['CLOUD_TEST_EMAIL'], creds['CLOUD_TEST_PASSWORD']
+            creds_path = Path(__file__).parent.parent / "credentials.json"
+
+            with open(creds_path, "r") as fd:
+                creds = json.load(fd)
+
+            user, password = creds['CLOUD_TEST_EMAIL'], creds['CLOUD_TEST_PASSWORD']
+
+        return user, password
 
     raise NotImplemented
