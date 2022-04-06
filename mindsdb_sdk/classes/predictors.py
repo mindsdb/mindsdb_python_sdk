@@ -107,8 +107,11 @@ class Predictor():
         # TODO Is there some data modification in this GET request?
         return self._proxy.get(f'/predictors/{self.name}/update')
 
+    def import_predictor(self):
+        return self._proxy.get(f'/predictors/{self.name}/import')
 
-
+    def export_predictor(self, binarized_predictor):
+        return self._proxy.put(f'/predictors/{self.name}/export', json=binarized_predictor)
 
 
 class Predictors():
