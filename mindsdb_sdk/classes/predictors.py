@@ -1,4 +1,5 @@
 import time
+import json
 import pandas as pd
 from pandas.util import hash_pandas_object
 from mindsdb_sdk.classes.datasources import DataSources, DataSource
@@ -107,11 +108,8 @@ class Predictor():
         # TODO Is there some data modification in this GET request?
         return self._proxy.get(f'/predictors/{self.name}/update')
 
-    def import_predictor(self):
-        return self._proxy.get(f'/predictors/{self.name}/import')
-
-    def export_predictor(self, binarized_predictor):
-        return self._proxy.put(f'/predictors/{self.name}/export', json=binarized_predictor)
+    def export_predictor(self):
+        return self._proxy.get(f'/predictors/{self.name}/export')
 
 
 class Predictors():
@@ -146,7 +144,6 @@ class Predictors():
 
         return Predictor(self._proxy, name)
 
-
     def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
 
@@ -155,10 +152,12 @@ class Predictors():
         predictor.learn_datasource(datasource, to_predict, args=args, wait=wait)
         return predictor
 
-
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
 
+    def import_predictor(self, predictor_as_json_str):
+        json_predictor = json.loads(predictor_as_json_str)
+        self._proxy.put(f'/predictors/{json_predictor["name"]}/import', json=json_predictor)
 
     '''
     @TODO:
