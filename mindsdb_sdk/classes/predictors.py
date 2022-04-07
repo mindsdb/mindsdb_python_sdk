@@ -159,10 +159,9 @@ class Predictors():
         return Predictor(self._proxy, name)
 
     def import_predictor(self, predictor_as_json_str, name: Optional[str] = None):
-        json_predictor = json.loads(predictor_as_json_str)
-        if name is not None:
-            json_predictor['name'] = name
-        self._proxy.put(f'/predictors/{json_predictor["name"]}/import', json='{}')
+        if name is None:
+            name = json_predictor['name']
+        self._proxy.put(f'/predictors/{name}/import', json=predictor_as_json_str)
 
     '''
     @TODO:
