@@ -1,7 +1,10 @@
 import time
 import json
+from typing import Optional
+
 import pandas as pd
 from pandas.util import hash_pandas_object
+
 from mindsdb_sdk.classes.datasources import DataSources, DataSource
 from mindsdb_sdk.helpers.net_helpers import sending_attempts
 from mindsdb_sdk.helpers.exceptions import PredictorException, DataSourceException
@@ -155,9 +158,11 @@ class Predictors():
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
 
-    def import_predictor(self, predictor_as_json_str):
+    def import_predictor(self, predictor_as_json_str, name: Optional[str] = None):
         json_predictor = json.loads(predictor_as_json_str)
-        self._proxy.put(f'/predictors/{json_predictor["name"]}/import', json=json_predictor)
+        if name is not None:
+            json_predictor['name'] = name
+        self._proxy.put(f'/predictors/{json_predictor["name"]}/import', json='{}')
 
     '''
     @TODO:
