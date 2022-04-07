@@ -126,6 +126,11 @@ class TestPredictors(unittest.TestCase):
         predictor = self.predictors[self.predictor_test_1_name]
         predictor.rename('x_' + self.predictor_test_1_name)
 
+    def test_91_export_import(self):
+        predictor = self.predictors[self.predictor_test_1_name]
+
+        exported = predictor.export_predictor()
+        self.predictors.import_predictor(exported)
 
 
 if __name__ == '__main__':
