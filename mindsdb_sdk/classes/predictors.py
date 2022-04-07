@@ -35,7 +35,7 @@ class Predictor():
         if isinstance(when_data, dict):
             json = {'when': when_data}
             url = f'/predictors/{self.name}/predict'
-        elif isinstance(when_data, str):
+        elif isinstance(when_data, pd.DataFrame):
             ds = self._check_datasource(when_data)
             json = {'data_source_name': ds.name}
             url = f'/predictors/{self.name}/predict_datasource'
@@ -44,6 +44,7 @@ class Predictor():
             raise Exception(f'Got unexpected type: {type(when_data)} for when_data')
 
         print('PREDICT FOR: ', json)
+
         return self._proxy.post(url, json=json)
 
     def _check_datasource(self, df):
@@ -57,13 +58,19 @@ class Predictor():
             datasources[name] = {'df': df}
         return datasource
 
-    def learn(self, to_predict, from_data, args=None, wait=True):
-        if args is None:
-            args = {}
+    def learn(self, from_data, to_predict, args=None, wait=True):
         ds = self._check_datasource(from_data)
 
+        return self.learn_datasource(ds.name, to_predict, args=args, wait=wait)
+
+    # TODO pick name
+    def learn_datasource(self, datasource, to_predict, args=None, wait=True):
+
+        if args is None:
+            args = {}
+
         self._proxy.put(f'/predictors/{self.name}', json={
-            'data_source_name': ds.name,
+            'data_source_name': datasource,
             'kwargs': args,
             'to_predict': to_predict
         })
@@ -72,6 +79,36 @@ class Predictor():
             self.wait_readiness()
             if self.get_info()['status'] == 'error':
                 raise Exception('Error training predictor, full dump: {}'.format(self.get_info()))
+
+    def adjust(self, datasource):
+        params = {
+            'data_source_name': datasource
+        }
+        return self._proxy.post(f'/predictors/{self.name}/adjust', json=params)
+
+    def edit_code(self, code):
+        return self._proxy.put(f'/predictors/{self.name}/edit/code', json={'code': code})
+
+    def edit_json_ai(self, json_ai):
+        return self._proxy.put(f'/predictors/{self.name}/edit/json_ai', json={'json_ai': json_ai})
+
+    def rename(self, new_name):
+        # TODO why GET method modifying something?
+        return self._proxy.get(f'/predictors/{self.name}/rename', params={'new_name': new_name})
+
+    def train(self, datasource):
+        params = {
+            'data_source_name': datasource,
+            'join_learn_process': True
+        }
+        return self._proxy.put(f'/predictors/{self.name}/train', json=params)
+
+    def update(self):
+        # TODO Is there some data modification in this GET request?
+        return self._proxy.get(f'/predictors/{self.name}/update')
+
+
+
 
 
 class Predictors():
@@ -82,7 +119,7 @@ class Predictors():
     def list_info(self):
         return self._proxy.get('/predictors')
 
-    def  list_predictor(self):
+    def list_predictor(self):
         return [Predictor(self._proxy, x['name']) for x in self.list_info()]
 
     def __getitem__(self, name):
@@ -95,35 +132,26 @@ class Predictors():
     def __delitem__(self, name):
         self._proxy.delete(f'/predictors/{name}')
 
+    def generate(self, name, data_source_name, problem_definition):
+        params = {
+            'problem_definition': problem_definition,
+            'data_source_name': data_source_name,
+            'join_learn_process': False
+        }
+
+        self._proxy.put(f'/predictors/generate/{name}', json=params)
+
+        return Predictor(self._proxy, name)
+
+
     def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
-        print(1)
-        if args is None:
-            args = {}
-        datasource = datasource['name'] if isinstance(datasource, dict) else datasource
-        print(2)
-        self._proxy.put(f'/predictors/{name}', json={
-            'data_source_name': datasource,
-            'kwargs': args,
-            'to_predict': to_predict
-        })
-        print('Sent train request to mindsdb !')
 
-        if wait:
-            for i in range(180):
-                time.sleep(2)
-                predictor = self.__getitem__(name)
-                if predictor is not None:
-                    break
+        # virtual
+        predictor = Predictor(self._proxy, name)
+        predictor.learn_datasource(datasource, to_predict, args=args, wait=wait)
+        return predictor
 
-        if wait:
-            if predictor is None:
-                raise Exception(f'Issue starting training for predictor {name}')
-            predictor.wait_readiness()
-            if predictor.get_info()['status'] == 'error':
-                raise Exception('Error training predictor, full dump: {}'.format(predictor.get_info()))
-
-        return True
 
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)

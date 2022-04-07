@@ -32,17 +32,41 @@ class DataSource():
             self._analysis = analysis
         return self._analysis
 
-    def __iter__(self):
-        return iter(list(self.analyze().keys()))
+    def get_data(self, offset=0, limit=1000, filters=None):
+        params = {
+            'page[offset]': offset,
+            'page[size]': limit,
+        }
+        if filters is not None:
+            params.update(filters)
+
+        return self._proxy.get(f'/datasources/{self.name}/data/', params=params)
+
+    # TODO delete it ?
+    # def __iter__(self):
+    #     return iter(list(self.analyze().keys()))
 
     def __len__(self):
-        return len(list(self.analyze().keys()))
+        return self.get_data(limit=1)['rowcount']
 
     def __getitem__(self, k):
-        return self.analyze()[k]
+
+        if isinstance(k, slice):
+            offset = k.start
+            if offset is None:
+                offset = 0
+            limit = k.stop - offset
+
+            return self.get_data(offset=offset, limit=limit)['data']
+
+        else:
+            data = self.get_data(offset=k, limit=1)['data']
+            if len(data) == 0:
+                raise IndexError('Record not found')
 
     def __delete__(self):
         self._proxy.delete(f'/datasources/{self.name}')
+
 
 
 class DataSources():
@@ -100,7 +124,7 @@ class DataSources():
             src_fd = NamedTemporaryFile(mode='w+', newline='')
             files['df'].to_csv(path_or_buf=src_fd, index=False)
             src_fd.flush()
-            src_fd.seek(os.SEEK_SET)
+            src_fd.seek(0, os.SEEK_SET)
             files['file'] = src_fd
             del files['df']
         if 'file' in files:

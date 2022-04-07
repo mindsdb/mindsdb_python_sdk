@@ -96,13 +96,13 @@ class TestDatasources(unittest.TestCase):
 
         self.assertTrue(isinstance(datasources[datasource_name].get_info(),dict))
 
-        self.assertTrue(len(datasources[datasource_name]) > 10)
+        self.assertTrue(len(datasources[datasource_name]) == 10)
 
         remote_datasource = datasources[datasource_name]
         self.assertTrue(remote_datasource is not None)
 
         statistical_analysis = remote_datasource.analyze()
-        assert len(statistical_analysis) > 8
+        assert statistical_analysis['statistical_analysis']['nr_rows'] > 8
 
 
     def test_0_ping(self):

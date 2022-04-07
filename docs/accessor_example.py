@@ -1,23 +1,20 @@
 from mindsdb_sdk import AutoML, auto_ml_config
 import pandas as pd
 
-# The default behavior is using native, this can be done like this:
-auto_ml_config(mode='native')
-
 # We can swtich to using the API, for example on localhost, like this:
-auto_ml_config(mode='api', connection_info={
+auto_ml_config(connection_info={
     'host': 'http://localhost:47334'
 })
 
 # Or to using cloud, like this
-auto_ml_config(mode='api', connection_info={
+auto_ml_config(connection_info={
     'host': 'cloud.mindsdb.com'
     ,'user': 'george.hosu@mindsdb.com'
     ,'password': 'my_secret password'
 })
 
 # Or maybe an internal mindsdb that requires token based auth
-auto_ml_config(mode='api', connection_info={
+auto_ml_config(connection_info={
     'host': '127.34.13.22:45566'
     ,'token': 'fasgasbj#$@($@*jfbsd)!!sasd'
 })

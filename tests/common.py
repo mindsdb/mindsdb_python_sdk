@@ -1,19 +1,24 @@
 import os
 import time
 import requests
+import json
+from pathlib import Path
 
 
 ENV = os.getenv('TEST_ENV', 'all')
-CLOUD_HOST = "https://stockholm_0_http.mindsdb.com/"
+CLOUD_HOST = "https://alpha.mindsdb.com/"
 
-def register_user(host, email, password, timeout=2400):
-    invitation_code = os.getenv("CLOUD_INVITE_CODE", None)
-    if invitation_code is None:
-        raise Exception("Unable to find invitation code in existed environment variables.")
+# Not used yet
+def register_user(host, email, password, timeout=60):
     headers = {'Content-Type': 'application/json'}
-    json = {"email": email,
-            "password": password,
-            "invitation_code": invitation_code}
+    json = {
+        "email": email,
+        "password": password,
+        "checked_terms": True,
+        "first_name": email,
+        "last_name": email,
+        "invitation_code": "",
+    }
     url = f"{host}/cloud/signup"
     threshold = time.time() + timeout
     to_raise = None
@@ -29,7 +34,7 @@ def register_user(host, email, password, timeout=2400):
     if to_raise is not None:
         raise to_raise
 
-
+# Not used yet
 def doit_once(func):
 
     def wrapper(host):
@@ -46,9 +51,21 @@ def doit_once(func):
     return wrapper
 
 
-@doit_once
+# @doit_once
 def generate_credentials(host):
-    now = time.time()
-    user = f"{now}@sdktest.com"
-    password = f"{int(now)}"
-    return user, password
+    if host == CLOUD_HOST:
+        user = os.environ.get('CLOUD_TEST_EMAIL', None)
+        password = os.environ.get('CLOUD_TEST_PASSWORD', None)
+
+        if user is None or password is None:
+
+            creds_path = Path(__file__).parent.parent / "credentials.json"
+
+            with open(creds_path, "r") as fd:
+                creds = json.load(fd)
+
+            user, password = creds['CLOUD_TEST_EMAIL'], creds['CLOUD_TEST_PASSWORD']
+
+        return user, password
+
+    raise NotImplemented
