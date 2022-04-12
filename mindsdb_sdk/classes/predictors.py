@@ -1,6 +1,10 @@
 import time
+import json
+from typing import Optional
+
 import pandas as pd
 from pandas.util import hash_pandas_object
+
 from mindsdb_sdk.classes.datasources import DataSources, DataSource
 from mindsdb_sdk.helpers.net_helpers import sending_attempts
 from mindsdb_sdk.helpers.exceptions import PredictorException, DataSourceException
@@ -107,8 +111,8 @@ class Predictor():
         # TODO Is there some data modification in this GET request?
         return self._proxy.get(f'/predictors/{self.name}/update')
 
-
-
+    def export_predictor(self):
+        return self._proxy.get(f'/predictors/{self.name}/export')
 
 
 class Predictors():
@@ -143,7 +147,6 @@ class Predictors():
 
         return Predictor(self._proxy, name)
 
-
     def learn(self, name, datasource, to_predict, args=None, wait=True):
         """Not sure that it is needed here. But left it now."""
 
@@ -152,10 +155,13 @@ class Predictors():
         predictor.learn_datasource(datasource, to_predict, args=args, wait=wait)
         return predictor
 
-
     def __call__(self, name, **kwargs):
         return Predictor(self._proxy, name)
 
+    def import_predictor(self, predictor_as_json_str, name: Optional[str] = None):
+        if name is None:
+            name = json_predictor['name']
+        self._proxy.put(f'/predictors/{name}/import', json=predictor_as_json_str)
 
     '''
     @TODO:
