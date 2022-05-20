@@ -3,6 +3,7 @@ from mindsdb_sdk.classes.proxy import Proxy
 from mindsdb_sdk.classes.datasources import DataSources
 from mindsdb_sdk.classes.predictors import Predictors
 from mindsdb_sdk.classes.intergrations import Integrations
+from mindsdb_sdk.classes.files import Files
 
 
 class SDK():
@@ -23,6 +24,7 @@ class SDK():
         self.datasources = DataSources(self.proxy)
         self.predictors = Predictors(self.proxy)
         self.integrations = Integrations(self.proxy)
+        self.files = Files(self.proxy)
 
     def ping(self):
         return self.proxy.ping()

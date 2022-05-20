@@ -28,10 +28,12 @@ class TestPredictors(unittest.TestCase):
             cls.sdk = SDK(cloud_host, user=cloud_user, password=cloud_pass)
             cls.datasources = cls.sdk.datasources
             cls.predictors = cls.sdk.predictors
+            cls.files = cls.sdk.files
         else:
             cls.sdk = SDK('http://localhost:47334')
             cls.datasources = cls.sdk.datasources
             cls.predictors = cls.sdk.predictors
+            cls.files = cls.sdk.files
 
     @classmethod
     def tearDownClass(cls):
@@ -57,6 +59,11 @@ class TestPredictors(unittest.TestCase):
         except Exception as e:
             print(f"Attempting to delete covid_data has finished with {e}")
 
+        try:
+            del self.files['covid_data']
+        except Exception as e:
+            print(f"Attempting to delete file covid_data has finished with {e}")
+
         self.datasources['covid_data'] = {'file': 'datasets/covid_ICU.csv'}
 
         self.predictors.learn('covid_predictor', 'covid_data', 'pnew_case', args={
@@ -66,6 +73,7 @@ class TestPredictors(unittest.TestCase):
                 'group_by': ['state'],
                 'allow_incomplete_history': True,
                 'window': 5,
+                'horizon': 2,
                 'use_previous_target': False
             }
         })
