@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from typing import List, Union
+
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import *
-from mindsdb_sql.parser.ast import *
+from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, AdjustPredictor
+from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
 from mindsdb_sql.planner.utils import query_traversal
 
@@ -29,7 +33,7 @@ class Model:
             parts.append(str(self.version))
         return Identifier(parts=parts)
 
-    def predict(self, data, params=None):
+    def predict(self, data: Union[pd.DataFrame, Query], params: dict = None) -> pd.DataFrame:
         if isinstance(data, Query):
             # create join from select if it is simple select
             ast_query = parse_sql(data.sql, dialect='mindsdb')
@@ -77,7 +81,7 @@ class Model:
         else:
             raise ValueError('Unknown input')
 
-    def get_status(self):
+    def get_status(self) -> str:
         self.refresh()
         return self.data['status']
 
@@ -85,17 +89,28 @@ class Model:
         model = self.project.get_model(self.name, self.version)
         self.data = model.data
 
-    def adjust(self, query=None, database=None, options=None, engine=None):
-        return self._retrain(query=query, database=database,
-                             options=options, engine=engine,
-                             klass=AdjustPredictor)
+    def adjust(self,
+               query: Union[str, Query] = None,
+               database: str = None,
+               options: dict = None,
+               engine: str = None) -> Union[Model, ModelVersion]:
+        return self._retrain(ast_class=AdjustPredictor, query=query, database=database,
+                             options=options, engine=engine)
 
-    def retrain(self, query=None, database=None, options=None, engine=None):
-        return self._retrain(query=query, database=database,
-                             options=options, engine=engine,
-                             klass=RetrainPredictor)
+    def retrain(self,
+               query: Union[str, Query] = None,
+               database: str = None,
+               options: dict = None,
+               engine: str = None) -> Union[Model, ModelVersion]:
+        return self._retrain(ast_class=RetrainPredictor, query=query, database=database,
+                             options=options, engine=engine)
 
-    def _retrain(self, query=None, database=None, options=None, engine=None, klass=None):
+    def _retrain(self,
+                 ast_class,
+                 query: Union[str, Query] = None,
+                 database:str = None,
+                 options:dict = None,
+                 engine:str = None):
         if isinstance(query, Query):
             database = query.database
             query = query.sql
@@ -110,7 +125,7 @@ class Model:
         if engine is not None:
             options['engine'] = engine
 
-        ast_query = klass(
+        ast_query = ast_class(
             name=self._get_identifier(),
             query_str=query,
             integration_name=database,
@@ -124,7 +139,7 @@ class Model:
         base_class = self.__class__
         return base_class(self.project, data)
 
-    def describe(self, type=None):
+    def describe(self, type: str = None) -> pd.DataFrame:
         if self.version is not None:
             raise NotImplementedError
 
@@ -134,17 +149,17 @@ class Model:
         ast_query = Describe(identifier)
         return self.project.query(ast_query.to_string()).fetch()
 
-    def list_versions(self):
+    def list_versions(self) -> List[ModelVersion]:
         return self.project.list_models(with_versions=True, name=self.name)
 
-    def get_version(self, num):
+    def get_version(self, num: int) -> ModelVersion:
         num = int(num)
         for m in self.project.list_models(with_versions=True, name=self.name):
             if m.version == num:
                 return m
         raise ValueError('Version is not found')
 
-    def set_active(self, version):
+    def set_active(self, version: int):
         ast_query = Update(
             table=Identifier('models_versions'),
             update_columns={

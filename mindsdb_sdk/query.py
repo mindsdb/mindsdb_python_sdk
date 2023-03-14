@@ -1,4 +1,6 @@
-from mindsdb_sql.parser.ast import *
+import pandas as pd
+
+from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant
 
 from mindsdb_sdk.utils import dict_to_binary_op
 
@@ -17,7 +19,7 @@ class Query:
 
         return f'{self.__class__.__name__}({sql})'
 
-    def fetch(self):
+    def fetch(self) -> pd.DataFrame:
         return self.api.sql_query(self.sql, self.database)
 
 
@@ -28,7 +30,7 @@ class Table(Query):
         self.db = db
         self._filters = {}
         self._limit = None
-        self.update_query()
+        self._update_query()
 
     def _filters_repr(self):
         filters = ''
@@ -45,13 +47,13 @@ class Table(Query):
 
     def filter(self, **kwargs):
         self._filters.update(kwargs)
-        self.update_query()
+        self._update_query()
 
-    def limit(self, val):
+    def limit(self, val: int):
         self._limit = val
-        self.update_query()
+        self._update_query()
 
-    def update_query(self):
+    def _update_query(self):
         ast_query = Select(
             targets=[Star()],
             from_table=Identifier(self.name),

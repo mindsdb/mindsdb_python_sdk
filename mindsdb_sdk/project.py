@@ -1,8 +1,9 @@
+from typing import Union, List
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import *
-from mindsdb_sql.parser.ast import *
+from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, CreateView, DropPredictor
+from mindsdb_sql.parser.ast import DropView, Identifier, Delete, Star, Select
 
 from mindsdb_sdk.utils import dict_to_binary_op
 from mindsdb_sdk.model import Model, ModelVersion
@@ -18,7 +19,7 @@ class Project:
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
-    def query(self, sql):
+    def query(self, sql: str) -> Query:
         return Query(self.api, sql, database=self.name)
 
     def _list_views(self):
@@ -27,10 +28,10 @@ class Project:
 
         return list(df['name'])
 
-    def list_views(self):
+    def list_views(self) -> List[View]:
         return [View(self, name) for name in self._list_views()]
 
-    def create_view(self, name, sql, database=None):
+    def create_view(self, name: str, sql: Union[str, Query], database: str = None) -> View:
 
         if isinstance(sql, Query):
             database = sql.database
@@ -49,22 +50,24 @@ class Project:
         self.query(ast_query.to_string()).fetch()
         return View(self, name)
 
-    def drop_view(self, name):
+    def drop_view(self, name: str):
         ast_query = DropView(names=[name])
 
         self.query(ast_query.to_string()).fetch()
 
-    def get_view(self, name):
+    def get_view(self, name: str) -> View:
         if name not in self._list_views():
             raise AttributeError("View doesn't exist")
         return View(self, name)
 
-    def list_models(self, with_versions=False, name=None, version=None):
+    def list_models(self, with_versions: bool = False,
+                    name: str = None,
+                    version: int = None) -> List[Union[Model, ModelVersion]]:
         table = 'models'
-        klass = Model
+        model_class = Model
         if with_versions:
             table = 'models_versions'
-            klass = ModelVersion
+            model_class = ModelVersion
 
         filters = {}
         if name is not None:
@@ -84,13 +87,13 @@ class Project:
         df = df.rename(columns=cols_map)
 
         return [
-            klass(self, item)
+            model_class(self, item)
             for item in df.to_dict('records')
         ]
 
-    def create_model(self, name, predict, engine=None,
-                     query=None, database=None,
-                     options=None, timeseries_options=None):
+    def create_model(self, name: str, predict: str, engine: str = None,
+                     query: Union[str, Query] = None, database: str = None,
+                     options: dict = None, timeseries_options: dict = None) -> Model:
 
         if isinstance(query, Query):
             database = query.database
@@ -133,7 +136,7 @@ class Project:
 
             return Model(self, data)
 
-    def get_model(self, name, version=None):
+    def get_model(self, name: str, version: int = None) -> Union[Model, ModelVersion]:
         if version is not None:
             ret = self.list_models(with_versions=True, name=name, version=version)
         else:
@@ -145,11 +148,11 @@ class Project:
         else:
             raise RuntimeError('Several models with the same name/version')
 
-    def drop_model(self, name):
+    def drop_model(self, name: str):
         ast_query = DropPredictor(name=name)
         self.query(ast_query.to_string()).fetch()
 
-    def drop_model_version(self, name, version):
+    def drop_model_version(self, name: str, version: int):
 
         ast_query = Delete(
             table=Identifier('models_versions'),

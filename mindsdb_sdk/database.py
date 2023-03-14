@@ -1,4 +1,6 @@
-from mindsdb_sql.parser.ast import *
+from typing import List
+
+from mindsdb_sql.parser.ast import Identifier
 
 from mindsdb_sdk.query import Query, Table
 
@@ -12,7 +14,7 @@ class Database:
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
 
-    def query(self, sql):
+    def query(self, sql: str) -> Query:
         return Query(self.api, sql, database=self.name)
 
     def _list_tables(self):
@@ -21,17 +23,17 @@ class Database:
         # first column
         return list(df[df.columns[0]])
 
-    def list_tables(self):
+    def list_tables(self) -> List[Table]:
         return [Table(self, name) for name in self._list_tables()]
 
-    def get_table(self, name):
+    def get_table(self, name: str) -> Table:
         if name not in self._list_tables():
             if '.' not in name:
                 # fixme: schemas not visible in 'show tables'
                 raise AttributeError("Table doesn't exist")
         return Table(self, name)
 
-    def create_table(self, name, query, replace=False): #: Optional[pd.DataFrame, Query]
+    def create_table(self, name: str, query: Query, replace: bool = False) -> Table:
         if not isinstance(query, Query):
             raise NotImplementedError
 
