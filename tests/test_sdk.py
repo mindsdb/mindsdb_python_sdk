@@ -334,10 +334,11 @@ class Test:
         )
 
         # describe
-        info = model.describe()  # dataframe on json. need to discuss
-        check_sql_call( mock_post, f'DESCRIBE {model.project.name}.{model_name}')
-
         if not isinstance(model, ModelVersion):  # not working (DESCRIBE db1.m1.2.ensemble not parsed)
+
+            info = model.describe()  # dataframe on json. need to discuss
+            check_sql_call( mock_post, f'DESCRIBE {model.project.name}.{model_name}')
+
             info = model.describe('ensemble')  # dataframe on json. need to discuss
             check_sql_call(mock_post, f'DESCRIBE {model.project.name}.{model_name}.ensemble')
 
@@ -347,6 +348,8 @@ class Test:
         models = model.list_versions()
         check_sql_call(mock_post, f"SELECT * FROM models_versions WHERE NAME = '{model.name}'", database=model.project.name)
         model2 = models[0]  # Model object
+
+        model2 = model.get_version(2)
 
         # change active version
         model2.set_active(version=3)

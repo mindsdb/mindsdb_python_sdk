@@ -125,6 +125,9 @@ class Model:
         return base_class(self.project, data)
 
     def describe(self, type=None):
+        if self.version is not None:
+            raise NotImplementedError
+
         identifier = self._get_identifier()
         if type is not None:
             identifier.parts.append(type)
@@ -133,6 +136,13 @@ class Model:
 
     def list_versions(self):
         return self.project.list_models(with_versions=True, name=self.name)
+
+    def get_version(self, num):
+        num = int(num)
+        for m in self.project.list_models(with_versions=True, name=self.name):
+            if m.version == num:
+                return m
+        raise ValueError('Version is not found')
 
     def set_active(self, version):
         ast_query = Update(
