@@ -1,6 +1,13 @@
-import sys
-if sys.version_info < (3,5):
-    raise EnvironmentError('Please install a python version >= 3.6 to use this library')
+from .server import Server
 
-from mindsdb_sdk.classes.sdk import SDK
-from mindsdb_sdk.classes.pandas_acessor import AutoML, auto_ml_config
+
+def connect(url=None, email=None, password=None):
+    if url is None:
+        if email is not None:
+            # default is cloud
+            url = 'https://cloud.mindsdb.com'
+        else:
+            # is local
+            url = 'http://127.0.0.1:47334'
+
+    return Server(url=url, email=email, password=password)
