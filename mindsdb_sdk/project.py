@@ -17,10 +17,12 @@ class Project:
     Queries
     ----------
     Making prediciton using sql:
+
     >>> query = project.query('select * from database.table join model1')
     >>> df = query.fetch()
 
     Making time series prediction:
+
     >>> df = project.query('''
     ...      SELECT m.saledate as date, m.ma as forecast
     ...     FROM mindsdb.house_sales_model as m
@@ -33,12 +35,16 @@ class Project:
     Views
     ----------
     Get:
+
     >>> views = project.list_views()
     >>> view = views[0]
+
     By name:
+
     >>> view project.get_view('view1')
 
     Create:
+
     >>> view = project.create_view(
     ...   'view1',
     ...   database='example_db',  # optional, can also be database object
@@ -46,17 +52,20 @@ class Project:
     ...)
 
     Create using query object:
+
     >>> view = project.create_view(
     ...   'view1',
     ...   query=database.query('select * from table1')
     ...)
 
     Getting data:
+
     >>> view.filter(a=1, b=2)
     >>> view.limit(100)
     >>> df = view.fetch()
 
     Drop view:
+
     >>> project.drop_view('view1')
 
 
@@ -64,33 +73,41 @@ class Project:
     ----------
 
     Get:
+
     >>> models = project.list_models()
     >>> model = models[0]
+
     Get version:
+
     >>> models = project.list_models(with_versions=True)
     >>> model = models[0]
 
     By name:
+
     >>> model = project.get_model('model1')
     >>> model = project.get_model('model1', version=2)
 
     Versions
+
     List model versions
+
     >>> models = model.list_versions()
     >>> model = models[0]  # Model object
 
 
-
     Get info
+
     >>> print(model.status)
     >>> print(model.data)
 
     Update model data from server
+
     >>> model.refresh()
 
     Create
 
     Create, using params and qeury as string
+
     >>> model = project.create_model(
     ...   'rentals_model',
     ...   predict='price',
@@ -107,6 +124,7 @@ class Project:
     ...)
 
     Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
+
     >>> query = database.query('select * from table')
     >>> model = project.create_model(
     ...   'rentals_model',
@@ -117,17 +135,21 @@ class Project:
     Usng model
 
     Dataframe on input
+
     >>> result_df = model.predict(df_rental)
     >>> result_df = model.predict(df_rental, params={'a': 'q'})
 
     Deferred query on input
+
     >>> result_df = model.predict(query, params={'': ''})
 
     Time series prediction
+
     >>> query = database.query('select * from table1 where type="house" and saledate>latest')
     >>> model.predict(query)
 
     The join model with table in raw query
+
     >>> result_df = project.query('''
     ...  SELECT m.saledate as date, m.ma as forecast
     ...   FROM mindsdb.house_sales_model as m
@@ -141,26 +163,30 @@ class Project:
     Model managing
 
     Adjusting
+
     >>> model.adjust(query)
     >>> model.adjust('select * from demo_data.house_sales', database='example_db')
     >>> model.adjust(query, params={'x': 2})
 
     Retraining
+
     >>> model.retrain(query)
     >>> model.retrain('select * from demo_data.house_sales', database='example_db')
     >>> model.retrain(query, params={'x': 2})
 
     Describe
+
     >>> df_info = model.describe()
     >>> df_info = model.describe('features')
 
     Change active version
+
     >>> model.set_active(version=3)
 
     Drop
+
     >>> project.drop_model('rentals_model')
     >>> project.drop_model_version('rentals_model', version=10)
-
 
     """
 

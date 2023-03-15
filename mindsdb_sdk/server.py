@@ -20,31 +20,38 @@ class Server:
     >>> database = databases[0] # Database type object
 
     # create
+
     >>> database = server.create_database('example_db',
     ...                                 type='postgres',
     ...                                 connection_args={'host': ''})
 
     # drop database
+
     >>> server.drop_database('example_db')
 
     # get existing
+
     >>> database = server.get_database('example_db')
 
     Projects
     ----------
 
     # list of projects
+
     >>> projects = server.list_projects()
     >>> project = projects[0]  # Project type object
 
 
     # create
+
     >>> project = server.create_project('proj')
 
     # drop
+
     >>> server.drop_project('proj')
 
     # get existing
+
     >>> project = server.get_project('proj')
 
     >>> project = server.get_project()  # default is mindsdb project

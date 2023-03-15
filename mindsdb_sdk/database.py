@@ -11,28 +11,35 @@ class Database:
 
     To run native query
     At this moment query is just saved in Qeury object and not executed
+
     >>> query = database.query('select * from table1') # returns Query
 
     This command sends request to server to execute query and return dataframe
+
     >>> df = query.fetch()
 
     Wortking with tables:
     Get table as Query object
+
     >>> table = database.get_table('table1')
 
     Filter and limit
+
     >>> table.filter(a=1, b='2')
     >>> table.limit(3)
 
     Get content of table as dataframe. At that moment query will be sent on server and executed
+
     >>> df = table.fetch()
 
     Creating table
 
     From query:
+
     >>> table = database.create_table('table2', query)
 
     From other table
+
     >>> table2 = database.create_table('table2', table)
 
     """

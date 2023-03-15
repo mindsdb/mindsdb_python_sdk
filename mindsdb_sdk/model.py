@@ -39,7 +39,8 @@ class Model:
 
         if data is dataframe it uses /model/predict http method and sends dataframe over it
         if data is select query with one table it replaces table to jon table and predictor
-           and sends query over sql/query http method
+        and sends query over sql/query http method
+
         if data is select from join other complex query it modifies query to:
           'select from (input query) join model' and sends it over sql/query http method
 
