@@ -20,6 +20,10 @@ class Query:
         return f'{self.__class__.__name__}({sql})'
 
     def fetch(self) -> pd.DataFrame:
+        """
+        Executes query in mindsdb server and returns result
+        :return: dataframe with result
+        """
         return self.api.sql_query(self.sql, self.database)
 
 
@@ -46,10 +50,22 @@ class Table(Query):
         return f'{self.__class__.__name__}({self.name}{self._filters_repr()})'
 
     def filter(self, **kwargs):
+        """
+        Applies filters on table
+        table.filter(a=1, b=2) adds where condition to table:
+        'select * from table1 where a=1 and b=2'
+
+        :param kwargs: filter
+        """
         self._filters.update(kwargs)
         self._update_query()
 
     def limit(self, val: int):
+        """
+        Applies limit condition to table query
+
+        :param val: limit size
+        """
         self._limit = val
         self._update_query()
 

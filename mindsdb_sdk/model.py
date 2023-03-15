@@ -34,6 +34,19 @@ class Model:
         return Identifier(parts=parts)
 
     def predict(self, data: Union[pd.DataFrame, Query], params: dict = None) -> pd.DataFrame:
+        """
+        Make prediction using model
+
+        if data is dataframe it uses /model/predict http method and sends dataframe over it
+        if data is select query with one table it replaces table to jon table and predictor
+           and sends query over sql/query http method
+        if data is select from join other complex query it modifies query to:
+          'select from (input query) join model' and sends it over sql/query http method
+
+        :param data: dataframe or Query object as input to predictor
+        :param params: parameters for predictor, optional
+        :return: dataframe with result of prediction
+        """
         if isinstance(data, Query):
             # create join from select if it is simple select
             ast_query = parse_sql(data.sql, dialect='mindsdb')
@@ -82,19 +95,40 @@ class Model:
             raise ValueError('Unknown input')
 
     def get_status(self) -> str:
+        """
+        Refresh model data and return status of model
+
+        :return: model status
+        """
         self.refresh()
         return self.data['status']
 
     def refresh(self):
+        """
+        Refresh model data from mindsdb server
+        Model data can be changed during training process
+        :return: model data
+        """
         model = self.project.get_model(self.name, self.version)
         self.data = model.data
+        return self.data
 
     def adjust(self,
                query: Union[str, Query] = None,
                database: str = None,
                options: dict = None,
                engine: str = None) -> Union[Model, ModelVersion]:
-        return self._retrain(ast_class=AdjustPredictor, query=query, database=database,
+        """
+        Call adjust of the model
+
+        :param query: sql string or Query object to get data for adjusting, optional
+        :param database: database to get data for adjusting, optional
+        :param options: parameters for adjusting model, optional
+        :param engine: ml engine, optional
+        :return: Model object
+        """
+        return self._retrain(ast_class=AdjustPredictor,
+                             query=query, database=database,
                              options=options, engine=engine)
 
     def retrain(self,
@@ -102,7 +136,17 @@ class Model:
                database: str = None,
                options: dict = None,
                engine: str = None) -> Union[Model, ModelVersion]:
-        return self._retrain(ast_class=RetrainPredictor, query=query, database=database,
+        """
+        Call retrain of the model
+
+        :param query: sql string or Query object to get data for retraining, optional
+        :param database: database to get data for retraining, optional
+        :param options: parameters for retraining model, optional
+        :param engine: ml engine, optional
+        :return: Model object
+        """
+        return self._retrain(ast_class=RetrainPredictor,
+                             query=query, database=database,
                              options=options, engine=engine)
 
     def _retrain(self,
@@ -140,6 +184,11 @@ class Model:
         return base_class(self.project, data)
 
     def describe(self, type: str = None) -> pd.DataFrame:
+        """
+        Return description of the model
+        :param type: describe type (for lightwood is models, ensemble, features), optional
+        :return: dataframe with result of description
+        """
         if self.version is not None:
             raise NotImplementedError
 
@@ -150,9 +199,19 @@ class Model:
         return self.project.query(ast_query.to_string()).fetch()
 
     def list_versions(self) -> List[ModelVersion]:
+        """
+        Show list of model versions
+        :return: list ModelVersion objects
+        """
         return self.project.list_models(with_versions=True, name=self.name)
 
     def get_version(self, num: int) -> ModelVersion:
+        """
+        Get model version by number
+        :param num: version number
+        :return: ModelVersion object
+        """
+
         num = int(num)
         for m in self.project.list_models(with_versions=True, name=self.name):
             if m.version == num:
@@ -160,6 +219,11 @@ class Model:
         raise ValueError('Version is not found')
 
     def set_active(self, version: int):
+        """
+        Change model active version
+
+        :param version: version to set active
+        """
         ast_query = Update(
             table=Identifier('models_versions'),
             update_columns={

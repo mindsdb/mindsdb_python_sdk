@@ -11,6 +11,159 @@ from mindsdb_sdk.query import Query, View
 
 
 class Project:
+    """
+    Allows to work with project: to manage models and views inside of it or call raw queries inside of project
+
+    Queries
+    ----------
+    Making prediciton using sql:
+    >>> query = project.query('select * from database.table join model1')
+    >>> df = query.fetch()
+
+    Making time series prediction:
+    >>> df = project.query('''
+    ...      SELECT m.saledate as date, m.ma as forecast
+    ...     FROM mindsdb.house_sales_model as m
+    ...     JOIN example_db.demo_data.house_sales as t
+    ...     WHERE t.saledate > LATEST AND t.type = 'house'
+    ...     AND t.bedrooms=2
+    ...     LIMIT 4;
+    ...    ''').fetch()
+
+    Views
+    ----------
+    Get:
+    >>> views = project.list_views()
+    >>> view = views[0]
+    By name:
+    >>> view project.get_view('view1')
+
+    Create:
+    >>> view = project.create_view(
+    ...   'view1',
+    ...   database='example_db',  # optional, can also be database object
+    ...   query='select * from table1'
+    ...)
+
+    Create using query object:
+    >>> view = project.create_view(
+    ...   'view1',
+    ...   query=database.query('select * from table1')
+    ...)
+
+    Getting data:
+    >>> view.filter(a=1, b=2)
+    >>> view.limit(100)
+    >>> df = view.fetch()
+
+    Drop view:
+    >>> project.drop_view('view1')
+
+
+    Models
+    ----------
+
+    Get:
+    >>> models = project.list_models()
+    >>> model = models[0]
+    Get version:
+    >>> models = project.list_models(with_versions=True)
+    >>> model = models[0]
+
+    By name:
+    >>> model = project.get_model('model1')
+    >>> model = project.get_model('model1', version=2)
+
+    Versions
+    List model versions
+    >>> models = model.list_versions()
+    >>> model = models[0]  # Model object
+
+
+
+    Get info
+    >>> print(model.status)
+    >>> print(model.data)
+
+    Update model data from server
+    >>> model.refresh()
+
+    Create
+
+    Create, using params and qeury as string
+    >>> model = project.create_model(
+    ...   'rentals_model',
+    ...   predict='price',
+    ...   engine='lightwood',
+    ...   database='example_db',
+    ...   query='select * from table',
+    ...   options={
+    ...       'module': 'LightGBM'
+    ...   },
+    ...   timeseries_options={
+    ...       'order': 'date',
+    ...       'group': ['a', 'b']
+    ...   }
+    ...)
+
+    Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
+    >>> query = database.query('select * from table')
+    >>> model = project.create_model(
+    ...   'rentals_model',
+    ...   predict='price',
+    ...   query=query,
+    ...)
+
+    Usng model
+
+    Dataframe on input
+    >>> result_df = model.predict(df_rental)
+    >>> result_df = model.predict(df_rental, params={'a': 'q'})
+
+    Deferred query on input
+    >>> result_df = model.predict(query, params={'': ''})
+
+    Time series prediction
+    >>> query = database.query('select * from table1 where type="house" and saledate>latest')
+    >>> model.predict(query)
+
+    The join model with table in raw query
+    >>> result_df = project.query('''
+    ...  SELECT m.saledate as date, m.ma as forecast
+    ...   FROM mindsdb.house_sales_model as m
+    ...   JOIN example_db.demo_data.house_sales as t
+    ...  WHERE t.saledate > LATEST AND t.type = 'house'
+    ...   AND t.bedrooms=2
+    ...  LIMIT 4;
+    ...''').fetch()
+
+
+    Model managing
+
+    Adjusting
+    >>> model.adjust(query)
+    >>> model.adjust('select * from demo_data.house_sales', database='example_db')
+    >>> model.adjust(query, params={'x': 2})
+
+    Retraining
+    >>> model.retrain(query)
+    >>> model.retrain('select * from demo_data.house_sales', database='example_db')
+    >>> model.retrain(query, params={'x': 2})
+
+    Describe
+    >>> df_info = model.describe()
+    >>> df_info = model.describe('features')
+
+    Change active version
+    >>> model.set_active(version=3)
+
+    Drop
+    >>> project.drop_model('rentals_model')
+    >>> project.drop_model_version('rentals_model', version=10)
+
+
+    """
+
     def __init__(self, server, name):
         self.name = name
         self.server = server
@@ -20,6 +173,12 @@ class Project:
         return f'{self.__class__.__name__}({self.name})'
 
     def query(self, sql: str) -> Query:
+        """
+        Execute raw query inside of project
+
+        :param sql: sql query
+        :return: Query object
+        """
         return Query(self.api, sql, database=self.name)
 
     def _list_views(self):
@@ -29,10 +188,22 @@ class Project:
         return list(df['name'])
 
     def list_views(self) -> List[View]:
+        """
+        Show list of views in project
+
+        :return: list of View objects
+        """
         return [View(self, name) for name in self._list_views()]
 
     def create_view(self, name: str, sql: Union[str, Query], database: str = None) -> View:
+        """
+        Create new view in project and return it
 
+        :param name: name of the view
+        :param sql: sql query as string or query object
+        :param database: datasource of the view (where input sql will be executed)
+        :return: View object
+        """
         if isinstance(sql, Query):
             database = sql.database
             sql = sql.sql
@@ -51,11 +222,24 @@ class Project:
         return View(self, name)
 
     def drop_view(self, name: str):
+        """
+        Drop view from project
+
+        :param name: nave of the view
+        """
+
         ast_query = DropView(names=[name])
 
         self.query(ast_query.to_string()).fetch()
 
     def get_view(self, name: str) -> View:
+        """
+        Get view by name from project
+
+        :param name: name of the view
+        :return: View object
+        """
+
         if name not in self._list_views():
             raise AttributeError("View doesn't exist")
         return View(self, name)
@@ -63,6 +247,18 @@ class Project:
     def list_models(self, with_versions: bool = False,
                     name: str = None,
                     version: int = None) -> List[Union[Model, ModelVersion]]:
+        """
+        List models (or model versions) in project
+
+        If with_versions = True it shows all models with version (executes 'select * from models_versions')
+        Otherwise it shows only models (executes 'select * from models')
+
+        :param with_versions: show model versions
+        :param name: to show models or versions only with selected name, optional
+        :param version: to show model or versions only with selected version, optional
+        :return: list of Model or ModelVersion objects
+        """
+
         table = 'models'
         model_class = Model
         if with_versions:
@@ -94,7 +290,20 @@ class Project:
     def create_model(self, name: str, predict: str, engine: str = None,
                      query: Union[str, Query] = None, database: str = None,
                      options: dict = None, timeseries_options: dict = None) -> Model:
+        """
+        Create new model in project and return it
 
+        If query/database is passed, it will be executed on mindsdb side
+
+        :param name: name of the model
+        :param predict: prediction target
+        :param engine: ml engine for new model, default is mindsdb
+        :param query: sql string or Query object to get data for training of model, optional
+        :param database: database to get data for training, optional
+        :param options: parameters for model, optional
+        :param timeseries_options: parameters for forecasting model
+        :return: created Model object, it can be still in training state
+        """
         if isinstance(query, Query):
             database = query.database
             query = query.sql
@@ -137,6 +346,15 @@ class Project:
             return Model(self, data)
 
     def get_model(self, name: str, version: int = None) -> Union[Model, ModelVersion]:
+        """
+         Get model by name from project
+
+         if version is passed it returns ModelVersion object with specific version
+
+        :param name: name of the model
+        :param version: version of model, optional
+        :return: Model or ModelVersion object
+        """
         if version is not None:
             ret = self.list_models(with_versions=True, name=name, version=version)
         else:
@@ -149,11 +367,21 @@ class Project:
             raise RuntimeError('Several models with the same name/version')
 
     def drop_model(self, name: str):
+        """
+        Drop model from project with all versions
+
+        :param name: name of the model
+        """
         ast_query = DropPredictor(name=name)
         self.query(ast_query.to_string()).fetch()
 
     def drop_model_version(self, name: str, version: int):
+        """
+        Drop version of the model
 
+        :param name: name of the model
+        :param version: version to drop
+        """
         ast_query = Delete(
             table=Identifier('models_versions'),
             where=dict_to_binary_op({
