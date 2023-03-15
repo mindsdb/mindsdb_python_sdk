@@ -17,6 +17,8 @@ def connect(url: str = None, email: str = None, password: str = None) -> Server:
 
     Examples
     --------
+    >>> import mindsdb_sdk
+
     Connect to local server
 
     >>> server = mindsdb_sdk.connect()

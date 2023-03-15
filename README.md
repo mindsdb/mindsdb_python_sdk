@@ -6,42 +6,81 @@ It enables you to connect to a midnsDB server and use it in a similar way to min
 pip install mindsdb_sdk
 ```
 
-## Example of usage
+## Example 
+
+Connect:
 ```python
-from mindsdb_sdk import SDK
+import mindsdb_sdk
 
-# connect
-mdb = SDK('http://localhost:47334')
+# Connect to local server 
 
-# upload datasource
-mdb.datasources['home_rentals_data'] = {'file' : 'home_rentals.csv'}
+server = mindsdb_sdk.connect()
+server = mindsdb_sdk.connect('http://127.0.0.1:47334')
 
-# create a new predictor and learn to predict
-predictor = mdb.predictors.learn(
-    name='home_rentals',
-    datasource='home_rentals_data',
-    to_predict='rental_price'
-)
+# Connect to cloud server
 
-# predict
-result = predictor.predict({'initial_price': '2000','number_of_bathrooms': '1', 'sqft': '700'})
+server = mindsdb_sdk.connect(email='a@b.com', password='-')
+server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='a@b.com', password='-')
 ```
 
-## Tests
+Base usage:
+```python
 
-Before run tests, change SERVER and CREDENTIAL constants in `tests/test.py`. After that, run `python3 tests/test.py`  
-Test file - is a good place where you can find some examples of api usage.
+# database
+databases = server.list_databases()
 
-## API Reference(WIP)
+database = databases[0] # Database type object
 
-### class MindsDB(server: str, params: dict)
+# sql query
+query = database.query('select * from table1')
+print(query.fetch())
 
-### class DataSources()
+# create table
+table = database.create_table('table2', query)
 
-### class DataSource()
 
-### class Predictors()
+# project
+project = server.get_project('proj')
 
-### class Predictor()
+# sql query
+query = project.query('select * from database.table join model1')
 
-### class Proxy()
+# create view
+view = project.create_view(
+      'view1',
+       query=query
+)
+
+# get view
+views = project.list_views()
+view = views[0]
+df = view.fetch()
+
+# get model
+models = project.list_models()
+model = models[0]
+
+# using model
+result_df = model.predict(df)
+result_df = model.predict(query)
+
+# create model
+model = project.create_model(
+      'rentals_model',
+      predict='price',
+      query=query,
+)
+
+```
+
+## API documentation
+
+TODO
+
+## How to test
+
+It runs all tests for components 
+
+```bash
+env PYTHONPATH=./ pytest
+```

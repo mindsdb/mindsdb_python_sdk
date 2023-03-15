@@ -11,7 +11,7 @@ class Database:
 
     To run native query
     At this moment query is just saved in Qeury object and not executed
-    >>> query = database.query('select * from table') # returns Query
+    >>> query = database.query('select * from table1') # returns Query
 
     This command sends request to server to execute query and return dataframe
     >>> df = query.fetch()
