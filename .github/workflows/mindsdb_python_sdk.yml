@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
         python-version: [3.7,3.8]
     steps:
     - uses: actions/checkout@v2
@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip==20.2.4
+        python -m pip install --upgrade pip==22.0.4
         pip install -r requirements.txt
         pip install --no-cache-dir .
         pip install mindsdb
@@ -37,7 +37,8 @@ jobs:
       env:
         CHECK_FOR_UPDATES: False
         DATABASE_CREDENTIALS_STRINGIFIED_JSON: ${{ secrets.DATABASE_CREDENTIALS }}
-        CLOUD_INVITE_CODE: ${{ secrets.CLOUD_INVITE_CODE }}
+        CLOUD_TEST_EMAIL: ${{ secrets.CLOUD_TEST_EMAIL }}
+        CLOUD_TEST_PASSWORD: ${{ secrets.CLOUD_TEST_PASSWORD }}
 
   deploy:
     runs-on: ubuntu-latest
