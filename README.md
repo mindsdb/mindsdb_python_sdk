@@ -75,7 +75,17 @@ model = project.create_model(
 
 ## API documentation
 
-TODO
+Generating:
+
+```commandline
+pip install sphinx
+
+cd docs
+
+make html
+```
+
+API documentation will be generated in docs/build/html
 
 ## How to test
 
