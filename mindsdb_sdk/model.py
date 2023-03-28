@@ -108,6 +108,7 @@ class Model:
         """
         Refresh model data from mindsdb server
         Model data can be changed during training process
+
         :return: model data
         """
         model = self.project.get_model(self.name, self.version)
@@ -187,6 +188,7 @@ class Model:
     def describe(self, type: str = None) -> pd.DataFrame:
         """
         Return description of the model
+
         :param type: describe type (for lightwood is models, ensemble, features), optional
         :return: dataframe with result of description
         """
@@ -202,6 +204,7 @@ class Model:
     def list_versions(self) -> List[ModelVersion]:
         """
         Show list of model versions
+
         :return: list ModelVersion objects
         """
         return self.project.list_models(with_versions=True, name=self.name)
@@ -209,6 +212,7 @@ class Model:
     def get_version(self, num: int) -> ModelVersion:
         """
         Get model version by number
+
         :param num: version number
         :return: ModelVersion object
         """

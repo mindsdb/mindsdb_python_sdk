@@ -29,7 +29,7 @@ def response_mock(mock, data):
 def check_sql_call(mock, sql, database=None):
     call_args = mock.call_args
     assert call_args[0][0] == 'https://cloud.mindsdb.com/api/sql/query'
-    sql_out = call_args.kwargs['json']['query']
+    sql_out = call_args[1]['json']['query']
 
     # re-render
     sql2 = parse_sql(sql, dialect='mindsdb').to_string()
@@ -39,7 +39,7 @@ def check_sql_call(mock, sql, database=None):
         raise AssertionError(f'{sql} != {sql_out}')
 
     if database is not None:
-        assert database == call_args.kwargs['json']['context']['db']
+        assert database == call_args[1]['json']['context']['db']
 
 
 class Test:
@@ -52,7 +52,7 @@ class Test:
         # check login
         call_args = mock_post.call_args
         assert call_args[0][0] == 'https://cloud.mindsdb.com/cloud/login'
-        assert call_args.kwargs['json']['email'] == 'a@b.com'
+        assert call_args[1]['json']['email'] == 'a@b.com'
 
         # --------- databases -------------
         response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))
@@ -281,8 +281,8 @@ class Test:
 
         call_args = mock_post.call_args
         assert call_args[0][0] == f'https://cloud.mindsdb.com/api/projects/{model.project.name}/models/{model_name}/predict'
-        assert call_args.kwargs['json']['data'] == data_in
-        assert call_args.kwargs['json']['params'] == params
+        assert call_args[1]['json']['data'] == data_in
+        assert call_args[1]['json']['params'] == params
 
         # check prediction
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
@@ -355,8 +355,8 @@ class Test:
         model2.set_active(version=3)
 
         # get call before last call
-        mock_call = mock_post.mock_calls[-2]
-        assert mock_call.kwargs['json']['query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
+        mock_call = mock_post.call_args_list[-2]
+        assert mock_call[1]['json']['query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
 
     @patch('requests.post')
     def check_database(self, database, mock_post,):

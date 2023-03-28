@@ -8,8 +8,6 @@ def connect(url: str = None, email: str = None, password: str = None) -> Server:
     """
     Create connection to mindsdb server
 
-    Parameters
-    ----------
     :param url: url to mindsdb server
     :param email: user email to login (for cloud version)
     :param password: user password to login (for cloud version)
