@@ -29,35 +29,9 @@ jobs:
     - name: Run tests
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          cd tests
+        
+          env PYTHONPATH=./ pytest tests/
 
-          #echo -e "\n===============CLOUD ENVIRONMENT===============\n"
-          #export TEST_ENV=cloud
-          #echo -e "\n===============\ntest Integrations\n===============\n"
-          #python test_integrations.py -v --no_backend_instance
-          #echo -e "\n===============\ntest DataSources\n===============\n"
-          #python test_datasources.py -v --no_backend_instance
-          #echo -e "\n===============\ntest Predictors\n===============\n"
-          #python test_predictors.py -v --no_backend_instance
-          #echo -e "\n===============\ntest Accessor\n===============\n"
-          #python test_pandas_accessor.py -v --no_backend_instance
-
-          echo -e "\n===============LOCAL ENVIRONMENT===============\n"
-          sleep 5
-          export TEST_ENV=local
-          echo -e "\n===============\ntest Integrations\n===============\n"
-          python test_integrations.py -v
-          echo -e "\n===============\ntest DataSources\n===============\n"
-          python test_datasources.py -v
-          echo -e "\n===============\ntest Predictors\n===============\n"
-          python test_predictors.py -v
-          echo -e "\n===============\ntest Timeseries\n===============\n"
-          python test_timeseries.py -v
-
-          echo -e "\n===============\ntest Accessor (NATIVE ONLY)\n===============\n"
-          export TEST_ENV=native
-          python test_pandas_accessor.py -v
-          cd ..
         fi
       shell: bash
       env:
@@ -81,19 +55,6 @@ jobs:
         python -m pip install --upgrade pip==20.2.4
         pip install setuptools wheel twine
     - name: Build and publish
-      env:
-        TWINE_USERNAME:  __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        python setup.py sdist
-        twine upload dist/*
-
-    - name: Replace sdk files with pd_auto_ml files
-      run: |
-        mv mindsdb_sdk/__about__pd.py mindsdb_sdk/__about__.py
-        mv setup_pd.py setup.py
-
-    - name: Build and publish auto_ml
       env:
         TWINE_USERNAME:  __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
