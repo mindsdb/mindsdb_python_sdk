@@ -444,6 +444,12 @@ class Test:
         assert job.name == 'job1'
         assert job.query_str == 'select 1'
 
+        job.refresh()
+        check_sql_call(
+            mock_post,
+            f"select * from jobs where name = 'job1'"
+        )
+
         project.create_job(
             name='job2',
             query_str='retrain m1',
