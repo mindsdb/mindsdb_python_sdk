@@ -1,3 +1,4 @@
+import datetime as dt
 from unittest.mock import patch
 from unittest.mock import Mock
 
@@ -26,10 +27,19 @@ def response_mock(mock, data):
     mock.side_effect = side_effect
 
 
-def check_sql_call(mock, sql, database=None):
-    call_args = mock.call_args
-    assert call_args[0][0] == 'https://cloud.mindsdb.com/api/sql/query'
-    sql_out = call_args[1]['json']['query']
+def check_sql_call(mock, sql, database=None, call_stack_num=None):
+    if call_stack_num is not None:
+        call_args = mock.mock_calls[call_stack_num]
+        args = call_args[1]
+        kwargs = call_args[2]
+
+    else:
+        call_args = mock.call_args
+        args = call_args[0]
+        kwargs = call_args[1]
+
+    assert args[0] == 'https://cloud.mindsdb.com/api/sql/query'
+    sql_out = kwargs['json']['query']
 
     # re-render
     sql2 = parse_sql(sql, dialect='mindsdb').to_string()
@@ -39,7 +49,7 @@ def check_sql_call(mock, sql, database=None):
         raise AssertionError(f'{sql} != {sql_out}')
 
     if database is not None:
-        assert database == call_args[1]['json']['context']['db']
+        assert database == kwargs['json']['context']['db']
 
 
 class Test:
@@ -104,6 +114,8 @@ class Test:
         self.check_project_models(project, database)
 
         self.check_project_models_versions(project, database)
+
+        self.check_project_jobs(project)
 
     @patch('requests.Session.get')
     @patch('requests.Session.post')
@@ -411,3 +423,45 @@ class Test:
         table.fetch()
 
         check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')
+
+    @patch('requests.Session.post')
+    def check_project_jobs(self, project, mock_post):
+
+        response_mock(mock_post, pd.DataFrame([{
+            'NAME': 'job1',
+            'QUERY': 'select 1',
+            'start_at': None,
+            'end_at': None,
+            'next_run_at': None,
+            'schedule_str': None,
+        }]))
+
+        jobs = project.list_jobs()
+
+        check_sql_call(mock_post, "select * from jobs")
+
+        job = jobs[0]
+        assert job.name == 'job1'
+        assert job.query_str == 'select 1'
+
+        project.create_job(
+            name='job2',
+            query_str='retrain m1',
+            repeat_str='1 min',
+            start_at=dt.datetime(2025, 2, 5, 11, 22),
+            end_at=dt.date(2030, 1, 2)
+        )
+
+        check_sql_call(
+            mock_post,
+            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 min",
+            call_stack_num=-2
+        )
+
+        project.drop_job('job2')
+
+        check_sql_call(
+            mock_post,
+            f"DROP JOB job2"
+        )
+

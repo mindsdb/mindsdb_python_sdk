@@ -2,7 +2,7 @@ from typing import Union, List
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, CreateView, DropPredictor
+from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, CreateView, DropPredictor, CreateJob, DropJob
 from mindsdb_sql.parser.ast import DropView, Identifier, Delete, Star, Select
 
 from mindsdb_sdk.utils import dict_to_binary_op
@@ -416,4 +416,93 @@ class Project:
             })
         )
         self.query(ast_query.to_string()).fetch()
+
+    def list_jobs(self, name=None):
+        ast_query = Select(targets=[Star()], from_table=Identifier('jobs'))
+
+        df = self.api.sql_query(ast_query.to_string(), database=self.name)
+
+        # columns to lower case
+        cols_map = {i: i.lower() for i in df.columns}
+        df = df.rename(columns=cols_map)
+
+        if name is not None:
+            df = df[df.name == name]
+
+        return [
+            Job(self, item)
+            for item in df.to_dict('records')
+        ]
+
+    def get_job(self, name):
+        jobs = self.list_jobs(name)
+        if len(jobs) == 1:
+            return jobs[0]
+        elif len(jobs) == 0:
+            raise AttributeError("Job doesn't exist")
+        else:
+            raise RuntimeError("Several jobs with the same name")
+
+    def create_job(self, name, query_str, start_at=None, end_at=None, repeat_str=None):
+        if start_at is not None:
+            start_str = start_at.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            start_str = None
+
+        if end_at is not None:
+            end_str = end_at.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            end_str = None
+        ast_query = CreateJob(
+            name=Identifier(name),
+            query_str=query_str,
+            start_str=start_str,
+            end_str=end_str,
+            repeat_str=repeat_str
+        )
+
+        self.api.sql_query(ast_query.to_string(), database=self.name)
+
+        # job can be executed and remove it is not repeatable
+        jobs = self.list_jobs(name)
+        if len(jobs) == 1:
+            return jobs[0]
+
+    def drop_job(self, name):
+        ast_query = DropJob(Identifier(name))
+
+        self.api.sql_query(ast_query.to_string(), database=self.name)
+
+
+class Job:
+    def __init__(self, project, data):
+        self.project = project
+        self._update(data)
+
+    def _update(self, data):
+        self.name = data['name']
+        self.query_str = data['query']
+        self.start_at = data['start_at']
+        self.end_at = data['end_at']
+        self.next_run_at = data['next_run_at']
+        self.schedule_str = data['schedule_str']
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name}, query='{self.query_str}')"
+
+    def refresh(self):
+        job = self.project.get_job(self.name)
+        self._update(job.data)
+
+    def get_history(self):
+        ast_query = Select(
+            targets=[Star()],
+            from_table=Identifier('jobs_history'),
+            where=dict_to_binary_op({
+                'name': self.name
+            })
+        )
+        return self.project.api.sql_query(ast_query.to_string(), database=self.project.name)
+
+
 
