@@ -24,19 +24,25 @@ def _try_relogin(fnc):
 
 
 class RestAPI:
-    def __init__(self, url=None, email=None, password=None):
+    def __init__(self, url=None, email=None, password=None, is_managed=False):
 
         self.url = url
         self.email = email
         self.password = password
+        self.is_managed = is_managed
         self.session = requests.Session()
 
         if email is not None:
             self.login()
 
     def login(self):
-        url = self.url + '/cloud/login'
-        json = {'email': self.email, 'password': self.password}
+        login_endpoint = '/api/login' if self.is_managed else '/cloud/login'
+        url = self.url + login_endpoint
+        json = {'password': self.password}
+        if self.is_managed:
+            json['username'] = self.email
+        else:
+            json['email'] = self.email
         r = self.session.post(url, json=json)
         r.raise_for_status()
 

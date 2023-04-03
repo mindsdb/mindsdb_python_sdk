@@ -102,11 +102,24 @@ class Test:
         self.check_project(project, database)
 
         project = server.create_project('proj1')
-        check_sql_call(mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb"')
+        check_sql_call(
+            mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb", PARAMETERS = {}')
         self.check_project(project, database)
 
         server.drop_project('proj1')
         check_sql_call(mock_post, 'DROP DATABASE proj1')
+
+    @patch('requests.Session.post')
+    def test_managed_login(self, mock_post):
+
+        mindsdb_sdk.connect(
+            'http://instance_url', email='a@b.com', password='test_pass', is_managed=True)
+
+        # check login
+        call_args = mock_post.call_args
+        assert call_args[0][0] == 'http://instance_url/api/login'
+        assert call_args[1]['json']['username'] == 'a@b.com'
+        assert call_args[1]['json']['password'] == 'test_pass'
 
     def check_project(self, project, database):
         self.check_project_views( project, database)
