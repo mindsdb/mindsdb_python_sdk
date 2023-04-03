@@ -44,7 +44,7 @@ def check_sql_call(mock, sql, database=None):
 
 class Test:
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def test_flow(self, mock_post):
 
         server = mindsdb_sdk.connect(email='a@b.com')
@@ -105,8 +105,8 @@ class Test:
 
         self.check_project_models_versions(project, database)
 
-    @patch('requests.get')
-    @patch('requests.post')
+    @patch('requests.Session.get')
+    @patch('requests.Session.post')
     def check_project_views(self, project, database, mock_post, mock_get):
         # -----------  views  --------------
 
@@ -153,7 +153,7 @@ class Test:
         project.drop_view('v2')
         check_sql_call(mock_post, 'DROP VIEW v2')
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def check_project_models(self, project, database, mock_post):
         # -----------  models  --------------
         response_mock(
@@ -233,7 +233,7 @@ class Test:
         # TODO
         check_sql_call(mock_post, sql)
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
         # -----------  model version --------------
         response_mock(
@@ -262,7 +262,7 @@ class Test:
         project.drop_model_version('m1', 1)
         check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def check_model(self, model, database, mock_post):
 
         # using dataframe on input
@@ -358,7 +358,7 @@ class Test:
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json']['query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def check_database(self, database, mock_post,):
 
         # test query
@@ -402,7 +402,7 @@ class Test:
         assert table3.name == 't3'
         self.check_table(table3)
 
-    @patch('requests.post')
+    @patch('requests.Session.post')
     def check_table(self, table, mock_post):
         response_mock(mock_post, pd.DataFrame([{'x': 'a'}]))
 

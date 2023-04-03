@@ -29,7 +29,7 @@ class RestAPI:
         self.url = url
         self.email = email
         self.password = password
-        self.session = None
+        self.session = requests.Session()
 
         if email is not None:
             self.login()
@@ -37,17 +37,15 @@ class RestAPI:
     def login(self):
         url = self.url + '/cloud/login'
         json = {'email': self.email, 'password': self.password}
-        r = requests.post(url, json=json)
+        r = self.session.post(url, json=json)
         r.raise_for_status()
-
-        self.session = r.cookies['session']
 
     @_try_relogin
     def sql_query(self, sql, database=None, lowercase_columns=False):
         if database is None:
             database = 'mindsdb'
         url = self.url + '/api/sql/query'
-        r = requests.post(url, json={
+        r = self.session.post(url, json={
             'query': sql,
             'context': {'db': database}
         })
@@ -67,7 +65,7 @@ class RestAPI:
     def projects(self):
         # TODO not used yet
 
-        r = requests.get(self.url + '/api/projects')
+        r = self.session.get(self.url + '/api/projects')
         r.raise_for_status()
 
         return pd.DataFrame(r.json())
@@ -81,7 +79,7 @@ class RestAPI:
         if params is None:
             params = {}
         url = self.url + f'/api/projects/{project}/models/{model}/predict'
-        r = requests.post(url, json={
+        r = self.session.post(url, json={
             'data': data,
             'params': params
         })
@@ -91,7 +89,7 @@ class RestAPI:
 
     @_try_relogin
     def objects_tree(self, item=''):
-        r = requests.get(self.url + f'/api/tree/{item}')
+        r = self.session.get(self.url + f'/api/tree/{item}')
         r.raise_for_status()
 
         return pd.DataFrame(r.json())
