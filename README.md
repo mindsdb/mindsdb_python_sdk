@@ -1,5 +1,5 @@
 # Python MindsDB SDK
-It enables you to connect to a midnsDB server and use it in a similar way to mindsb_native.
+It enables you to connect to a mindsDB server and use it in a similar way to mindsdb_native.
 
 ## Install
 ```
