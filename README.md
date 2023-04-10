@@ -95,7 +95,7 @@ It runs all tests for components
 env PYTHONPATH=./ pytest
 ```
 
-## Connecting Locally with Python
+## How to Connect From a Python File
 
 Create a file in your python project's root directory to store the connection details:
 
@@ -115,7 +115,7 @@ server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='your_mindsdb_em
 
 Open your terminal and type:
 
-`python server.py`
+`python server.py` 
 
 ### Testing the Connection
 
