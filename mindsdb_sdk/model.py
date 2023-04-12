@@ -51,39 +51,51 @@ class Model:
         if isinstance(data, Query):
             # create join from select if it is simple select
             ast_query = parse_sql(data.sql, dialect='mindsdb')
-            if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
-                # inject aliases
-                if ast_query.from_table.alias is None:
-                    alias = 't'
-                    ast_query.from_table.alias = Identifier(alias)
-                else:
-                    alias = ast_query.from_table.alias.parts[-1]
 
-                def inject_alias(node, is_table, **kwargs):
-                    if not is_table:
-                        if isinstance(node, Identifier):
-                            if node.parts[0] != alias:
-                                node.parts.insert(0, alias)
+            # injection of join disabled yet
+            # if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
+            #     # inject aliases
+            #     if ast_query.from_table.alias is None:
+            #         alias = 't'
+            #         ast_query.from_table.alias = Identifier(alias)
+            #     else:
+            #         alias = ast_query.from_table.alias.parts[-1]
+            #
+            #     def inject_alias(node, is_table, **kwargs):
+            #         if not is_table:
+            #             if isinstance(node, Identifier):
+            #                 if node.parts[0] != alias:
+            #                     node.parts.insert(0, alias)
+            #
+            #     query_traversal(ast_query, inject_alias)
+            #
+            #     # replace table with join
+            #     model_identifier = self._get_identifier()
+            #     model_identifier.alias = Identifier('m')
+            #
+            #     ast_query.from_table = Join(
+            #         join_type='join',
+            #         left=ast_query.from_table,
+            #         right=model_identifier
+            #     )
+            #
+            #     # select only model columns
+            #     ast_query.targets = [Identifier(parts=['m', Star()])]
+            #
 
-                query_traversal(ast_query, inject_alias)
+            # wrap query to subselect
+            model_identifier = self._get_identifier()
+            model_identifier.alias = Identifier('m')
 
-                # replace table with join
-                ast_query.from_table = Join(
+            ast_query.parentheses = True
+            ast_query = Select(
+                targets=[Identifier(parts=['m', Star()])],
+                from_table=Join(
                     join_type='join',
-                    left=ast_query.from_table,
-                    right=self._get_identifier()
+                    left=ast_query,
+                    right=model_identifier
                 )
-            else:
-                # wrap query to subselect
-                ast_query.parentheses = True
-                ast_query = Select(
-                    targets=[Star()],
-                    from_table=Join(
-                        join_type='join',
-                        left=ast_query,
-                        right=self._get_identifier()
-                    )
-                )
+            )
             if params is not None:
                 ast_query.using = params
             # execute in query's database
