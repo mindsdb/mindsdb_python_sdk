@@ -195,11 +195,11 @@ class Project:
 
     Model managing
 
-    Adjusting
+    Fine-tuning
 
-    >>> model.adjust(query)
-    >>> model.adjust('select * from demo_data.house_sales', database='example_db')
-    >>> model.adjust(query, params={'x': 2})
+    >>> model.finetune(query)
+    >>> model.finetune('select * from demo_data.house_sales', database='example_db')
+    >>> model.finetune(query, params={'x': 2})
 
     Retraining
 

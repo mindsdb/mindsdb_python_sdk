@@ -4,7 +4,7 @@ from typing import List, Union
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, AdjustPredictor
+from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
 from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
 from mindsdb_sql.planner.utils import query_traversal
@@ -115,21 +115,21 @@ class Model:
         self.data = model.data
         return self.data
 
-    def adjust(self,
+    def finetune(self,
                query: Union[str, Query] = None,
                database: str = None,
                options: dict = None,
                engine: str = None) -> Union[Model, ModelVersion]:
         """
-        Call adjust of the model
+        Call finetune of the model
 
-        :param query: sql string or Query object to get data for adjusting, optional
-        :param database: database to get data for adjusting, optional
-        :param options: parameters for adjusting model, optional
+        :param query: sql string or Query object to get data for fine-tuning, optional
+        :param database: database to get data for fine-tuning, optional
+        :param options: parameters for fine-tuning model, optional
         :param engine: ml engine, optional
         :return: Model object
         """
-        return self._retrain(ast_class=AdjustPredictor,
+        return self._retrain(ast_class=FinetunePredictor,
                              query=query, database=database,
                              options=options, engine=engine)
 

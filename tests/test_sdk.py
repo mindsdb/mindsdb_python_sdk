@@ -334,16 +334,16 @@ class Test:
             pd.DataFrame([{'NAME': 'm1', 'VERSION': 2, 'STATUS': 'complete'}])
         )
 
-        model.adjust(query, options={'x': 2})
+        model.finetune(query, options={'x': 2})
         check_sql_call(
             mock_post,
-            f'ADJUST {model.project.name}.{model_name} FROM {query.database} ({query.sql})  USING x=2'
+            f'Finetune {model.project.name}.{model_name} FROM {query.database} ({query.sql})  USING x=2'
         )
 
-        model.adjust('select a from t1', database='d1')
+        model.finetune('select a from t1', database='d1')
         check_sql_call(
             mock_post,
-            f'ADJUST {model.project.name}.{model_name} FROM d1 (select a from t1)'
+            f'Finetune {model.project.name}.{model_name} FROM d1 (select a from t1)'
         )
 
         model.retrain(query, options={'x': 2})
