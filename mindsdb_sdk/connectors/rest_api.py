@@ -36,14 +36,25 @@ class RestAPI:
             self.login()
 
     def login(self):
-        login_endpoint = '/api/login' if self.is_managed else '/cloud/login'
-        url = self.url + login_endpoint
-        json = {'password': self.password}
+        managed_endpoint = '/api/login'
+        cloud_endpoint = '/cloud/login'
+
         if self.is_managed:
-            json['username'] = self.username
+            json = {'password': self.password, 'username': self.username}
+            url = self.url + managed_endpoint
         else:
-            json['email'] = self.username
+            json = {'password': self.password, 'email': self.username}
+            url = self.url + cloud_endpoint
         r = self.session.post(url, json=json)
+
+        # failback when is using managed instance with is_managed=False
+        if r.status_code in (405, 404) and self.is_managed is False:
+            # try managed instance login
+
+            json = {'password': self.password, 'username': self.username}
+            url = self.url + managed_endpoint
+            r = self.session.post(url, json=json)
+
         r.raise_for_status()
 
     @_try_relogin
