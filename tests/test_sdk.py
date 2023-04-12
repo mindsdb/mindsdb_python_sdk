@@ -420,7 +420,7 @@ class Test:
 
         # create from table
         table1 = database.get_table('t1')
-        table1.filter(b=2)
+        table1 = table1.filter(b=2)
         table3 = database.create_table('t3', table1)
         check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM t1 WHERE b = 2)')
 
@@ -431,8 +431,8 @@ class Test:
     def check_table(self, table, mock_post):
         response_mock(mock_post, pd.DataFrame([{'x': 'a'}]))
 
-        table.filter(a=3, b='2')
-        table.limit(3)
+        table = table.filter(a=3, b='2')
+        table = table.limit(3)
         table.fetch()
 
         check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')

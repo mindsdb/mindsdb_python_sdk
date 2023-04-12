@@ -93,8 +93,8 @@ class Project:
 
     Getting data:
 
-    >>> view.filter(a=1, b=2)
-    >>> view.limit(100)
+    >>> view = view.filter(a=1, b=2)
+    >>> view = view.limit(100)
     >>> df = view.fetch()
 
     Drop view:
