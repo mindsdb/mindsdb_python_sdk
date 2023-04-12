@@ -47,7 +47,7 @@ query = project.query('select * from database.table join model1')
 
 # create view
 view = project.create_view(
-      'view1',
+      'btc_view',
        query=query
 )
 
@@ -88,7 +88,7 @@ make html
 API documentation will be generated in docs/build/html
 
 ## How to test
-
+`
 It runs all tests for components 
 
 ```bash
