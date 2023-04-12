@@ -6,7 +6,7 @@ It enables you to connect to a midnsDB server from python using HTTP API.
 pip install mindsdb_sdk
 ```
 
-## Example 
+## Example
 
 Connect:
 ```python
@@ -77,6 +77,10 @@ model = project.create_model(
 )
 
 ```
+
+More examples in [Google colab notebook](
+https://colab.research.google.com/drive/1QouwAR3saFb9ffthrIs1LSH5COzyQa11#scrollTo=k6IbwsKRPQCR
+)
 
 ## API documentation
 
