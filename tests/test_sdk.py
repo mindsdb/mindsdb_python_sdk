@@ -57,7 +57,7 @@ class Test:
     @patch('requests.Session.post')
     def test_flow(self, mock_post):
 
-        server = mindsdb_sdk.connect(email='a@b.com')
+        server = mindsdb_sdk.connect(login='a@b.com')
 
         # check login
         call_args = mock_post.call_args
@@ -113,7 +113,7 @@ class Test:
     def test_managed_login(self, mock_post):
 
         mindsdb_sdk.connect(
-            'http://instance_url', email='a@b.com', password='test_pass', is_managed=True)
+            'http://instance_url', login='a@b.com', password='test_pass', is_managed=True)
 
         # check login
         call_args = mock_post.call_args

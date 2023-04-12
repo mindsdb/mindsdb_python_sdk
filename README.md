@@ -20,11 +20,11 @@ server = mindsdb_sdk.connect('http://127.0.0.1:47334')
 # Connect to cloud server
 
 server = mindsdb_sdk.connect(email='a@b.com', password='-')
-server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='a@b.com', password='-')
+server = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
 
 # Connect to MindsDB Pro
 
-server = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', email='a@b.com', password='-', is_managed: True)
+server = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', login='a@b.com', password='-', is_managed=True)
 
 ```
 
