@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 
 from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant
@@ -57,8 +59,11 @@ class Table(Query):
 
         :param kwargs: filter
         """
-        self._filters.update(kwargs)
-        self._update_query()
+        # creates new object
+        query = copy.deepcopy(self)
+        query._filters.update(kwargs)
+        query._update_query()
+        return query
 
     def limit(self, val: int):
         """
@@ -66,8 +71,10 @@ class Table(Query):
 
         :param val: limit size
         """
-        self._limit = val
-        self._update_query()
+        query = copy.deepcopy(self)
+        query._limit = val
+        query._update_query()
+        return query
 
     def _update_query(self):
         ast_query = Select(

@@ -58,8 +58,8 @@ class Server:
 
     """
 
-    def __init__(self, url: str = None, email: str = None, password: str = None):
-        self.api = RestAPI(url, email, password)
+    def __init__(self, url: str = None, login: str = None, password: str = None, is_managed: bool = False):
+        self.api = RestAPI(url, login, password, is_managed)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

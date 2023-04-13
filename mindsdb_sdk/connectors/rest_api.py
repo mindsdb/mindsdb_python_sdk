@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def _try_relogin(fnc):
-    wraps(fnc)
+    @wraps(fnc)
     def wrapper(self, *args, **kwargs):
         try:
             return fnc(self, *args, **kwargs)
@@ -24,20 +24,37 @@ def _try_relogin(fnc):
 
 
 class RestAPI:
-    def __init__(self, url=None, email=None, password=None):
+    def __init__(self, url=None, login=None, password=None, is_managed=False):
 
         self.url = url
-        self.email = email
+        self.username = login
         self.password = password
+        self.is_managed = is_managed
         self.session = requests.Session()
 
-        if email is not None:
+        if login is not None:
             self.login()
 
     def login(self):
-        url = self.url + '/cloud/login'
-        json = {'email': self.email, 'password': self.password}
+        managed_endpoint = '/api/login'
+        cloud_endpoint = '/cloud/login'
+
+        if self.is_managed:
+            json = {'password': self.password, 'username': self.username}
+            url = self.url + managed_endpoint
+        else:
+            json = {'password': self.password, 'email': self.username}
+            url = self.url + cloud_endpoint
         r = self.session.post(url, json=json)
+
+        # failback when is using managed instance with is_managed=False
+        if r.status_code in (405, 404) and self.is_managed is False:
+            # try managed instance login
+
+            json = {'password': self.password, 'username': self.username}
+            url = self.url + managed_endpoint
+            r = self.session.post(url, json=json)
+
         r.raise_for_status()
 
     @_try_relogin

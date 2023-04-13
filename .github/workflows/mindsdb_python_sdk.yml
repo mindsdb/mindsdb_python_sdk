@@ -40,6 +40,7 @@ jobs:
         CLOUD_TEST_EMAIL: ${{ secrets.CLOUD_TEST_EMAIL }}
         CLOUD_TEST_PASSWORD: ${{ secrets.CLOUD_TEST_PASSWORD }}
 
+
   deploy:
     runs-on: ubuntu-latest
     needs: test
