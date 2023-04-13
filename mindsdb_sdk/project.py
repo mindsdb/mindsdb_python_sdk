@@ -93,8 +93,8 @@ class Project:
 
     Getting data:
 
-    >>> view.filter(a=1, b=2)
-    >>> view.limit(100)
+    >>> view = view.filter(a=1, b=2)
+    >>> view = view.limit(100)
     >>> df = view.fetch()
 
     Drop view:
@@ -195,11 +195,11 @@ class Project:
 
     Model managing
 
-    Adjusting
+    Fine-tuning
 
-    >>> model.adjust(query)
-    >>> model.adjust('select * from demo_data.house_sales', database='example_db')
-    >>> model.adjust(query, params={'x': 2})
+    >>> model.finetune(query)
+    >>> model.finetune('select * from demo_data.house_sales', database='example_db')
+    >>> model.finetune(query, params={'x': 2})
 
     Retraining
 
@@ -346,7 +346,7 @@ class Project:
             for item in df.to_dict('records')
         ]
 
-    def create_model(self, name: str, predict: str, engine: str = None,
+    def create_model(self, name: str, predict: str = None, engine: str = None,
                      query: Union[str, Query] = None, database: str = None,
                      options: dict = None, timeseries_options: dict = None) -> Model:
         """
@@ -372,11 +372,15 @@ class Project:
         if database is not None:
             database = Identifier(database)
 
+        if predict is not None:
+            targets = [Identifier(predict)]
+        else:
+            targets = None
         ast_query = CreatePredictor(
             name=Identifier(name),
             query_str=query,
             integration_name=database,
-            targets=[Identifier(predict)],
+            targets=targets,
         )
 
         if timeseries_options is not None:
@@ -395,7 +399,7 @@ class Project:
             options = {}
         if engine is not None:
             options['engine'] = engine
-
+        ast_query.using = options
         df = self.query(ast_query.to_string()).fetch()
         if len(df) > 0:
             data = dict(df.iloc[0])
@@ -489,7 +493,7 @@ class Project:
         else:
             raise RuntimeError("Several jobs with the same name")
 
-    def create_job(self, name: str, query_str:str,
+    def create_job(self, name: str, query_str: str,
                    start_at: dt.datetime = None, end_at: dt.datetime = None,
                    repeat_str: str = None) -> Union[Job, None]:
         """
