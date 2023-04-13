@@ -40,17 +40,6 @@ jobs:
         CLOUD_TEST_EMAIL: ${{ secrets.CLOUD_TEST_EMAIL }}
         CLOUD_TEST_PASSWORD: ${{ secrets.CLOUD_TEST_PASSWORD }}
 
-  pages:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-    - id: deployment
-      uses: sphinx-notes/pages@v3
 
   deploy:
     runs-on: ubuntu-latest
