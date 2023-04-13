@@ -221,7 +221,7 @@ class Test:
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2'
+            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         self.check_model(model, database)
