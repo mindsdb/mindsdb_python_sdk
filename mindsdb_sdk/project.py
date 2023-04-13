@@ -493,7 +493,7 @@ class Project:
         else:
             raise RuntimeError("Several jobs with the same name")
 
-    def create_job(self, name: str, query_str:str,
+    def create_job(self, name: str, query_str: str,
                    start_at: dt.datetime = None, end_at: dt.datetime = None,
                    repeat_str: str = None) -> Union[Job, None]:
         """
