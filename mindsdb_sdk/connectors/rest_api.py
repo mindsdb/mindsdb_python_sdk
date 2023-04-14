@@ -58,9 +58,7 @@ class RestAPI:
         r.raise_for_status()
 
     @_try_relogin
-    def sql_query(self, sql, database=None, lowercase_columns=False):
-        if database is None:
-            database = 'mindsdb'
+    def sql_query(self, sql, database='mindsdb', lowercase_columns=False):
         url = self.url + '/api/sql/query'
         r = self.session.post(url, json={
             'query': sql,
@@ -88,13 +86,11 @@ class RestAPI:
         return pd.DataFrame(r.json())
 
     @_try_relogin
-    def model_predict(self, project, model, data, params=None, version=None):
+    def model_predict(self, project, model, data, params={}, version=None):
         data = data.to_dict('records')
 
         if version is not None:
             model = f'{model}.{version}'
-        if params is None:
-            params = {}
         url = self.url + f'/api/projects/{project}/models/{model}/predict'
         r = self.session.post(url, json={
             'data': data,
