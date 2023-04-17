@@ -86,11 +86,13 @@ class RestAPI:
         return pd.DataFrame(r.json())
 
     @_try_relogin
-    def model_predict(self, project, model, data, params={}, version=None):
+    def model_predict(self, project, model, data, params=None, version=None):
         data = data.to_dict('records')
 
         if version is not None:
             model = f'{model}.{version}'
+        if params is None:
+            params = {}
         url = self.url + f'/api/projects/{project}/models/{model}/predict'
         r = self.session.post(url, json={
             'data': data,
