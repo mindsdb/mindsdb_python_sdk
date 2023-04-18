@@ -57,7 +57,7 @@ class Test:
     @patch('requests.Session.post')
     def test_flow(self, mock_post):
 
-        server = mindsdb_sdk.connect(email='a@b.com')
+        server = mindsdb_sdk.connect(login='a@b.com')
 
         # check login
         call_args = mock_post.call_args
@@ -102,11 +102,24 @@ class Test:
         self.check_project(project, database)
 
         project = server.create_project('proj1')
-        check_sql_call(mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb"')
+        check_sql_call(
+            mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb", PARAMETERS = {}')
         self.check_project(project, database)
 
         server.drop_project('proj1')
         check_sql_call(mock_post, 'DROP DATABASE proj1')
+
+    @patch('requests.Session.post')
+    def test_managed_login(self, mock_post):
+
+        mindsdb_sdk.connect(
+            'http://instance_url', login='a@b.com', password='test_pass', is_managed=True)
+
+        # check login
+        call_args = mock_post.call_args
+        assert call_args[0][0] == 'http://instance_url/api/login'
+        assert call_args[1]['json']['username'] == 'a@b.com'
+        assert call_args[1]['json']['password'] == 'test_pass'
 
     def check_project(self, project, database):
         self.check_project_views( project, database)
@@ -208,7 +221,7 @@ class Test:
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2'
+            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         self.check_model(model, database)
@@ -305,14 +318,14 @@ class Test:
         query = database.query('select a from t1')
         pred_df = model.predict(query, params={'x': '1'})
 
-        check_sql_call(mock_post, f'SELECT t.a FROM t1 as t JOIN {model.project.name}.{model_name} USING x="1"')
+        check_sql_call(mock_post, f'SELECT m.* FROM (SELECT a FROM t1) JOIN {model.project.name}.{model_name} AS m USING x="1"')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # time series prediction
         query = database.query('select * from t1 where type="house" and saledate>latest')
         model.predict(query)
 
-        check_sql_call(mock_post, f"SELECT * FROM t1 as t JOIN {model.project.name}.{model_name} WHERE (t.type = 'house') AND (t.saledate > LATEST)")
+        check_sql_call(mock_post, f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) JOIN {model.project.name}.{model_name} AS m")
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
@@ -321,16 +334,16 @@ class Test:
             pd.DataFrame([{'NAME': 'm1', 'VERSION': 2, 'STATUS': 'complete'}])
         )
 
-        model.adjust(query, options={'x': 2})
+        model.finetune(query, options={'x': 2})
         check_sql_call(
             mock_post,
-            f'ADJUST {model.project.name}.{model_name} FROM {query.database} ({query.sql})  USING x=2'
+            f'Finetune {model.project.name}.{model_name} FROM {query.database} ({query.sql})  USING x=2'
         )
 
-        model.adjust('select a from t1', database='d1')
+        model.finetune('select a from t1', database='d1')
         check_sql_call(
             mock_post,
-            f'ADJUST {model.project.name}.{model_name} FROM d1 (select a from t1)'
+            f'Finetune {model.project.name}.{model_name} FROM d1 (select a from t1)'
         )
 
         model.retrain(query, options={'x': 2})
@@ -407,7 +420,7 @@ class Test:
 
         # create from table
         table1 = database.get_table('t1')
-        table1.filter(b=2)
+        table1 = table1.filter(b=2)
         table3 = database.create_table('t3', table1)
         check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM t1 WHERE b = 2)')
 
@@ -418,8 +431,8 @@ class Test:
     def check_table(self, table, mock_post):
         response_mock(mock_post, pd.DataFrame([{'x': 'a'}]))
 
-        table.filter(a=3, b='2')
-        table.limit(3)
+        table = table.filter(a=3, b='2')
+        table = table.limit(3)
         table.fetch()
 
         check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')

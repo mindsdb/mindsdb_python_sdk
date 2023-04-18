@@ -25,8 +25,8 @@ class Database:
 
     Filter and limit
 
-    >>> table.filter(a=1, b='2')
-    >>> table.limit(3)
+    >>> table = table.filter(a=1, b='2')
+    >>> table = table.limit(3)
 
     Get content of table as dataframe. At that moment query will be sent on server and executed
 

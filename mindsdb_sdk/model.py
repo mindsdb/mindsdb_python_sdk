@@ -4,7 +4,7 @@ from typing import List, Union
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, AdjustPredictor
+from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
 from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
 from mindsdb_sql.planner.utils import query_traversal
@@ -51,39 +51,51 @@ class Model:
         if isinstance(data, Query):
             # create join from select if it is simple select
             ast_query = parse_sql(data.sql, dialect='mindsdb')
-            if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
-                # inject aliases
-                if ast_query.from_table.alias is None:
-                    alias = 't'
-                    ast_query.from_table.alias = Identifier(alias)
-                else:
-                    alias = ast_query.from_table.alias.parts[-1]
 
-                def inject_alias(node, is_table, **kwargs):
-                    if not is_table:
-                        if isinstance(node, Identifier):
-                            if node.parts[0] != alias:
-                                node.parts.insert(0, alias)
+            # injection of join disabled yet
+            # if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
+            #     # inject aliases
+            #     if ast_query.from_table.alias is None:
+            #         alias = 't'
+            #         ast_query.from_table.alias = Identifier(alias)
+            #     else:
+            #         alias = ast_query.from_table.alias.parts[-1]
+            #
+            #     def inject_alias(node, is_table, **kwargs):
+            #         if not is_table:
+            #             if isinstance(node, Identifier):
+            #                 if node.parts[0] != alias:
+            #                     node.parts.insert(0, alias)
+            #
+            #     query_traversal(ast_query, inject_alias)
+            #
+            #     # replace table with join
+            #     model_identifier = self._get_identifier()
+            #     model_identifier.alias = Identifier('m')
+            #
+            #     ast_query.from_table = Join(
+            #         join_type='join',
+            #         left=ast_query.from_table,
+            #         right=model_identifier
+            #     )
+            #
+            #     # select only model columns
+            #     ast_query.targets = [Identifier(parts=['m', Star()])]
+            #
 
-                query_traversal(ast_query, inject_alias)
+            # wrap query to subselect
+            model_identifier = self._get_identifier()
+            model_identifier.alias = Identifier('m')
 
-                # replace table with join
-                ast_query.from_table = Join(
+            ast_query.parentheses = True
+            ast_query = Select(
+                targets=[Identifier(parts=['m', Star()])],
+                from_table=Join(
                     join_type='join',
-                    left=ast_query.from_table,
-                    right=self._get_identifier()
+                    left=ast_query,
+                    right=model_identifier
                 )
-            else:
-                # wrap query to subselect
-                ast_query.parentheses = True
-                ast_query = Select(
-                    targets=[Star()],
-                    from_table=Join(
-                        join_type='join',
-                        left=ast_query,
-                        right=self._get_identifier()
-                    )
-                )
+            )
             if params is not None:
                 ast_query.using = params
             # execute in query's database
@@ -115,21 +127,21 @@ class Model:
         self.data = model.data
         return self.data
 
-    def adjust(self,
+    def finetune(self,
                query: Union[str, Query] = None,
                database: str = None,
                options: dict = None,
                engine: str = None) -> Union[Model, ModelVersion]:
         """
-        Call adjust of the model
+        Call finetune of the model
 
-        :param query: sql string or Query object to get data for adjusting, optional
-        :param database: database to get data for adjusting, optional
-        :param options: parameters for adjusting model, optional
+        :param query: sql string or Query object to get data for fine-tuning, optional
+        :param database: database to get data for fine-tuning, optional
+        :param options: parameters for fine-tuning model, optional
         :param engine: ml engine, optional
         :return: Model object
         """
-        return self._retrain(ast_class=AdjustPredictor,
+        return self._retrain(ast_class=FinetunePredictor,
                              query=query, database=database,
                              options=options, engine=engine)
 
