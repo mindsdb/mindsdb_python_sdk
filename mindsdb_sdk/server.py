@@ -162,5 +162,5 @@ class Server:
         :return: Project object
         """
         if name not in self._list_projects():
-            raise AttributeError("Database doesn't exist")
+            raise AttributeError("Project doesn't exist")
         return Project(self, name)
