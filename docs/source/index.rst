@@ -1,12 +1,15 @@
-Welcome to Project's documentation!
-================================
+Welcome to Mindsdb python SDK documentation!
+============================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   modules
-      
+   server
+   database
+   project
+   model
+   query
    
 Indices and tables
 ==================

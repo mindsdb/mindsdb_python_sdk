@@ -29,10 +29,18 @@ class Job:
         return f"{self.__class__.__name__}({self.name}, query='{self.query_str}')"
 
     def refresh(self):
+        """
+        Retrieve job data from mindsdb server
+        """
         job = self.project.get_job(self.name)
         self._update(job.data)
 
-    def get_history(self):
+    def get_history(self) -> pd.DataFrame:
+        """
+        Get history of job execution
+
+        :return: dataframe with job executions
+        """
         ast_query = Select(
             targets=[Star()],
             from_table=Identifier('jobs_history'),
@@ -47,8 +55,8 @@ class Project:
     """
     Allows to work with project: to manage models and views inside of it or call raw queries inside of project
 
-    Queries
-    ----------
+    **Queries**
+
     Making prediciton using sql:
 
     >>> query = project.query('select * from database.table join model1')
@@ -65,8 +73,8 @@ class Project:
     ...     LIMIT 4;
     ...    ''').fetch()
 
-    Views
-    ----------
+    **Views**
+
     Get:
 
     >>> views = project.list_views()
@@ -102,8 +110,7 @@ class Project:
     >>> project.drop_view('view1')
 
 
-    Models
-    ----------
+    **Models**
 
     Get:
 
@@ -193,7 +200,7 @@ class Project:
     ...''').fetch()
 
 
-    Model managing
+    **Model managing**
 
     Fine-tuning
 
