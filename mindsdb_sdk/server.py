@@ -1,7 +1,7 @@
 from typing import List
 
 from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
-from mindsdb_sql.parser.ast import DropDatabase
+from mindsdb_sql.parser.ast import DropDatabase, Identifier
 
 from mindsdb_sdk.connectors.rest_api import RestAPI
 from .database import Database
@@ -88,7 +88,7 @@ class Server:
         :return: created Database object
         """
         ast_query = CreateDatabase(
-            name=name,
+            name=Identifier(name),
             engine=engine,
             parameters=connection_args,
         )
@@ -137,7 +137,7 @@ class Server:
         """
 
         ast_query = CreateDatabase(
-            name=name,
+            name=Identifier(name),
             engine='mindsdb',
             parameters={}
         )
@@ -162,5 +162,5 @@ class Server:
         :return: Project object
         """
         if name not in self._list_projects():
-            raise AttributeError("Database doesn't exist")
+            raise AttributeError("Project doesn't exist")
         return Project(self, name)

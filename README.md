@@ -84,17 +84,26 @@ https://colab.research.google.com/drive/1QouwAR3saFb9ffthrIs1LSH5COzyQa11#scroll
 
 ## API documentation
 
-Generating:
+Api documentation can be found in: 
+https://mindsdb.github.io/mindsdb_python_sdk/
+
+
+**Generating api docs:**
+
+Locally:
 
 ```commandline
-pip install sphinx
-
 cd docs
+
+pip install -r requirements.txt
 
 make html
 ```
 
-API documentation will be generated in docs/build/html
+
+**Online documentation** is updated by pushing in `docs` branch
+
+
 
 ## How to test
 

@@ -58,9 +58,7 @@ class RestAPI:
         r.raise_for_status()
 
     @_try_relogin
-    def sql_query(self, sql, database=None, lowercase_columns=False):
-        if database is None:
-            database = 'mindsdb'
+    def sql_query(self, sql, database='mindsdb', lowercase_columns=False):
         url = self.url + '/api/sql/query'
         r = self.session.post(url, json={
             'query': sql,
