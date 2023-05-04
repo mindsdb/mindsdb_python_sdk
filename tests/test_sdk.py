@@ -8,6 +8,11 @@ from mindsdb_sql import parse_sql
 import mindsdb_sdk
 from mindsdb_sdk.model import ModelVersion
 
+from mindsdb_sdk.connectors import rest_api
+
+# patch _raise_for_status
+rest_api._raise_for_status = Mock()
+
 
 def response_mock(mock, data):
     if isinstance(data, pd.DataFrame):
