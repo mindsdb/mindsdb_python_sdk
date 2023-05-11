@@ -1,12 +1,12 @@
 import datetime as dt
-from unittest.mock import patch
 from unittest.mock import Mock
+from unittest.mock import patch
 
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-import mindsdb_sdk
 from mindsdb_sdk.model import ModelVersion
+import mindsdb_sdk
 
 
 def response_mock(mock, data):
