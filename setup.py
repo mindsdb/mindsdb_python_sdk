@@ -1,5 +1,8 @@
 from setuptools import setup, find_packages
-from mindsdb_sdk import __about__ as C
+
+about = {}
+with open("mindsdb_sdk/__about__.py") as fp:
+    exec(fp.read(), about)
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -8,17 +11,17 @@ with open('requirements.txt') as req_file:
     requirements = req_file.read().splitlines()
 
 setup(
-    name=C.__title__,
-    version=C.__version__,
-    url=C.__github__,
-    download_url=C.__pypi__,
-    license=C.__license__,
-    author=C.__author__,
-    author_email=C.__email__,
-    description=C.__description__,
+    name=about['__title__'],
+    version=about['__version__'],
+    url=about['__github__'],
+    download_url=about['__pypi__'],
+    license=about['__license__'],
+    author=about['__author__'],
+    author_email=about['__email__'],
+    description=about['__description__'],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(exclude=('tests*', 'testing*')),
+    packages=find_packages(exclude=('tests*',)),
     install_requires=requirements,
     extras_require={
         'dev': [
