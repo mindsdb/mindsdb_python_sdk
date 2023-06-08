@@ -23,6 +23,12 @@ def _try_relogin(fnc):
     return wrapper
 
 
+def _raise_for_status(response):
+    # show response text in error
+    if 400 <= response.status_code < 600:
+        raise requests.HTTPError(f'{response.reason}: {response.text}', response=response)
+
+
 class RestAPI:
     def __init__(self, url=None, login=None, password=None, is_managed=False):
 
@@ -55,7 +61,7 @@ class RestAPI:
             url = self.url + managed_endpoint
             r = self.session.post(url, json=json)
 
-        r.raise_for_status()
+        _raise_for_status(r)
 
     @_try_relogin
     def sql_query(self, sql, database='mindsdb', lowercase_columns=False):
@@ -64,7 +70,7 @@ class RestAPI:
             'query': sql,
             'context': {'db': database}
         })
-        r.raise_for_status()
+        _raise_for_status(r)
 
         data = r.json()
         if data['type'] == 'table':
@@ -81,7 +87,7 @@ class RestAPI:
         # TODO not used yet
 
         r = self.session.get(self.url + '/api/projects')
-        r.raise_for_status()
+        _raise_for_status(r)
 
         return pd.DataFrame(r.json())
 
@@ -98,13 +104,13 @@ class RestAPI:
             'data': data,
             'params': params
         })
-        r.raise_for_status()
+        _raise_for_status(r)
 
         return pd.DataFrame(r.json())
 
     @_try_relogin
     def objects_tree(self, item=''):
         r = self.session.get(self.url + f'/api/tree/{item}')
-        r.raise_for_status()
+        _raise_for_status(r)
 
         return pd.DataFrame(r.json())

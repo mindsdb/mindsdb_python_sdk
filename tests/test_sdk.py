@@ -1,12 +1,17 @@
 import datetime as dt
-from unittest.mock import patch
 from unittest.mock import Mock
+from unittest.mock import patch
 
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-import mindsdb_sdk
 from mindsdb_sdk.model import ModelVersion
+import mindsdb_sdk
+
+from mindsdb_sdk.connectors import rest_api
+
+# patch _raise_for_status
+rest_api._raise_for_status = Mock()
 
 
 def response_mock(mock, data):
