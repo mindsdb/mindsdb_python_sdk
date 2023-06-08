@@ -52,7 +52,7 @@ query = project.query('select * from database.table join model1')
 
 # create view
 view = project.create_view(
-      'view1',
+      'btc_view',
        query=query
 )
 
@@ -106,9 +106,56 @@ make html
 
 
 ## How to test
-
+`
 It runs all tests for components 
 
 ```bash
 env PYTHONPATH=./ pytest
 ```
+
+## How to Connect From a Python File
+
+Create a file in your python project's root directory to store the connection details:
+
+`server.py` 
+
+Add the connection arguments with **your MindsDB credentials** to `server.py`:
+
+```python
+import mindsdb_sdk
+
+server = mindsdb_sdk.connect()
+server = mindsdb_sdk.connect('http://127.0.0.1:47334')
+
+server = mindsdb_sdk.connect(email='your_mindsdb_email', password='your_mindsdb_password')
+server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='your_mindsdb_email', password='your_mindsdb_password')
+```
+
+Open your terminal and type:
+
+`python server.py` 
+
+### Testing the Connection
+
+Add test queries to `server.py` with `print()` statements to confirm the connection:
+
+```python
+import mindsdb_sdk #import the mindsdb_sdk package
+
+server = mindsdb_sdk.connect()
+server = mindsdb_sdk.connect('http://127.0.0.1:47334')
+
+#  Input your MindsDB Cloud Credentials below to connect to MindsDB Cloud
+server = mindsdb_sdk.connect(email='your_mindsdb_email', password='your_mindsdb_password')
+server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='your_mindsdb_email', password='your_mindsdb_password') # Connect to MindsDB server in the cloud
+
+databases = server.list_databases()
+
+database = databases[1] # Database type object
+
+query = database.query('select * from files.test_data')
+print(database)
+```
+
+To see a full example, checkout:
+`server.py`
