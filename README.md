@@ -69,11 +69,19 @@ model = models[0]
 result_df = model.predict(df)
 result_df = model.predict(query)
 
+# timeseries params 
+timeseries_options={
+          'order': 'date',
+          'window': 5,
+          'horizon': 1
+}
+
 # create model
 model = project.create_model(
       'rentals_model',
       predict='price',
       query=query,
+      timeseries_options=timeseries_options
 )
 
 ```
