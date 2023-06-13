@@ -98,7 +98,7 @@ https://colab.research.google.com/drive/1QouwAR3saFb9ffthrIs1LSH5COzyQa11#scroll
 
 ## API Documentation
 
-The API documentation for the MindsDB SDK can be found at mindsdb.github.io/mindsdb_python_sdk. You can generate the API documentation locally by following these steps:
+The API documentation for the MindsDB SDK can be found at https://mindsdb.github.io/mindsdb_python_sdk/. You can generate the API documentation locally by following these steps:
 
 ### Generating API docs locally:
 
