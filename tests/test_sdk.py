@@ -317,6 +317,10 @@ class Test:
         # check prediction
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
+        # predict using dict
+        pred_df = model.predict({'a': 1})
+        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+
         # using  deferred query
         response_mock(mock_post, pd.DataFrame(data_out))  # will be used sql/query
 

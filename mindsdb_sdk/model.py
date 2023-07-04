@@ -33,7 +33,7 @@ class Model:
             parts.append(str(self.version))
         return Identifier(parts=parts)
 
-    def predict(self, data: Union[pd.DataFrame, Query], params: dict = None) -> pd.DataFrame:
+    def predict(self, data: Union[pd.DataFrame, Query, dict], params: dict = None) -> pd.DataFrame:
         """
         Make prediction using model
 
@@ -101,6 +101,10 @@ class Model:
             # execute in query's database
             return self.project.api.sql_query(ast_query.to_string(), database=data.database)
 
+        elif isinstance(data, dict):
+            data = pd.DataFrame([data])
+            return self.project.api.model_predict(self.project.name, self.name, data,
+                                                  params=params, version=self.version)
         elif isinstance(data, pd.DataFrame):
             return self.project.api.model_predict(self.project.name, self.name, data,
                                                   params=params, version=self.version)

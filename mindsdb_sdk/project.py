@@ -179,6 +179,10 @@ class Project:
     >>> result_df = model.predict(df_rental)
     >>> result_df = model.predict(df_rental, params={'a': 'q'})
 
+    Dict on input
+
+    >>> result_df = model.predict({'n_rooms': 2})
+
     Deferred query on input
 
     >>> result_df = model.predict(query, params={'': ''})
