@@ -395,6 +395,12 @@ class Project:
         )
 
         if timeseries_options is not None:
+            # check ts options
+            allowed_keys = ['group', 'order', 'window', 'horizon']
+            for key in timeseries_options.keys():
+                if key not in allowed_keys:
+                    raise AttributeError(f"Unexpected time series option: {key}")
+
             if 'group' in timeseries_options:
                 group = timeseries_options['group']
                 if not isinstance(group, list):

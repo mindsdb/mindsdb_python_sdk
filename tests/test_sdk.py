@@ -1,3 +1,5 @@
+import pytest
+
 import datetime as dt
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -262,6 +264,24 @@ class Test:
         result_df = project.query(sql).fetch()
         # TODO
         check_sql_call(mock_post, sql)
+
+        # check ts params
+        with pytest.raises(AttributeError):
+            project.create_model(
+                'm2',
+                predict='price',
+                engine='lightwood',
+                database='example_db',
+                query='select * from t1',
+                options={
+                    'module': 'LightGBM'
+                },
+                timeseries_options={
+                    'order': 'date',
+                    'group1': ['a', 'b'],
+                }
+            )
+
 
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
