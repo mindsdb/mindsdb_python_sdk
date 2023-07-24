@@ -4,6 +4,7 @@ import io
 import requests
 import pandas as pd
 
+from .. import __about__
 
 def _try_relogin(fnc):
     @wraps(fnc)
@@ -38,6 +39,8 @@ class RestAPI:
         self.password = password
         self.is_managed = is_managed
         self.session = requests.Session()
+
+        self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
 
         if login is not None:
             self.login()
