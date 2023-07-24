@@ -126,3 +126,4 @@ We welcome contributions to the MindsDB SDK. If you'd like to contribute, please
 ## License
 
 The MindsDB SDK is licensed under the MIT License. Feel free to use and modify it according to your needs
+
