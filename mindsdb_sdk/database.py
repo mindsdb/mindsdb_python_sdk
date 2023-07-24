@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Union
 
-from mindsdb_sql.parser.ast import Identifier
+import pandas as pd
+
+from mindsdb_sql.parser.ast import Identifier, DropTables
 
 from mindsdb_sdk.query import Query, Table
 
@@ -41,6 +43,15 @@ class Database:
     From other table
 
     >>> table2 = database.create_table('table2', table)
+
+    Uploading file
+
+    >>> db = server.get_database('files')
+    >>> db.create_table('filename', dataframe)
+
+  ` Droping table
+
+    >>> database.drop_table('table2')
 
     """
 
@@ -89,7 +100,7 @@ class Database:
                 raise AttributeError("Table doesn't exist")
         return Table(self, name)
 
-    def create_table(self, name: str, query: Query, replace: bool = False) -> Table:
+    def create_table(self, name: str, query: Union[pd.DataFrame, Query], replace: bool = False) -> Table:
         """
         Create new table and return it.
 
@@ -106,6 +117,12 @@ class Database:
         :param replace: if true,
         :return: Table object
         """
+
+        if isinstance(query, pd.DataFrame) and self.name == 'files':
+            # now it is only possible for file uploading
+            self.api.upload_file(name, query)
+
+            return Table(self, name)
 
         if not isinstance(query, Query):
             raise NotImplementedError
@@ -137,3 +154,16 @@ class Database:
         )
 
         return Table(self, name)
+
+    def drop_table(self, name: str):
+        """
+        Delete table
+
+        :param name: name of table
+        """
+        ast_query = DropTables(
+            tables=[
+                Identifier(parts=[name])
+            ]
+        )
+        self.api.sql_query(ast_query.to_string(), database=self.name)
