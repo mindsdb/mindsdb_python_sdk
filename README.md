@@ -1,161 +1,129 @@
 # Python MindsDB SDK
-It enables you to connect to a MindsDB server from python using HTTP API.
 
-## Install
+The Python MindsDB SDK allows you to connect to a MindsDB server from Python using the HTTP API.
+
+## Installation
+
 ```
 pip install mindsdb_sdk
 ```
 
 ## Example
 
-Connect:
+### Connecting to the MindsDB server
+
+You can establish a connection to the MindsDB server using the SDK. Here are some examples:
+
+#### Connect to a local MindsDB server
+
 ```python
 import mindsdb_sdk
-
-# Connect to local server 
-
 server = mindsdb_sdk.connect()
 server = mindsdb_sdk.connect('http://127.0.0.1:47334')
-
-# Connect to cloud server
-
-server = mindsdb_sdk.connect(email='a@b.com', password='-')
-server = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
-
-# Connect to MindsDB Pro
-
-server = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', login='a@b.com', password='-', is_managed=True)
-
 ```
 
-Base usage:
-```python
+#### Connect to the MindsDB Cloud
 
-# database
+```python
+import mindsdb_sdk
+server = mindsdb_sdk.connect(email='a@b.com', password='-')
+server = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
+```
+
+####  Connect to a MindsDB Pro server
+
+```python
+import mindsdb_sdk
+server = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', login='a@b.com', password='-', is_managed=True)
+```
+
+## Basic usage
+
+Once connected to the server, you can perform various operations. Here are some examples:
+
+```python
+# Get a list of databases
 databases = server.list_databases()
 
-database = databases[0] # Database type object
+# Get a specific database
+database = databases[0]  # Database type object
 
-# sql query
+# Perform an SQL query
 query = database.query('select * from table1')
 print(query.fetch())
 
-# create table
+# Create a table
 table = database.create_table('table2', query)
 
-
-# project
+# Get a project
 project = server.get_project('proj')
 
-# sql query
+# Perform an SQL query within a project
 query = project.query('select * from database.table join model1')
 
-# create view
-view = project.create_view(
-      'btc_view',
-       query=query
-)
+# Create a view
+view = project.create_view('view1', query=query)
 
-# get view
+# Get a list of views
 views = project.list_views()
 view = views[0]
 df = view.fetch()
 
-# get model
+# Get a list of models
 models = project.list_models()
 model = models[0]
 
-# using model
+# Use a model for prediction
 result_df = model.predict(df)
 result_df = model.predict(query)
 
-# create model
+# Create a model
+timeseries_options = {
+    'order': 'date',
+    'window': 5,
+    'horizon': 1
+}
 model = project.create_model(
-      'rentals_model',
-      predict='price',
-      query=query,
+    'rentals_model',
+    predict='price',
+    query=query,
+    timeseries_options=timeseries_options
 )
 
 ```
 
-More examples in [Google colab notebook](
+You can find more examples in this [Google colab notebook](
 https://colab.research.google.com/drive/1QouwAR3saFb9ffthrIs1LSH5COzyQa11#scrollTo=k6IbwsKRPQCR
 )
 
-## API documentation
+## API Documentation
 
-Api documentation can be found in: 
-https://mindsdb.github.io/mindsdb_python_sdk/
+The API documentation for the MindsDB SDK can be found at https://mindsdb.github.io/mindsdb_python_sdk/. You can generate the API documentation locally by following these steps:
 
-
-**Generating api docs:**
-
-Locally:
+### Generating API docs locally:
 
 ```commandline
 cd docs
-
 pip install -r requirements.txt
-
 make html
 ```
 
-
-**Online documentation** is updated by pushing in `docs` branch
-
+The online documentation is automatically updated by pushing changes to the docs branch.
 
 
-## How to test
-`
-It runs all tests for components 
+## Testing
+
+To run all the tests for the components, use the following command:
 
 ```bash
 env PYTHONPATH=./ pytest
 ```
 
-## How to Connect From a Python File
+## Contributing
 
-Create a file in your python project's root directory to store the connection details:
+We welcome contributions to the MindsDB SDK. If you'd like to contribute, please refer to the contribution guidelines for more information.
 
-`server.py` 
+## License
 
-Add the connection arguments with **your MindsDB credentials** to `server.py`:
+The MindsDB SDK is licensed under the MIT License. Feel free to use and modify it according to your needs
 
-```python
-import mindsdb_sdk
-
-server = mindsdb_sdk.connect()
-server = mindsdb_sdk.connect('http://127.0.0.1:47334')
-
-server = mindsdb_sdk.connect(email='your_mindsdb_email', password='your_mindsdb_password')
-server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='your_mindsdb_email', password='your_mindsdb_password')
-```
-
-Open your terminal and type:
-
-`python server.py` 
-
-### Testing the Connection
-
-Add test queries to `server.py` with `print()` statements to confirm the connection:
-
-```python
-import mindsdb_sdk #import the mindsdb_sdk package
-
-server = mindsdb_sdk.connect()
-server = mindsdb_sdk.connect('http://127.0.0.1:47334')
-
-#  Input your MindsDB Cloud Credentials below to connect to MindsDB Cloud
-server = mindsdb_sdk.connect(email='your_mindsdb_email', password='your_mindsdb_password')
-server = mindsdb_sdk.connect('https://cloud.mindsdb.com', email='your_mindsdb_email', password='your_mindsdb_password') # Connect to MindsDB server in the cloud
-
-databases = server.list_databases()
-
-database = databases[1] # Database type object
-
-query = database.query('select * from files.test_data')
-print(database)
-```
-
-To see a full example, checkout:
-`server.py`

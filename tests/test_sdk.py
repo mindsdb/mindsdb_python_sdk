@@ -1,3 +1,5 @@
+import pytest
+
 import datetime as dt
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -59,8 +61,9 @@ def check_sql_call(mock, sql, database=None, call_stack_num=None):
 
 class Test:
 
+    @patch('requests.Session.put')
     @patch('requests.Session.post')
-    def test_flow(self, mock_post):
+    def test_flow(self, mock_post, mock_put):
 
         server = mindsdb_sdk.connect(login='a@b.com')
 
@@ -113,6 +116,18 @@ class Test:
 
         server.drop_project('proj1')
         check_sql_call(mock_post, 'DROP DATABASE proj1')
+
+        # test upload file
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
+        database = server.get_database('files')
+        # create file
+        df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
+        database.create_table('my_file', df)
+
+        call_args = mock_put.call_args
+        assert call_args[0][0] == 'https://cloud.mindsdb.com/api/files/my_file'
+        assert call_args[1]['data']['name'] == 'my_file'
+        assert 'file' in call_args[1]['files']
 
     @patch('requests.Session.post')
     def test_managed_login(self, mock_post):
@@ -263,6 +278,24 @@ class Test:
         # TODO
         check_sql_call(mock_post, sql)
 
+        # check ts params
+        with pytest.raises(AttributeError):
+            project.create_model(
+                'm2',
+                predict='price',
+                engine='lightwood',
+                database='example_db',
+                query='select * from t1',
+                options={
+                    'module': 'LightGBM'
+                },
+                timeseries_options={
+                    'order': 'date',
+                    'group1': ['a', 'b'],
+                }
+            )
+
+
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
         # -----------  model version --------------
@@ -315,6 +348,10 @@ class Test:
         assert call_args[1]['json']['params'] == params
 
         # check prediction
+        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+
+        # predict using dict
+        pred_df = model.predict({'a': 1})
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # using  deferred query
@@ -389,7 +426,7 @@ class Test:
         assert mock_call[1]['json']['query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
 
     @patch('requests.Session.post')
-    def check_database(self, database, mock_post,):
+    def check_database(self, database, mock_post):
 
         # test query
         sql = 'select * from tbl1'
@@ -431,6 +468,11 @@ class Test:
 
         assert table3.name == 't3'
         self.check_table(table3)
+
+        # drop table
+        database.drop_table('t3')
+        check_sql_call(mock_post, f'drop table t3')
+
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):

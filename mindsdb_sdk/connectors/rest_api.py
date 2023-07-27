@@ -1,8 +1,10 @@
 from functools import wraps
+import io
 
 import requests
 import pandas as pd
 
+from .. import __about__
 
 def _try_relogin(fnc):
     @wraps(fnc)
@@ -37,6 +39,8 @@ class RestAPI:
         self.password = password
         self.is_managed = is_managed
         self.session = requests.Session()
+
+        self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
 
         if login is not None:
             self.login()
@@ -114,3 +118,25 @@ class RestAPI:
         _raise_for_status(r)
 
         return pd.DataFrame(r.json())
+
+    @_try_relogin
+    def upload_file(self, name: str, df: pd.DataFrame):
+
+        # convert to file
+        fd = io.BytesIO()
+        df.to_csv(fd)
+        fd.seek(0)
+
+        url = self.url + f'/api/files/{name}'
+        r = self.session.put(
+            url,
+            data={
+                'source': name,
+                'name': name,
+                'source_type': 'file',
+            },
+            files={
+                'file': fd,
+            }
+        )
+        _raise_for_status(r)

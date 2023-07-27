@@ -179,6 +179,10 @@ class Project:
     >>> result_df = model.predict(df_rental)
     >>> result_df = model.predict(df_rental, params={'a': 'q'})
 
+    Dict on input
+
+    >>> result_df = model.predict({'n_rooms': 2})
+
     Deferred query on input
 
     >>> result_df = model.predict(query, params={'': ''})
@@ -391,6 +395,12 @@ class Project:
         )
 
         if timeseries_options is not None:
+            # check ts options
+            allowed_keys = ['group', 'order', 'window', 'horizon']
+            for key in timeseries_options.keys():
+                if key not in allowed_keys:
+                    raise AttributeError(f"Unexpected time series option: {key}")
+
             if 'group' in timeseries_options:
                 group = timeseries_options['group']
                 if not isinstance(group, list):
