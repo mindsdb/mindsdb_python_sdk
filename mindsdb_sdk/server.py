@@ -101,7 +101,7 @@ class Server:
 
         :param name: name of integration
         """
-        ast_query = DropDatabase(name=name)
+        ast_query = DropDatabase(name=Identifier(name))
         self.api.sql_query(ast_query.to_string())
 
     def get_database(self, name: str) -> Database:
@@ -151,7 +151,7 @@ class Server:
 
         :param name: name of the project
         """
-        ast_query = DropDatabase(name=name)
+        ast_query = DropDatabase(name=Identifier(name))
         self.api.sql_query(ast_query.to_string())
 
     def get_project(self, name: str = 'mindsdb') -> Project:
