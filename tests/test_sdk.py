@@ -363,14 +363,14 @@ class Test:
         query = database.query('select a from t1')
         pred_df = model.predict(query, params={'x': '1'})
 
-        check_sql_call(mock_post, f'SELECT m.* FROM (SELECT a FROM t1) JOIN {model.project.name}.{model_name} AS m USING x="1"')
+        check_sql_call(mock_post, f'SELECT m.* FROM (SELECT a FROM t1) as t JOIN {model.project.name}.{model_name} AS m USING x="1"')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # time series prediction
         query = database.query('select * from t1 where type="house" and saledate>latest')
         model.predict(query)
 
-        check_sql_call(mock_post, f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) JOIN {model.project.name}.{model_name} AS m")
+        check_sql_call(mock_post, f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) as t JOIN {model.project.name}.{model_name} AS m")
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
