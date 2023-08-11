@@ -128,6 +128,10 @@ class Server:
         # select * from information_schema.databases where TYPE='project'
         return [Project(self, name) for name in self._list_projects()]
 
+    def _validate_project_name(self, name: str):
+      if '-' in name:
+        raise ValueError('Project names cannot contain hyphens')
+
     def create_project(self, name: str) -> Project:
         """
         Create new project and return it
@@ -141,7 +145,7 @@ class Server:
             engine='mindsdb',
             parameters={}
         )
-
+        self._validate_project_name(name)
         self.api.sql_query(ast_query.to_string())
         return Project(self, name)
 
