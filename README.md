@@ -26,7 +26,7 @@ server = mindsdb_sdk.connect('http://127.0.0.1:47334')
 
 ```python
 import mindsdb_sdk
-server = mindsdb_sdk.connect(email='a@b.com', password='-')
+server = mindsdb_sdk.connect(login='a@b.com', password='-')
 server = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
 ```
 
