@@ -298,7 +298,7 @@ class Project:
         :param name: name of the view
         """
 
-        ast_query = DropView(names=[name])
+        ast_query = DropView(names=[Identifier(name)])
 
         self.query(ast_query.to_string()).fetch()
 
@@ -452,7 +452,7 @@ class Project:
 
         :param name: name of the model
         """
-        ast_query = DropPredictor(name=name)
+        ast_query = DropPredictor(name=Identifier(name))
         self.query(ast_query.to_string()).fetch()
 
     def drop_model_version(self, name: str, version: int):

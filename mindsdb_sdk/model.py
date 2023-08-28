@@ -88,7 +88,8 @@ class Model:
             model_identifier.alias = Identifier('m')
 
             ast_query.parentheses = True
-            ast_query = Select(
+            ast_query.alias = Identifier('t')
+            upper_query = Select(
                 targets=[Identifier(parts=['m', Star()])],
                 from_table=Join(
                     join_type='join',
@@ -97,9 +98,9 @@ class Model:
                 )
             )
             if params is not None:
-                ast_query.using = params
+                upper_query.using = params
             # execute in query's database
-            return self.project.api.sql_query(ast_query.to_string(), database=data.database)
+            return self.project.api.sql_query(upper_query.to_string(), database=data.database)
 
         elif isinstance(data, dict):
             data = pd.DataFrame([data])

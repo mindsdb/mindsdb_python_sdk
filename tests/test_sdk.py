@@ -95,8 +95,8 @@ class Test:
 
         self.check_database(database)
 
-        server.drop_database('pg1')
-        check_sql_call(mock_post, 'DROP DATABASE pg1')
+        server.drop_database('pg1-a')
+        check_sql_call(mock_post, 'DROP DATABASE `pg1-a`')
 
         # --------- projects -------------
         projects = server.list_projects()
@@ -114,8 +114,8 @@ class Test:
             mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb", PARAMETERS = {}')
         self.check_project(project, database)
 
-        server.drop_project('proj1')
-        check_sql_call(mock_post, 'DROP DATABASE proj1')
+        server.drop_project('proj1-1')
+        check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
         response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
@@ -198,6 +198,9 @@ class Test:
         project.drop_view('v2')
         check_sql_call(mock_post, 'DROP VIEW v2')
 
+        project.drop_view('v2-v')
+        check_sql_call(mock_post, 'DROP VIEW `v2-v`')
+
     @patch('requests.Session.post')
     def check_project_models(self, project, database, mock_post):
         # -----------  models  --------------
@@ -262,8 +265,8 @@ class Test:
         assert model.name == 'm2'
         self.check_model(model, database)
 
-        project.drop_model('m3')
-        check_sql_call(mock_post, f'DROP PREDICTOR m3')
+        project.drop_model('m3-a')
+        check_sql_call(mock_post, f'DROP PREDICTOR `m3-a`')
 
         # the old way of join model with table
         sql = '''
@@ -360,14 +363,14 @@ class Test:
         query = database.query('select a from t1')
         pred_df = model.predict(query, params={'x': '1'})
 
-        check_sql_call(mock_post, f'SELECT m.* FROM (SELECT a FROM t1) JOIN {model.project.name}.{model_name} AS m USING x="1"')
+        check_sql_call(mock_post, f'SELECT m.* FROM (SELECT a FROM t1) as t JOIN {model.project.name}.{model_name} AS m USING x="1"')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # time series prediction
         query = database.query('select * from t1 where type="house" and saledate>latest')
         model.predict(query)
 
-        check_sql_call(mock_post, f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) JOIN {model.project.name}.{model_name} AS m")
+        check_sql_call(mock_post, f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) as t JOIN {model.project.name}.{model_name} AS m")
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
