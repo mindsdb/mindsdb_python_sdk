@@ -240,6 +240,15 @@ class Model:
                 return m
         raise ValueError('Version is not found')
 
+    def drop_version(self, num: int) -> ModelVersion:
+        """
+        Drop version of the model
+
+        :param num: version to drop
+        """
+
+        return self.project.drop_model_version(self.name, num)
+
     def set_active(self, version: int):
         """
         Change model active version

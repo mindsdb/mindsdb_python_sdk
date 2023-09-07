@@ -1,5 +1,8 @@
 from mindsdb_sdk.server import Server
 
+from mindsdb_sdk.connectors.rest_api import RestAPI
+
+
 
 def connect(url: str = None, login: str = None, password: str = None, is_managed: bool = False) -> Server:
     """
@@ -39,4 +42,6 @@ def connect(url: str = None, login: str = None, password: str = None, is_managed
             # is local
             url = 'http://127.0.0.1:47334'
 
-    return Server(url=url, login=login, password=password, is_managed=is_managed)
+    api = RestAPI(url, login, password, is_managed)
+
+    return Server(api)

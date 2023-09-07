@@ -10,6 +10,7 @@ from mindsdb_sdk.utils import dict_to_binary_op
 from mindsdb_sdk.model import Model, ModelVersion
 from mindsdb_sdk.query import Query, View
 
+from .objects_collection import ObjectCollection
 
 class Job:
     def __init__(self, project, data):
@@ -234,10 +235,40 @@ class Project:
 
     """
 
-    def __init__(self, server, name):
+    def __init__(self, api, name='mindsdb'):
         self.name = name
-        self.server = server
-        self.api = server.api
+        self.api = api
+
+        self.models = ObjectCollection(
+            'models',
+            {
+                'get': self.get_model,
+                'list': self.list_models,
+                'create': self.create_model,
+                'drop': self.drop_model
+            }
+        )
+
+        self.views = ObjectCollection(
+            'views',
+            {
+                'get': self.get_view,
+                'list': self.list_views,
+                'list_names': self._list_views,
+                'create': self.create_view,
+                'drop': self.drop_view
+            }
+        )
+
+        self.jobs = ObjectCollection(
+            'jobs',
+            {
+                'get': self.get_job,
+                'list': self.list_jobs,
+                'create': self.create_job,
+                'drop': self.drop_job
+            }
+        )
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'

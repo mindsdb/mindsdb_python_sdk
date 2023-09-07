@@ -5,7 +5,7 @@ import pandas as pd
 from mindsdb_sql.parser.ast import Identifier, DropTables
 
 from mindsdb_sdk.query import Query, Table
-
+from .objects_collection import ObjectCollection
 
 class Database:
     """
@@ -59,6 +59,17 @@ class Database:
         self.server = server
         self.name = name
         self.api = server.api
+
+        self.tables = ObjectCollection(
+            'tables',
+            {
+                'get': self.get_table,
+                'list': self.list_tables,
+                'list_names': self._list_tables,
+                'create': self.create_table,
+                'drop': self.drop_table
+            }
+        )
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'

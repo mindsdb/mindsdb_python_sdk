@@ -1,14 +1,15 @@
+import re
 from typing import List
 
 from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
 from mindsdb_sql.parser.ast import DropDatabase, Identifier
 
-from mindsdb_sdk.connectors.rest_api import RestAPI
 from .database import Database
 from .project import Project
+from .objects_collection import ObjectCollection
 
 
-class Server:
+class Server(Project):
     """
     Server instance allows to manipulate project and databases (integration) on mindsdb server
     Example if usage:
@@ -58,8 +59,30 @@ class Server:
 
     """
 
-    def __init__(self, url: str = None, login: str = None, password: str = None, is_managed: bool = False):
-        self.api = RestAPI(url, login, password, is_managed)
+    def __init__(self, *args):
+        super().__init__(*args)
+
+        self.projects = ObjectCollection(
+            'projects',
+            {
+                'get': self.get_project,
+                'list': self.list_projects,
+                'list_names': self._list_projects,
+                'create': self.create_project,
+                'drop': self.drop_project
+            }
+        )
+
+        self.databases = ObjectCollection(
+            'databases',
+            {
+                'get': self.get_database,
+                'list': self.list_databases,
+                'list_names': self._list_databases,
+                'create': self.create_database,
+                'drop': self.drop_database
+            }
+        )
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'
@@ -126,7 +149,7 @@ class Server:
         :return: list of Project objects
         """
         # select * from information_schema.databases where TYPE='project'
-        return [Project(self, name) for name in self._list_projects()]
+        return [Project(self.api, name) for name in self._list_projects()]
 
     def create_project(self, name: str) -> Project:
         """
@@ -143,7 +166,7 @@ class Server:
         )
 
         self.api.sql_query(ast_query.to_string())
-        return Project(self, name)
+        return Project(self.api, name)
 
     def drop_project(self, name: str):
         """
@@ -163,4 +186,5 @@ class Server:
         """
         if name not in self._list_projects():
             raise AttributeError("Project doesn't exist")
-        return Project(self, name)
+        return Project(self.api, name)
+
