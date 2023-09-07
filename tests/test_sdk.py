@@ -395,7 +395,7 @@ class Test(BaseFlow):
          LIMIT 4;
         '''
         result_df = project.query(sql).fetch()
-        # TODO
+
         check_sql_call(mock_post, sql)
 
         # check ts params
@@ -756,7 +756,7 @@ class TestSimplify(BaseFlow):
          LIMIT 4;
         '''
         result_df = project.query(sql).fetch()
-        # TODO
+
         check_sql_call(mock_post, sql)
 
         # check ts params

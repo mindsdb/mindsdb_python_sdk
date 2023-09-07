@@ -59,8 +59,9 @@ class Server(Project):
 
     """
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, api):
+        # server is also mindsdb project
+        super().__init__(api, 'mindsdb')
 
         self.projects = ObjectCollection(
             'projects',
