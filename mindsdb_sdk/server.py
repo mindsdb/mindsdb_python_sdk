@@ -6,7 +6,8 @@ from mindsdb_sql.parser.ast import DropDatabase, Identifier
 
 from .database import Database
 from .project import Project
-from .objects_collection import ObjectCollection
+from .objects_collection import MethodCollection
+from .ml_engine import MLEngines
 
 
 class Server(Project):
@@ -63,7 +64,7 @@ class Server(Project):
         # server is also mindsdb project
         super().__init__(api, 'mindsdb')
 
-        self.projects = ObjectCollection(
+        self.projects = MethodCollection(
             'projects',
             {
                 'get': self.get_project,
@@ -74,7 +75,7 @@ class Server(Project):
             }
         )
 
-        self.databases = ObjectCollection(
+        self.databases = MethodCollection(
             'databases',
             {
                 'get': self.get_database,
@@ -84,6 +85,8 @@ class Server(Project):
                 'drop': self.drop_database
             }
         )
+
+        self.ml_engines = MLEngines(self.api)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

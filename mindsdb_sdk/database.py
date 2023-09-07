@@ -5,7 +5,7 @@ import pandas as pd
 from mindsdb_sql.parser.ast import Identifier, DropTables
 
 from mindsdb_sdk.query import Query, Table
-from .objects_collection import ObjectCollection
+from .objects_collection import MethodCollection
 
 class Database:
     """
@@ -60,7 +60,7 @@ class Database:
         self.name = name
         self.api = server.api
 
-        self.tables = ObjectCollection(
+        self.tables = MethodCollection(
             'tables',
             {
                 'get': self.get_table,

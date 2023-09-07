@@ -9,8 +9,8 @@ from mindsdb_sql.parser.ast import DropView, Identifier, Delete, Star, Select
 from mindsdb_sdk.utils import dict_to_binary_op
 from mindsdb_sdk.model import Model, ModelVersion
 from mindsdb_sdk.query import Query, View
-
-from .objects_collection import ObjectCollection
+from .ml_engine import MLEngine
+from .objects_collection import MethodCollection
 
 class Job:
     def __init__(self, project, data):
@@ -239,7 +239,7 @@ class Project:
         self.name = name
         self.api = api
 
-        self.models = ObjectCollection(
+        self.models = MethodCollection(
             'models',
             {
                 'get': self.get_model,
@@ -249,7 +249,7 @@ class Project:
             }
         )
 
-        self.views = ObjectCollection(
+        self.views = MethodCollection(
             'views',
             {
                 'get': self.get_view,
@@ -260,7 +260,7 @@ class Project:
             }
         )
 
-        self.jobs = ObjectCollection(
+        self.jobs = MethodCollection(
             'jobs',
             {
                 'get': self.get_job,
@@ -388,7 +388,7 @@ class Project:
             for item in df.to_dict('records')
         ]
 
-    def create_model(self, name: str, predict: str = None, engine: str = None,
+    def create_model(self, name: str, predict: str = None, engine: Union[str, MLEngine] = None,
                      query: Union[str, Query] = None, database: str = None,
                      options: dict = None, timeseries_options: dict = None, **kwargs) -> Model:
         """
@@ -450,6 +450,9 @@ class Project:
         options.update(kwargs)
 
         if engine is not None:
+            if isinstance(engine, MLEngine):
+                engine = engine.name
+
             options['engine'] = engine
         ast_query.using = options
         df = self.query(ast_query.to_string()).fetch()
