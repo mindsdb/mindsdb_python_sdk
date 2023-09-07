@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import List, Union
 
 import pandas as pd
@@ -111,6 +112,19 @@ class Model:
                                                   params=params, version=self.version)
         else:
             raise ValueError('Unknown input')
+
+    def wait_complete(self):
+
+        for i in range(400):
+            time.sleep(0.3)
+
+            status = self.get_status()
+            if status in ('generating', 'training'):
+                continue
+            elif status == 'error':
+                raise RuntimeError(f'Training failed: {self.data["error"]}')
+            else:
+                break
 
     def get_status(self) -> str:
         """
