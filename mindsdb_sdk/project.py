@@ -235,7 +235,7 @@ class Project:
 
     """
 
-    def __init__(self, api, name='mindsdb'):
+    def __init__(self, api, name):
         self.name = name
         self.api = api
 
@@ -390,7 +390,7 @@ class Project:
 
     def create_model(self, name: str, predict: str = None, engine: str = None,
                      query: Union[str, Query] = None, database: str = None,
-                     options: dict = None, timeseries_options: dict = None) -> Model:
+                     options: dict = None, timeseries_options: dict = None, **kwargs) -> Model:
         """
         Create new model in project and return it
 
@@ -443,8 +443,12 @@ class Project:
                 ast_query.window = timeseries_options['window']
             if 'horizon' in timeseries_options:
                 ast_query.horizon = timeseries_options['horizon']
+
         if options is None:
             options = {}
+        # options and kwargs are the same
+        options.update(kwargs)
+
         if engine is not None:
             options['engine'] = engine
         ast_query.using = options
