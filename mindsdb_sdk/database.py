@@ -4,7 +4,8 @@ import pandas as pd
 
 from mindsdb_sql.parser.ast import Identifier, DropTables
 
-from mindsdb_sdk.query import Query, Table
+from .query import Query
+from .table import Table
 from .objects_collection import MethodCollection
 
 class Database:

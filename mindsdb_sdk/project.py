@@ -6,9 +6,10 @@ import pandas as pd
 from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, CreateView, DropPredictor, CreateJob, DropJob
 from mindsdb_sql.parser.ast import DropView, Identifier, Delete, Star, Select
 
-from mindsdb_sdk.utils import dict_to_binary_op
-from mindsdb_sdk.model import Model, ModelVersion
-from mindsdb_sdk.query import Query, View
+from .utils import dict_to_binary_op
+from .model import Model, ModelVersion
+from .query import Query
+from .table import View
 from .ml_engine import MLEngine
 from .objects_collection import MethodCollection
 

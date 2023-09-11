@@ -172,7 +172,7 @@ class BaseFlow:
         table = table.filter(a=3, b='2')
         table = table.limit(3)
         table.fetch()
-
+        str(table)
         check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')
 
 
@@ -801,7 +801,6 @@ class TestSimplify(BaseFlow):
                 }
             )
 
-
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
         # -----------  model version --------------
@@ -867,6 +866,28 @@ class TestSimplify(BaseFlow):
         assert table2.name == 't2'
         self.check_table(table2)
 
+        # -- insert into table --
+        # from dataframe
+        table2.insert(pd.DataFrame([{'s': '1', 'x': 1}, {'s': 'a', 'x': 2}]))
+        check_sql_call(mock_post, "INSERT INTO t2(s, x) VALUES ('1', 1), ('a', 2)")
+
+        # from query
+        table2.insert(query)
+        check_sql_call(mock_post, f"INSERT INTO {database.name}.t2 (select * from tbl1)")
+
+        # -- delete in table --
+        table2.delete(a=1, b='2')
+        check_sql_call(mock_post, f"DELETE FROM {database.name}.t2 WHERE (a = 1) AND (b = '2')")
+
+        # -- update table --
+        # from query
+        table2.update(query, on=['a', 'b'])
+        check_sql_call(mock_post, f"UPDATE {database.name}.t2 ON a, b FROM (select * from tbl1)")
+
+        # from dict
+        table2.update({'a': '1', 'b': 1}, filters={'x': 3})
+        check_sql_call(mock_post, f"UPDATE t2 SET a='1', b=1 WHERE x=3")
+
         # create from table
         table1 = database.tables.t1
         table1 = table1.filter(b=2)
@@ -879,7 +900,6 @@ class TestSimplify(BaseFlow):
         # drop table
         database.tables.drop('t3')
         check_sql_call(mock_post, f'drop table t3')
-
 
     @patch('requests.Session.post')
     def check_project_jobs(self, project, mock_post):
