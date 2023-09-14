@@ -105,9 +105,14 @@ API documentation
 
    server
    database
+   ml_engines
    project
    model
+   tables
+   views
    query
+   jobs
+
 
 Indices and tables
 ------------------

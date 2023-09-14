@@ -1,7 +1,7 @@
-Models
+Tables
 -------------------------
 
-.. automodule:: mindsdb_sdk.models
+.. automodule:: mindsdb_sdk.tables
    :members:
    :undoc-members:
    :show-inheritance:

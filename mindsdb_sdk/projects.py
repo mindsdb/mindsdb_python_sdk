@@ -18,7 +18,14 @@ class Project:
     """
     Allows to work with project: to manage models and views inside of it or call raw queries inside of project
 
-    **Queries**
+    Server instance allows to manipulate project and databases (integration) on mindsdb server
+
+    Attributes for accessing to different objects:
+        - models
+        - views
+        - jobs
+
+    It is possible to cal queries from project context:
 
     Making prediciton using sql:
 
