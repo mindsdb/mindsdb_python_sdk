@@ -1,62 +1,21 @@
-import re
-from typing import List
-
-from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
-from mindsdb_sql.parser.ast import DropDatabase, Identifier
-
-from .database import Database
-from .project import Project
-from .objects_collection import MethodCollection
-from .ml_engine import MLEngines
+from .databases import Databases
+from .projects import Project, Projects
+from .ml_engines import MLEngines
 
 
 class Server(Project):
     """
     Server instance allows to manipulate project and databases (integration) on mindsdb server
-    Example if usage:
 
-    Databases
-    ----------
+    Attributes for accessing to different objects:
+        - projects
+        - databases
+        - ml_engines
 
-    >>> databases = server.list_databases()
-    >>> database = databases[0] # Database type object
-
-    # create
-
-    >>> database = server.create_database('example_db',
-    ...                                 type='postgres',
-    ...                                 connection_args={'host': ''})
-
-    # drop database
-
-    >>> server.drop_database('example_db')
-
-    # get existing
-
-    >>> database = server.get_database('example_db')
-
-    Projects
-    ----------
-
-    # list of projects
-
-    >>> projects = server.list_projects()
-    >>> project = projects[0]  # Project type object
-
-
-    # create
-
-    >>> project = server.create_project('proj')
-
-    # drop
-
-    >>> server.drop_project('proj')
-
-    # get existing
-
-    >>> project = server.get_project('proj')
-
-    >>> project = server.get_project()  # default is mindsdb project
+    Server is also root(mindsdb) project and has its attributes
+        - models
+        - views
+        - jobs
 
     """
 
@@ -64,131 +23,25 @@ class Server(Project):
         # server is also mindsdb project
         super().__init__(api, 'mindsdb')
 
-        self.projects = MethodCollection(
-            'projects',
-            {
-                'get': self.get_project,
-                'list': self.list_projects,
-                'list_names': self._list_projects,
-                'create': self.create_project,
-                'drop': self.drop_project
-            }
-        )
+        self.projects = Projects(api)
 
-        self.databases = MethodCollection(
-            'databases',
-            {
-                'get': self.get_database,
-                'list': self.list_databases,
-                'list_names': self._list_databases,
-                'create': self.create_database,
-                'drop': self.drop_database
-            }
-        )
+        # old api
+        self.get_project = self.projects.get
+        self.list_projects = self.projects.list
+        self.create_project = self.projects.create
+        self.drop_project = self.projects.drop
+
+        self.databases = Databases(api)
+
+        # old api
+        self.get_database = self.databases.get
+        self.list_databases = self.databases.list
+        self.create_database = self.databases.create
+        self.drop_database = self.databases.drop
 
         self.ml_engines = MLEngines(self.api)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'
 
-    def _list_databases(self):
-        data = self.api.sql_query(
-            "select NAME from information_schema.databases where TYPE='data'"
-        )
-        return list(data.NAME)
-
-    def list_databases(self) -> List[Database]:
-        """
-        Show list of integrations (databases) on server
-
-        :return: list of Database objects
-        """
-        return [Database(self, name) for name in self._list_databases()]
-
-    def create_database(self, name: str, engine: str, connection_args: dict) -> Database:
-        """
-        Create new integration and return it
-
-        :param name: Identifier for the integration to be created
-        :param engine: Engine to be selected depending on the database connection.
-        :param connection_args: {"key": "value"} object with the connection parameters specific for each engine
-        :return: created Database object
-        """
-        ast_query = CreateDatabase(
-            name=Identifier(name),
-            engine=engine,
-            parameters=connection_args,
-        )
-        self.api.sql_query(ast_query.to_string())
-        return Database(self, name)
-
-    def drop_database(self, name: str):
-        """
-        Delete integration
-
-        :param name: name of integration
-        """
-        ast_query = DropDatabase(name=Identifier(name))
-        self.api.sql_query(ast_query.to_string())
-
-    def get_database(self, name: str) -> Database:
-        """
-        Get integration by name
-
-        :param name: name of integration
-        :return: Database object
-        """
-        if name not in self._list_databases():
-            raise AttributeError("Database doesn't exist")
-        return Database(self, name)
-
-    def _list_projects(self):
-        data = self.api.sql_query("select NAME from information_schema.databases where TYPE='project'")
-        return list(data.NAME)
-
-    def list_projects(self) -> List[Project]:
-        """
-        Show list of project on server
-
-        :return: list of Project objects
-        """
-        # select * from information_schema.databases where TYPE='project'
-        return [Project(self.api, name) for name in self._list_projects()]
-
-    def create_project(self, name: str) -> Project:
-        """
-        Create new project and return it
-
-        :param name: name of the project
-        :return: Project object
-        """
-
-        ast_query = CreateDatabase(
-            name=Identifier(name),
-            engine='mindsdb',
-            parameters={}
-        )
-
-        self.api.sql_query(ast_query.to_string())
-        return Project(self.api, name)
-
-    def drop_project(self, name: str):
-        """
-        Drop project from server
-
-        :param name: name of the project
-        """
-        ast_query = DropDatabase(name=Identifier(name))
-        self.api.sql_query(ast_query.to_string())
-
-    def get_project(self, name: str = 'mindsdb') -> Project:
-        """
-        Get Project by name
-
-        :param name: name of project
-        :return: Project object
-        """
-        if name not in self._list_projects():
-            raise AttributeError("Project doesn't exist")
-        return Project(self.api, name)
 

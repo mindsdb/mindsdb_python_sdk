@@ -3,7 +3,6 @@ from mindsdb_sdk.server import Server
 from mindsdb_sdk.connectors.rest_api import RestAPI
 
 
-
 def connect(url: str = None, login: str = None, password: str = None, is_managed: bool = False) -> Server:
     """
     Create connection to mindsdb server

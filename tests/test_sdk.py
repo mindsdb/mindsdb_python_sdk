@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-from mindsdb_sdk.model import ModelVersion
+from mindsdb_sdk.models import ModelVersion
 import mindsdb_sdk
 
 from mindsdb_sdk.connectors import rest_api
