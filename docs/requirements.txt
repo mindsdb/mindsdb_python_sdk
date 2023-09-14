@@ -1,5 +1,5 @@
 requests
-pandas >=2.0.0, <2.1.0
+pandas >= 1.3.5
 mindsdb-sql >= 0.7.0, < 0.8.0
 
 sphinx
