@@ -87,7 +87,12 @@ Base usage
           query=query,
     )
 
+    More
 
+More examples
+-----------
+
+`<https://github.com/mindsdb/mindsdb_python_sdk/examples>`_
 
 API documentation
 =================
