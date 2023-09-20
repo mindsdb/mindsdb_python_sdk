@@ -618,6 +618,41 @@ class TestSimplify(BaseFlow):
         assert call_args[1]['data']['name'] == 'my_file'
         assert 'file' in call_args[1]['files']
 
+        # --------- handlers -------------
+        # data
+        response_mock(mock_post,
+                      pd.DataFrame([{'NAME': 'mysql', 'TYPE': 'data', 'TITLE': 'MySQL',
+                                     'DESCRIPTION': "MindsDB handler for MySQL",
+                                     'CONNECTION_ARGS': {'a': 1}}]))
+
+        handlers = con.data_handlers.list()
+
+        check_sql_call(mock_post, "show handlers WHERE type = 'data'")
+
+        handler = handlers[0]
+        assert handler.name == 'mysql'
+        assert handler.title == 'MySQL'
+
+        _ = con.ml_handlers.get('mysql')
+        _ = con.ml_handlers.mysql
+
+        # ml
+        response_mock(mock_post,
+                      pd.DataFrame([{'NAME': 'openai', 'TYPE': 'ml', 'TITLE': 'OpenAI',
+                                     'DESCRIPTION': "MindsDB handler for OpenAI",
+                                     'CONNECTION_ARGS': {'a': 1}}]))
+
+        handlers = con.ml_handlers.list()
+
+        check_sql_call(mock_post, "show handlers WHERE type = 'ml'")
+
+        handler = handlers[0]
+        assert handler.name == 'openai'
+        assert handler.title == 'OpenAI'
+
+        _ = con.ml_handlers.get('openai')
+        openai_handler = con.ml_handlers.openai
+
         # --------- ml_engines -------------
         response_mock(mock_post, pd.DataFrame([{ 'NAME': 'openai1', 'HANDLER': 'openai', 'CONNECTION_DATA': {'a': 1}}]))
 
@@ -629,8 +664,15 @@ class TestSimplify(BaseFlow):
         assert ml_engine.name == 'openai1'
         assert ml_engine.handler == 'openai'
 
-        ml_engine = con.ml_engines.get('openai1')
-        ml_engine = con.ml_engines.openai1
+        _ = con.ml_engines.get('openai1')
+        _ = con.ml_engines.openai1
+
+        con.ml_engines.create(
+            'openai1',
+            openai_handler,
+            connection_data={'api_key': '111'}
+        )
+        check_sql_call(mock_post, 'CREATE ML_ENGINE openai1 FROM openai USING api_key = "111"')
 
         con.ml_engines.create(
             'openai1',
@@ -641,7 +683,6 @@ class TestSimplify(BaseFlow):
 
         con.ml_engines.drop('openai1')
         check_sql_call(mock_post, 'DROP ML_ENGINE openai1')
-
 
     def check_project(self, project, database):
         self.check_project_views( project, database)

@@ -1,6 +1,7 @@
 from .databases import Databases
 from .projects import Project, Projects
 from .ml_engines import MLEngines
+from .handlers import Handlers
 
 
 class Server(Project):
@@ -40,6 +41,9 @@ class Server(Project):
         self.drop_database = self.databases.drop
 
         self.ml_engines = MLEngines(self.api)
+
+        self.ml_handlers = Handlers(self.api, 'ml')
+        self.data_handlers = Handlers(self.api, 'data')
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

@@ -3,10 +3,13 @@ import mindsdb_sdk
 
 con = mindsdb_sdk.connect()
 
+openai_handler = con.ml_handlers.openai
+
 # create ml engine
 openai = con.ml_engines.create(
     'openai',
-    handler='openai',
+    handler=openai_handler,
+    # handler='openai', # <-- another option to define handler
     connection_data={'api_key': ''}
 )
 

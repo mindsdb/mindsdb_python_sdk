@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 from mindsdb_sql.parser.ast import Show, Identifier
 from mindsdb_sql.parser.dialects.mindsdb import CreateMLEngine, DropMLEngine
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
+from .handlers import Handler
 
 @dataclass
 class MLEngine:
@@ -15,6 +16,29 @@ class MLEngine:
 
 
 class MLEngines(CollectionBase):
+    """
+
+    **ML engines collection**
+
+    Examples of usage:
+
+    Get list
+    >>> ml_engines = con.ml_engines.list()
+
+    Get
+    >>> openai_engine = con.ml_engines.openai1
+
+    Create
+    >>> con.ml_engines.create(
+    ...    'openai1',
+    ...    'openai',
+    ...    connection_data={'api_key': '111'}
+    ...)
+
+    Drop
+    >>>  con.ml_engines.drop('openai1')
+
+    """
 
     def __init__(self, api):
         self.api = api
@@ -48,16 +72,20 @@ class MLEngines(CollectionBase):
         for item in self.list():
             if item.name == name:
                 return item
-        raise AttributeError("MLEngine doesn't exist")
+        raise AttributeError(f"MLEngine doesn't exist {name}")
 
-    def create(self, name: str, handler: str, connection_data: dict =None) -> MLEngine:
+    def create(self, name: str, handler: Union[str, Handler], connection_data: dict = None) -> MLEngine:
         """
         Create new ml engine and return it
-        :param name: ml engine name
-        :param handler: handler name
-        :param connection_data: parameters for ml engine, optional
+        :param name: ml engine name, string
+        :param handler: handler name, string or Handler
+        :param connection_data: parameters for ml engine, dict, optional
         :return: created ml engine object
         """
+
+        if isinstance(handler, Handler):
+            handler = handler.name
+
         ast_query = CreateMLEngine(Identifier(name), handler, params=connection_data)
 
         self.api.sql_query(ast_query.to_string())
