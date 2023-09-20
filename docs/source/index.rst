@@ -110,6 +110,7 @@ API documentation
 
    server
    database
+   handlers
    ml_engines
    project
    model
