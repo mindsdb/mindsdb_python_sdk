@@ -430,9 +430,16 @@ class Models(CollectionBase):
         self.project = project
         self.api = api
 
-    def create(self, name: str, predict: str = None, engine: Union[str, MLEngine] = None,
-                     query: Union[str, Query] = None, database: str = None,
-                     options: dict = None, timeseries_options: dict = None, **kwargs) -> Model:
+    def create(
+        self,
+        name: str,
+        predict: str = None,
+        engine: Union[str, MLEngine] = None,
+        query: Union[str, Query] = None,
+        database: str = None,
+        options: dict = None,
+        timeseries_options: dict = None, **kwargs
+    ) -> Model:
         """
         Create new model in project and return it
 
