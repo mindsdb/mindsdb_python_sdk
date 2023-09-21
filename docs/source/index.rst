@@ -87,7 +87,12 @@ Base usage
           query=query,
     )
 
+    More
 
+More examples
+-----------
+
+`<https://github.com/mindsdb/mindsdb_python_sdk/examples>`_
 
 API documentation
 =================
@@ -105,9 +110,15 @@ API documentation
 
    server
    database
+   handlers
+   ml_engines
    project
    model
+   tables
+   views
    query
+   jobs
+
 
 Indices and tables
 ------------------

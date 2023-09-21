@@ -1,7 +1,7 @@
-Database
+Databases
 ----------------------------
 
-.. automodule:: mindsdb_sdk.database
+.. automodule:: mindsdb_sdk.databases
    :members:
    :undoc-members:
    :show-inheritance:
