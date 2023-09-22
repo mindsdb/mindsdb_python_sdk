@@ -1,19 +1,99 @@
 from __future__ import annotations
 
+import time
 from typing import List, Union
 
 import pandas as pd
 
+from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
 from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
 from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
-from mindsdb_sql.planner.utils import query_traversal
 
-from mindsdb_sdk.utils import dict_to_binary_op
-from mindsdb_sdk.query import Query
+from .ml_engines import MLEngine
+
+from mindsdb_sdk.utils.objects_collection import CollectionBase
+from mindsdb_sdk.utils.sql import dict_to_binary_op
+
+from .query import Query
 
 
 class Model:
+    """
+
+    Versions
+
+    List model versions
+
+    >>> model.list_versions()
+
+
+    Get info
+
+    >>> print(model.status)
+    >>> print(model.data)
+
+    Update model data from server
+
+    >>> model.refresh()
+
+Usng model
+
+    Dataframe on input
+
+    >>> result_df = model.predict(df_rental)
+    >>> result_df = model.predict(df_rental, params={'a': 'q'})
+
+    Dict on input
+
+    >>> result_df = model.predict({'n_rooms': 2})
+
+    Deferred query on input
+
+    >>> result_df = model.predict(query, params={'': ''})
+
+    Time series prediction
+
+    >>> query = database.query('select * from table1 where type="house" and saledate>latest')
+    >>> model.predict(query)
+
+    The join model with table in raw query
+
+    >>> result_df = project.query('''
+    ...  SELECT m.saledate as date, m.ma as forecast
+    ...   FROM mindsdb.house_sales_model as m
+    ...   JOIN example_db.demo_data.house_sales as t
+    ...  WHERE t.saledate > LATEST AND t.type = 'house'
+    ...   AND t.bedrooms=2
+    ...  LIMIT 4;
+    ...''').fetch()
+
+
+    **Model managing**
+
+    Fine-tuning
+
+    >>> model.finetune(query)
+    >>> model.finetune('select * from demo_data.house_sales', database='example_db')
+    >>> model.finetune(query, params={'x': 2})
+
+    Retraining
+
+    >>> model.retrain(query)
+    >>> model.retrain('select * from demo_data.house_sales', database='example_db')
+    >>> model.retrain(query, params={'x': 2})
+
+    Describe
+
+    >>> df_info = model.describe()
+    >>> df_info = model.describe('features')
+
+    Change active version
+
+    >>> model.set_active(version=3)
+
+    """
+
     def __init__(self, project, data):
         self.project = project
 
@@ -111,6 +191,19 @@ class Model:
                                                   params=params, version=self.version)
         else:
             raise ValueError('Unknown input')
+
+    def wait_complete(self):
+
+        for i in range(400):
+            time.sleep(0.3)
+
+            status = self.get_status()
+            if status in ('generating', 'training'):
+                continue
+            elif status == 'error':
+                raise RuntimeError(f'Training failed: {self.data["error"]}')
+            else:
+                break
 
     def get_status(self) -> str:
         """
@@ -240,6 +333,15 @@ class Model:
                 return m
         raise ValueError('Version is not found')
 
+    def drop_version(self, num: int) -> ModelVersion:
+        """
+        Drop version of the model
+
+        :param num: version to drop
+        """
+
+        return self.project.drop_model_version(self.name, num)
+
     def set_active(self, version: int):
         """
         Change model active version
@@ -266,3 +368,220 @@ class ModelVersion(Model):
         super().__init__(project, data)
 
         self.version = data['version']
+
+
+class Models(CollectionBase):
+    """
+
+    **Models**
+
+    Get:
+
+    >>> all_models = models.list()
+    >>> model = all_models[0]
+
+    Get version:
+
+    >>> all_models = models.list(with_versions=True)
+    >>> model = all_models[0]
+
+    By name:
+
+    >>> model = models.get('model1')
+    >>> model = models.get('model1', version=2)
+
+    Create
+
+    Create, using params and qeury as string
+
+    >>> model = models.create(
+    ...   'rentals_model',
+    ...   predict='price',
+    ...   engine='lightwood',
+    ...   database='example_db',
+    ...   query='select * from table',
+    ...   options={
+    ...       'module': 'LightGBM'
+    ...   },
+    ...   timeseries_options={
+    ...       'order': 'date',
+    ...       'group': ['a', 'b']
+    ...   }
+    ...)
+
+    Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
+
+    >>> query = databases.db.query('select * from table')
+    >>> model = models.create(
+    ...   'rentals_model',
+    ...   predict='price',
+    ...   query=query,
+    ...)
+
+
+    Drop
+
+    >>> models.drop('rentals_model')
+    >>> models.rentals_model.drop_version(version=10)
+
+    """
+
+    def __init__(self, project, api):
+        self.project = project
+        self.api = api
+
+    def create(
+        self,
+        name: str,
+        predict: str = None,
+        engine: Union[str, MLEngine] = None,
+        query: Union[str, Query] = None,
+        database: str = None,
+        options: dict = None,
+        timeseries_options: dict = None, **kwargs
+    ) -> Model:
+        """
+        Create new model in project and return it
+
+        If query/database is passed, it will be executed on mindsdb side
+
+        :param name: name of the model
+        :param predict: prediction target
+        :param engine: ml engine for new model, default is mindsdb
+        :param query: sql string or Query object to get data for training of model, optional
+        :param database: database to get data for training, optional
+        :param options: parameters for model, optional
+        :param timeseries_options: parameters for forecasting model
+        :return: created Model object, it can be still in training state
+        """
+        if isinstance(query, Query):
+            database = query.database
+            query = query.sql
+        elif isinstance(query, pd.DataFrame):
+            raise NotImplementedError('Dataframe as input for training model is not supported yet')
+
+        if database is not None:
+            database = Identifier(database)
+
+        if predict is not None:
+            targets = [Identifier(predict)]
+        else:
+            targets = None
+        ast_query = CreatePredictor(
+            name=Identifier(name),
+            query_str=query,
+            integration_name=database,
+            targets=targets,
+        )
+
+        if timeseries_options is not None:
+            # check ts options
+            allowed_keys = ['group', 'order', 'window', 'horizon']
+            for key in timeseries_options.keys():
+                if key not in allowed_keys:
+                    raise AttributeError(f"Unexpected time series option: {key}")
+
+            if 'group' in timeseries_options:
+                group = timeseries_options['group']
+                if not isinstance(group, list):
+                    group = [group]
+                ast_query.group_by = [Identifier(i) for i in group]
+            if 'order' in timeseries_options:
+                ast_query.order_by = [Identifier(timeseries_options['order'])]
+            if 'window' in timeseries_options:
+                ast_query.window = timeseries_options['window']
+            if 'horizon' in timeseries_options:
+                ast_query.horizon = timeseries_options['horizon']
+
+        if options is None:
+            options = {}
+        # options and kwargs are the same
+        options.update(kwargs)
+
+        if engine is not None:
+            if isinstance(engine, MLEngine):
+                engine = engine.name
+
+            options['engine'] = engine
+        ast_query.using = options
+        df = self.project.query(ast_query.to_string()).fetch()
+        if len(df) > 0:
+            data = dict(df.iloc[0])
+            # to lowercase
+            data = {k.lower(): v for k,v in data.items()}
+
+            return Model(self.project, data)
+
+    def get(self, name: str, version: int = None) -> Union[Model, ModelVersion]:
+        """
+         Get model by name from project
+
+         if version is passed it returns ModelVersion object with specific version
+
+        :param name: name of the model
+        :param version: version of model, optional
+        :return: Model or ModelVersion object
+        """
+        if version is not None:
+            ret = self.list(with_versions=True, name=name, version=version)
+        else:
+            ret = self.list(name=name)
+        if len(ret) == 0:
+            raise AttributeError("Model doesn't exist")
+        elif len(ret) == 1:
+            return ret[0]
+        else:
+            raise RuntimeError('Several models with the same name/version')
+
+    def drop(self, name: str):
+        """
+        Drop model from project with all versions
+
+        :param name: name of the model
+        """
+        ast_query = DropPredictor(name=Identifier(name))
+        self.project.query(ast_query.to_string()).fetch()
+
+
+    def list(self, with_versions: bool = False,
+                    name: str = None,
+                    version: int = None) -> List[Union[Model, ModelVersion]]:
+        """
+        List models (or model versions) in project
+
+        If with_versions = True it shows all models with version (executes 'select * from models_versions')
+        Otherwise it shows only models (executes 'select * from models')
+
+        :param with_versions: show model versions
+        :param name: to show models or versions only with selected name, optional
+        :param version: to show model or versions only with selected version, optional
+        :return: list of Model or ModelVersion objects
+        """
+
+        table = 'models'
+        model_class = Model
+        if with_versions:
+            table = 'models_versions'
+            model_class = ModelVersion
+
+        filters = { }
+        if name is not None:
+            filters['NAME'] = name
+        if version is not None:
+            filters['VERSION'] = version
+
+        ast_query = Select(
+            targets=[Star()],
+            from_table=Identifier(table),
+            where=dict_to_binary_op(filters)
+        )
+        df = self.project.query(ast_query.to_string()).fetch()
+
+        # columns to lower case
+        cols_map = { i: i.lower() for i in df.columns }
+        df = df.rename(columns=cols_map)
+
+        return [
+            model_class(self.project, item)
+            for item in df.to_dict('records')
+        ]

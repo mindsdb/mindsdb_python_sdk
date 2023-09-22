@@ -1,7 +1,7 @@
-Project
+Projects
 ---------------------------
 
-.. automodule:: mindsdb_sdk.project
+.. automodule:: mindsdb_sdk.projects
    :members:
    :undoc-members:
    :show-inheritance:

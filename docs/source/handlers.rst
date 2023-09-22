@@ -1,7 +1,7 @@
-Models
+Handlers
 -------------------------
 
-.. automodule:: mindsdb_sdk.models
+.. automodule:: mindsdb_sdk.handlers
    :members:
    :undoc-members:
    :show-inheritance:
