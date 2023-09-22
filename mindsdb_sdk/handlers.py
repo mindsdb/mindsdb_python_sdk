@@ -9,6 +9,9 @@ from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 @dataclass(init=False)
 class Handler:
+    """
+    :meta private:
+    """
     name: str
     title: str
     version: str
@@ -26,26 +29,7 @@ class Handler:
 
 class Handlers(CollectionBase):
     """
-       **Handlers colection**
-
-       Examples of usage:
-
-       ML handlers:
-
-       Get list
-       >>> con.ml_handlers.list()
-
-       Get
-       >>> openai_handler = con.ml_handlers.openai
-
-       DATA handlers:
-
-       Get list
-       >>> con.data_handlers.list()
-
-       Get
-       >>> pg_handler = con.data_handlers.postgres
-
+    :meta private:
     """
 
     def __init__(self, api, type):
@@ -91,3 +75,43 @@ class Handlers(CollectionBase):
             if item.name == name:
                 return item
         raise AttributeError(f"Handler doesn't exist: {name}")
+
+
+class MLHandlers(Handlers):
+    """
+       **ML handlers colection**
+
+       Examples of usage:
+
+       Get list
+
+       >>> con.ml_handlers.list()
+
+       Get
+
+       >>> openai_handler = con.ml_handlers.openai
+       >>> openai_handler = con.ml_handlers.get('openai')
+
+    """
+
+    ...
+
+
+class DataHandlers(Handlers):
+    """
+        **DATA handlers colection**
+
+        Examples of usage:
+
+        Get list
+
+        >>> con.data_handlers.list()
+
+        Get
+
+        >>> pg_handler = con.data_handlers.postgres
+        >>> pg_handler = con.data_handlers.get('postgres')
+
+    """
+
+    ...

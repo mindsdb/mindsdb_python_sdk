@@ -90,7 +90,7 @@ Base usage
     More
 
 More examples
------------
+-------------
 
 `<https://github.com/mindsdb/mindsdb_python_sdk/examples>`_
 
@@ -107,12 +107,13 @@ API documentation
    :maxdepth: 1
    :caption: Modules:
 
-
    server
    database
-   handlers
-   ml_engines
+
    project
+   handlers
+
+   ml_engines
    model
    tables
    views

@@ -99,7 +99,10 @@ class Jobs(CollectionBase):
                    repeat_str: str = None) -> Union[Job, None]:
         """
         Create new job in project and return it.
-        If it is not possible (job executed and not accessible anymore): return None
+
+        If it is not possible (job executed and not accessible anymore):
+           return None
+
         More info: https://docs.mindsdb.com/sql/create/jobs
 
         :param name: name of the job

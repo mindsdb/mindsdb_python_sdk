@@ -10,6 +10,9 @@ from .handlers import Handler
 
 @dataclass
 class MLEngine:
+    """
+    :meta private:
+    """
     name: str
     handler: str
     connection_data: dict
@@ -23,12 +26,15 @@ class MLEngines(CollectionBase):
     Examples of usage:
 
     Get list
+
     >>> ml_engines = con.ml_engines.list()
 
     Get
+
     >>> openai_engine = con.ml_engines.openai1
 
     Create
+
     >>> con.ml_engines.create(
     ...    'openai1',
     ...    'openai',
@@ -36,6 +42,7 @@ class MLEngines(CollectionBase):
     ...)
 
     Drop
+
     >>>  con.ml_engines.drop('openai1')
 
     """
@@ -46,6 +53,7 @@ class MLEngines(CollectionBase):
     def list(self) -> List[MLEngine]:
         """
         Returns list of ml engines on server
+
         :return: list of ml engines
         """
 
@@ -77,6 +85,7 @@ class MLEngines(CollectionBase):
     def create(self, name: str, handler: Union[str, Handler], connection_data: dict = None) -> MLEngine:
         """
         Create new ml engine and return it
+
         :param name: ml engine name, string
         :param handler: handler name, string or Handler
         :param connection_data: parameters for ml engine, dict, optional
@@ -95,6 +104,7 @@ class MLEngines(CollectionBase):
     def drop(self, name: str):
         """
         Drop ml engine by name
+
         :param name: name
         """
         ast_query = DropMLEngine(Identifier(name))

@@ -117,9 +117,11 @@ Usng model
         """
         Make prediction using model
 
-        if data is dataframe it uses /model/predict http method and sends dataframe over it
-        if data is select query with one table it replaces table to jon table and predictor
-        and sends query over sql/query http method
+        if data is dataframe
+          it uses /model/predict http method and sends dataframe over it
+
+        if data is select query with one table
+         it replaces table to jon table and predictor and sends query over sql/query http method
 
         if data is select from join other complex query it modifies query to:
           'select from (input query) join model' and sends it over sql/query http method
@@ -549,8 +551,10 @@ class Models(CollectionBase):
         """
         List models (or model versions) in project
 
-        If with_versions = True it shows all models with version (executes 'select * from models_versions')
-        Otherwise it shows only models (executes 'select * from models')
+        If with_versions = True
+          it shows all models with version (executes 'select * from models_versions')
+
+          Otherwise it shows only models (executes 'select * from models')
 
         :param with_versions: show model versions
         :param name: to show models or versions only with selected name, optional
