@@ -670,9 +670,9 @@ class TestSimplify(BaseFlow):
         con.ml_engines.create(
             'openai1',
             openai_handler,
-            connection_data={'api_key': '111'}
+            connection_data={'api_key': 'sk-11'}
         )
-        check_sql_call(mock_post, 'CREATE ML_ENGINE openai1 FROM openai USING api_key = "111"')
+        check_sql_call(mock_post, 'CREATE ML_ENGINE openai1 FROM openai USING api_key = \'sk-11\'')
 
         con.ml_engines.create(
             'openai1',
