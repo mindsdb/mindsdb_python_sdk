@@ -107,7 +107,7 @@ https://github.com/mindsdb/mindsdb_python_sdk/tree/staging/examples
 
 ## API Documentation
 
-The API documentation for the MindsDB SDK can be found at https://mindsdb.github.io/mindsdb_python_sdk/. You can generate the API documentation locally by following these steps:
+The API documentation for the MindsDB SDK can be found at https://mindsdb.github.io/mindsdb_python_sdk/.
 
 ### Generating API docs locally:
 
