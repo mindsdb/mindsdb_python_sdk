@@ -339,6 +339,8 @@ Usng model
         """
         Drop version of the model
 
+        >>> models.rentals_model.drop_version(version=10)
+
         :param num: version to drop
         """
 
@@ -392,40 +394,6 @@ class Models(CollectionBase):
     >>> model = models.get('model1')
     >>> model = models.get('model1', version=2)
 
-    Create
-
-    Create, using params and qeury as string
-
-    >>> model = models.create(
-    ...   'rentals_model',
-    ...   predict='price',
-    ...   engine='lightwood',
-    ...   database='example_db',
-    ...   query='select * from table',
-    ...   options={
-    ...       'module': 'LightGBM'
-    ...   },
-    ...   timeseries_options={
-    ...       'order': 'date',
-    ...       'group': ['a', 'b']
-    ...   }
-    ...)
-
-    Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
-
-    >>> query = databases.db.query('select * from table')
-    >>> model = models.create(
-    ...   'rentals_model',
-    ...   predict='price',
-    ...   query=query,
-    ...)
-
-
-    Drop
-
-    >>> models.drop('rentals_model')
-    >>> models.rentals_model.drop_version(version=10)
-
     """
 
     def __init__(self, project, api):
@@ -446,6 +414,32 @@ class Models(CollectionBase):
         Create new model in project and return it
 
         If query/database is passed, it will be executed on mindsdb side
+
+        Create, using params and qeury as string
+
+        >>> model = models.create(
+        ...   'rentals_model',
+        ...   predict='price',
+        ...   engine='lightwood',
+        ...   database='example_db',
+        ...   query='select * from table',
+        ...   options={
+        ...       'module': 'LightGBM'
+        ...   },
+        ...   timeseries_options={
+        ...       'order': 'date',
+        ...       'group': ['a', 'b']
+        ...   }
+        ...)
+    
+        Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
+
+        >>> query = databases.db.query('select * from table')
+        >>> model = models.create(
+        ...   'rentals_model',
+        ...   predict='price',
+        ...   query=query,
+        ...)
 
         :param name: name of the model
         :param predict: prediction target
@@ -469,6 +463,9 @@ class Models(CollectionBase):
             targets = [Identifier(predict)]
         else:
             targets = None
+        if database is None:
+            raise RuntimeError('Database is not defined')
+
         ast_query = CreatePredictor(
             name=Identifier(name),
             query_str=query,
@@ -538,6 +535,8 @@ class Models(CollectionBase):
     def drop(self, name: str):
         """
         Drop model from project with all versions
+
+        >>> models.drop('rentals_model')
 
         :param name: name of the model
         """
