@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
 from mindsdb_sql.parser.ast import DropDatabase, Identifier
@@ -7,6 +7,7 @@ from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 from .query import Query
 from .tables import Tables
+from .handlers import Handler
 
 
 class Database:
@@ -93,7 +94,7 @@ class Databases(CollectionBase):
         """
         return [Database(self, name) for name in self._list_databases()]
 
-    def create(self, name: str, engine: str, connection_args: dict) -> Database:
+    def create(self, name: str, engine: Union[str, Handler], connection_args: dict) -> Database:
         """
         Create new integration and return it
 
@@ -102,6 +103,9 @@ class Databases(CollectionBase):
         :param connection_args: {"key": "value"} object with the connection parameters specific for each engine
         :return: created Database object
         """
+        if isinstance(engine, Handler):
+            engine = engine.name
+
         ast_query = CreateDatabase(
             name=Identifier(name),
             engine=engine,
