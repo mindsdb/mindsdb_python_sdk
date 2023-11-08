@@ -124,7 +124,7 @@ class RestAPI:
 
         # convert to file
         fd = io.BytesIO()
-        df.to_csv(fd)
+        df.to_csv(fd, index=False)
         fd.seek(0)
 
         url = self.url + f'/api/files/{name}'
