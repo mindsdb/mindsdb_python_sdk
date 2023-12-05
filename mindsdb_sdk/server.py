@@ -51,6 +51,16 @@ class Server(Project):
         self.ml_handlers = Handlers(self.api, 'ml')
         self.data_handlers = Handlers(self.api, 'data')
 
+    def status(self) -> dict:
+        """
+        Get server information. It could content version
+        Example of getting version for local:
+        >>> print(server.status()['mindsdb_version'])
+
+        :return: server status info
+        """
+        return self.api.status()
+
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'
 

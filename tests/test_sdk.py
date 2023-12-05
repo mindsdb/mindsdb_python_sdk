@@ -178,9 +178,10 @@ class BaseFlow:
 
 class Test(BaseFlow):
 
+    @patch('requests.Session.get')
     @patch('requests.Session.put')
     @patch('requests.Session.post')
-    def test_flow(self, mock_post, mock_put):
+    def test_flow(self, mock_post, mock_put, mock_get):
 
         server = mindsdb_sdk.connect(login='a@b.com')
 
@@ -188,6 +189,11 @@ class Test(BaseFlow):
         call_args = mock_post.call_args
         assert call_args[0][0] == 'https://cloud.mindsdb.com/cloud/login'
         assert call_args[1]['json']['email'] == 'a@b.com'
+
+        # server status
+        server.status()
+        call_args = mock_get.call_args
+        assert call_args[0][0] == 'https://cloud.mindsdb.com/api/status'
 
         # --------- databases -------------
         response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))

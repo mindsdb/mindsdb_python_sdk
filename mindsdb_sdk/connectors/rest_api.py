@@ -140,3 +140,10 @@ class RestAPI:
             }
         )
         _raise_for_status(r)
+
+    def status(self) -> dict:
+
+        r = self.session.get(self.url + f'/api/status')
+        _raise_for_status(r)
+
+        return r.json()
