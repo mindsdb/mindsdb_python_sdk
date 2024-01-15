@@ -23,9 +23,6 @@ class Server(Project):
 
     """
 
-    def a(self):
-        ...
-
     def __init__(self, api):
         # server is also mindsdb project
         super().__init__(api, 'mindsdb')
