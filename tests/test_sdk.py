@@ -126,16 +126,16 @@ class BaseFlow:
             f'Finetune {model.project.name}.{model_name} FROM d1 (select a from t1)'
         )
 
-        model.retrain(query, options={ 'x': 2 })
+        model.retrain(query, options={'x': 2})
         check_sql_call(
             mock_post,
             f'RETRAIN {model.project.name}.{model_name} FROM {query.database} ({query.sql})  USING x=2'
         )
 
-        model.retrain('select a from t1', database='d1')
+        model.retrain('select a from t1', database='d1', engine='openai')
         check_sql_call(
             mock_post,
-            f'RETRAIN {model.project.name}.{model_name} FROM d1 (select a from t1)'
+            f'RETRAIN {model.project.name}.{model_name} FROM d1 (select a from t1) USING engine=\'openai\''
         )
 
         # describe
@@ -181,10 +181,15 @@ class Test(BaseFlow):
     @patch('requests.Session.put')
     @patch('requests.Session.post')
     def test_flow(self, mock_post, mock_put):
+        # check local
+        server = mindsdb_sdk.connect()
+        str(server)
 
+        assert server.api.url == 'http://127.0.0.1:47334'
+
+        # check cloud login
         server = mindsdb_sdk.connect(login='a@b.com')
 
-        # check login
         call_args = mock_post.call_args
         assert call_args[0][0] == 'https://cloud.mindsdb.com/cloud/login'
         assert call_args[1]['json']['email'] == 'a@b.com'
@@ -197,6 +202,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
 
         database = databases[0]
+        str(database)
         assert database.name == 'db1'
         self.check_database(database)
 
@@ -364,6 +370,7 @@ class Test(BaseFlow):
             f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
+        model.wait_complete()
         self.check_model(model, database)
 
         # create, using deferred query.
@@ -373,6 +380,7 @@ class Test(BaseFlow):
             predict='price',
             query=query,
         )
+        str(query)
 
         check_sql_call(
             mock_post,
@@ -599,6 +607,7 @@ class TestSimplify(BaseFlow):
         self.check_project(project, database)
 
         project = con.projects.create('proj1')
+        str(project)
         check_sql_call(
             mock_post, 'CREATE DATABASE proj1 WITH ENGINE = "mindsdb", PARAMETERS = {}')
         self.check_project(project, database)
@@ -755,6 +764,7 @@ class TestSimplify(BaseFlow):
 
         models = project.models.list()
         model = models[0]  # Model object
+        str(model)
 
         assert model.name == 'm1'
         assert model.get_status() == 'complete'
@@ -784,7 +794,7 @@ class TestSimplify(BaseFlow):
                 'window': 10,
                 'horizon': 2
             },
-            module = 'LightGBM',  # has to be in options
+            module='LightGBM',  # has to be in options
         )
         check_sql_call(
             mock_post,
@@ -904,6 +914,11 @@ class TestSimplify(BaseFlow):
         table2 = database.tables.create('t2', query)
         check_sql_call(mock_post, f'create table {database.name}.t2 (select * from tbl1)')
 
+        # create with replace
+        database.tables.create('t2', query, replace=True)
+        check_sql_call(mock_post, f'create or replace table {database.name}.t2 (select * from tbl1)')
+
+
         assert table2.name == 't2'
         self.check_table(table2)
 
@@ -962,7 +977,9 @@ class TestSimplify(BaseFlow):
         assert job.name == 'job1'
         assert job.query_str == 'select 1'
 
+        dir(project.jobs)
         job = project.jobs.job1
+        str(job)
         assert job.name == 'job1'
         assert job.query_str == 'select 1'
 
@@ -970,6 +987,13 @@ class TestSimplify(BaseFlow):
         check_sql_call(
             mock_post,
             f"select * from jobs where name = 'job1'"
+        )
+
+        job.get_history()
+
+        check_sql_call(
+            mock_post,
+            f"select * from jobs_history where name = 'job1'"
         )
 
         project.jobs.create(
@@ -983,6 +1007,17 @@ class TestSimplify(BaseFlow):
         check_sql_call(
             mock_post,
             f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 min",
+            call_stack_num=-2
+        )
+
+        project.jobs.create(
+            name='job2',
+            query_str='retrain m1'
+        )
+
+        check_sql_call(
+            mock_post,
+            f"CREATE JOB job2 (retrain m1)",
             call_stack_num=-2
         )
 
