@@ -700,6 +700,27 @@ class TestSimplify(BaseFlow):
         con.ml_engines.drop('openai1')
         check_sql_call(mock_post, 'DROP ML_ENGINE openai1')
 
+        # byom
+        model = '''
+import pandas as pd
+
+class CustomPredictor():
+
+    def train(self, df, target_col, args=None):
+        
+        self.target_col=target_col 
+        
+     def predict(self, df):
+        return pd.Dataframe([{'predict': self.target_col}])
+'''
+        requirements = '''pandas'''
+
+        con.ml_engines.create_byom('b1', model, requirements)
+        call_args = mock_put.call_args
+        assert call_args[0][0] == 'https://cloud.mindsdb.com/api/handlers/byom/b1'
+        assert call_args[1]['files']['code'] == model
+        assert call_args[1]['files']['modules'] == requirements
+
     def check_project(self, project, database):
         self.check_project_views( project, database)
 
