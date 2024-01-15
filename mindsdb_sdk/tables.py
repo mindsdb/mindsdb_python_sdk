@@ -236,10 +236,6 @@ class Tables(CollectionBase):
         :return: Table object
         """
 
-        if name not in self._list_tables():
-            if '.' not in name:
-                # fixme: schemas not visible in 'show tables'
-                raise AttributeError("Table doesn't exist")
         return Table(self.database, name)
 
     def create(self, name: str, query: Union[pd.DataFrame, Query], replace: bool = False) -> Table:
