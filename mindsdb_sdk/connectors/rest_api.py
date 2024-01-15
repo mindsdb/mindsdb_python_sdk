@@ -141,6 +141,19 @@ class RestAPI:
         )
         _raise_for_status(r)
 
+    @_try_relogin
+    def upload_byom(self, name: str, code: str, requirements: str):
+
+        url = self.url + f'/api/handlers/byom/{name}'
+        r = self.session.put(
+            url,
+            files={
+                'code': code,
+                'modules': requirements,
+            }
+        )
+        _raise_for_status(r)
+
     def status(self) -> dict:
 
         r = self.session.get(self.url + f'/api/status')
