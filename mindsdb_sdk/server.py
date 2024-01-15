@@ -52,6 +52,7 @@ class Server(Project):
         """
         Get server information. It could content version
         Example of getting version for local:
+
         >>> print(server.status()['mindsdb_version'])
 
         :return: server status info
