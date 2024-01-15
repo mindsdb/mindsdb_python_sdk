@@ -45,6 +45,16 @@ class MLEngines(CollectionBase):
 
     >>>  con.ml_engines.drop('openai1')
 
+    Upload BYOM model. After uploading a new ml engin will be availbe to create new model from it.
+
+    >>> model_code = open('/path/to/model/code').read()
+    >>> model_requirements = open('/path/to/model/requirements').read()
+    >>> ml_engine = con.ml_engines.create_byom(
+    ...    'my_byom_engine',
+    ...    code=model_code,
+    ...    requirements=model_requirements
+    ...)
+
     """
 
     def __init__(self, api):
@@ -100,6 +110,25 @@ class MLEngines(CollectionBase):
         self.api.sql_query(ast_query.to_string())
 
         return MLEngine(name, handler, connection_data)
+
+    def create_byom(self, name: str, code: str, requirements: Union[str, List[str]] = None):
+        """
+        Create new BYOM ML engine and return it
+
+        :param code: model python code in string
+        :param requirements: requirements for model. Optional if there is no special requirements.
+           It can be content of 'requirement.txt' file or list of strings (item for every requirement).
+        :return: created BYOM ml engine object
+        """
+
+        if requirements is None:
+            requirements = ''
+        elif isinstance(requirements, list):
+            requirements = '\n'.join(requirements)
+
+        self.api.upload_byom(name, code, requirements)
+
+        return MLEngine(name, 'byom', {})
 
     def drop(self, name: str):
         """
