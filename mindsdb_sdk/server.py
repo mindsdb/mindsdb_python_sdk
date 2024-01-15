@@ -9,14 +9,17 @@ class Server(Project):
     Server instance allows to manipulate project and databases (integration) on mindsdb server
 
     Attributes for accessing to different objects:
-        - projects
-        - databases
-        - ml_engines
 
-    Server is also root(mindsdb) project and has its attributes
-        - models
-        - views
-        - jobs
+        - projects, see :func:`~mindsdb_sdk.projects.Projects`
+        - databases, see :func:`~mindsdb_sdk.databases.Databases`
+        - ml_engines, see :func:`~mindsdb_sdk.ml_engines.MLEngines`
+        - ml_handlers, see :func:`~mindsdb_sdk.handlers.MLHandlers`
+        - data_handlers, see :func:`~mindsdb_sdk.handlers.DataHandlers`
+
+    Server is also root(mindsdb) project and has attributes of project:
+        - models, see :func:`~mindsdb_sdk.models.Models`
+        - views, see :func:`~mindsdb_sdk.views.Views`
+        - jobs, see :func:`~mindsdb_sdk.jobs.Jobs`
 
     """
 
@@ -44,6 +47,16 @@ class Server(Project):
 
         self.ml_handlers = Handlers(self.api, 'ml')
         self.data_handlers = Handlers(self.api, 'data')
+
+    def status(self) -> dict:
+        """
+        Get server information. It could content version
+        Example of getting version for local:
+        >>> print(server.status()['mindsdb_version'])
+
+        :return: server status info
+        """
+        return self.api.status()
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

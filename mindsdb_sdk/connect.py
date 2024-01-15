@@ -20,17 +20,17 @@ def connect(url: str = None, login: str = None, password: str = None, is_managed
 
     Connect to local server
 
-    >>> server = mindsdb_sdk.connect()
-    >>> server = mindsdb_sdk.connect('http://127.0.0.1:47334')
+    >>> con = mindsdb_sdk.connect()
+    >>> con = mindsdb_sdk.connect('http://127.0.0.1:47334')
 
     Connect to cloud server
 
-    >>> server = mindsdb_sdk.connect(login='a@b.com', password='-')
-    >>> server = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
+    >>> con = mindsdb_sdk.connect(login='a@b.com', password='-')
+    >>> con = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
 
     Connect to MindsDB pro
 
-    >>> server = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', login='a@b.com', password='-', is_managed=True)
+    >>> con = mindsdb_sdk.connect('http://<YOUR_INSTANCE_IP>', login='a@b.com', password='-', is_managed=True)
 
     """
     if url is None:

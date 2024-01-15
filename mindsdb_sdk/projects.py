@@ -21,9 +21,9 @@ class Project:
     Server instance allows to manipulate project and databases (integration) on mindsdb server
 
     Attributes for accessing to different objects:
-        - models
-        - views
-        - jobs
+        - models, see :func:`~mindsdb_sdk.models.Models`
+        - views, see :func:`~mindsdb_sdk.views.Views`
+        - jobs, see :func:`~mindsdb_sdk.jobs.Jobs`
 
     It is possible to cal queries from project context:
 
@@ -109,23 +109,23 @@ class Projects(CollectionBase):
     Projects
     ----------
 
-    # list of projects
+    list of projects
 
     >>> projects.list()
 
-    # create
+    create
 
     >>> project = projects.create('proj')
 
-    # drop
+    drop
 
     >>> projects.drop('proj')
 
-    # get existing
+    get existing
 
     >>> projects.get('proj')
 
-    # by attribute
+    by attribute
     >>> projects.proj
 
     """

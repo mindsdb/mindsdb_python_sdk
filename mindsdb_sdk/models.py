@@ -117,9 +117,11 @@ Usng model
         """
         Make prediction using model
 
-        if data is dataframe it uses /model/predict http method and sends dataframe over it
-        if data is select query with one table it replaces table to jon table and predictor
-        and sends query over sql/query http method
+        if data is dataframe
+          it uses /model/predict http method and sends dataframe over it
+
+        if data is select query with one table
+         it replaces table to jon table and predictor and sends query over sql/query http method
 
         if data is select from join other complex query it modifies query to:
           'select from (input query) join model' and sends it over sql/query http method
@@ -337,6 +339,8 @@ Usng model
         """
         Drop version of the model
 
+        >>> models.rentals_model.drop_version(version=10)
+
         :param num: version to drop
         """
 
@@ -390,40 +394,6 @@ class Models(CollectionBase):
     >>> model = models.get('model1')
     >>> model = models.get('model1', version=2)
 
-    Create
-
-    Create, using params and qeury as string
-
-    >>> model = models.create(
-    ...   'rentals_model',
-    ...   predict='price',
-    ...   engine='lightwood',
-    ...   database='example_db',
-    ...   query='select * from table',
-    ...   options={
-    ...       'module': 'LightGBM'
-    ...   },
-    ...   timeseries_options={
-    ...       'order': 'date',
-    ...       'group': ['a', 'b']
-    ...   }
-    ...)
-
-    Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
-
-    >>> query = databases.db.query('select * from table')
-    >>> model = models.create(
-    ...   'rentals_model',
-    ...   predict='price',
-    ...   query=query,
-    ...)
-
-
-    Drop
-
-    >>> models.drop('rentals_model')
-    >>> models.rentals_model.drop_version(version=10)
-
     """
 
     def __init__(self, project, api):
@@ -444,6 +414,32 @@ class Models(CollectionBase):
         Create new model in project and return it
 
         If query/database is passed, it will be executed on mindsdb side
+
+        Create, using params and qeury as string
+
+        >>> model = models.create(
+        ...   'rentals_model',
+        ...   predict='price',
+        ...   engine='lightwood',
+        ...   database='example_db',
+        ...   query='select * from table',
+        ...   options={
+        ...       'module': 'LightGBM'
+        ...   },
+        ...   timeseries_options={
+        ...       'order': 'date',
+        ...       'group': ['a', 'b']
+        ...   }
+        ...)
+    
+        Create, using deferred query. 'query' will be executed and converted to dataframe on mindsdb backend.
+
+        >>> query = databases.db.query('select * from table')
+        >>> model = models.create(
+        ...   'rentals_model',
+        ...   predict='price',
+        ...   query=query,
+        ...)
 
         :param name: name of the model
         :param predict: prediction target
@@ -467,6 +463,9 @@ class Models(CollectionBase):
             targets = [Identifier(predict)]
         else:
             targets = None
+        if database is None:
+            raise RuntimeError('Database is not defined')
+
         ast_query = CreatePredictor(
             name=Identifier(name),
             query_str=query,
@@ -537,6 +536,8 @@ class Models(CollectionBase):
         """
         Drop model from project with all versions
 
+        >>> models.drop('rentals_model')
+
         :param name: name of the model
         """
         ast_query = DropPredictor(name=Identifier(name))
@@ -549,8 +550,10 @@ class Models(CollectionBase):
         """
         List models (or model versions) in project
 
-        If with_versions = True it shows all models with version (executes 'select * from models_versions')
-        Otherwise it shows only models (executes 'select * from models')
+        If with_versions = True
+          it shows all models with version (executes 'select * from models_versions')
+
+          Otherwise it shows only models (executes 'select * from models')
 
         :param with_versions: show model versions
         :param name: to show models or versions only with selected name, optional

@@ -10,6 +10,9 @@ from .handlers import Handler
 
 @dataclass
 class MLEngine:
+    """
+    :meta private:
+    """
     name: str
     handler: str
     connection_data: dict
@@ -23,12 +26,15 @@ class MLEngines(CollectionBase):
     Examples of usage:
 
     Get list
+
     >>> ml_engines = con.ml_engines.list()
 
     Get
+
     >>> openai_engine = con.ml_engines.openai1
 
     Create
+
     >>> con.ml_engines.create(
     ...    'openai1',
     ...    'openai',
@@ -36,7 +42,18 @@ class MLEngines(CollectionBase):
     ...)
 
     Drop
+
     >>>  con.ml_engines.drop('openai1')
+
+    Upload BYOM model. After uploading a new ml engin will be availbe to create new model from it.
+
+    >>> model_code = open('/path/to/model/code').read()
+    >>> model_requirements = open('/path/to/model/requirements').read()
+    >>> ml_engine = con.ml_engines.create_byom(
+    ...    'my_byom_engine',
+    ...    code=model_code,
+    ...    requirements=model_requirements
+    ...)
 
     """
 
@@ -46,6 +63,7 @@ class MLEngines(CollectionBase):
     def list(self) -> List[MLEngine]:
         """
         Returns list of ml engines on server
+
         :return: list of ml engines
         """
 
@@ -77,6 +95,7 @@ class MLEngines(CollectionBase):
     def create(self, name: str, handler: Union[str, Handler], connection_data: dict = None) -> MLEngine:
         """
         Create new ml engine and return it
+
         :param name: ml engine name, string
         :param handler: handler name, string or Handler
         :param connection_data: parameters for ml engine, dict, optional
@@ -92,9 +111,29 @@ class MLEngines(CollectionBase):
 
         return MLEngine(name, handler, connection_data)
 
+    def create_byom(self, name: str, code: str, requirements: Union[str, List[str]] = None):
+        """
+        Create new BYOM ML engine and return it
+
+        :param code: model python code in string
+        :param requirements: requirements for model. Optional if there is no special requirements.
+           It can be content of 'requirement.txt' file or list of strings (item for every requirement).
+        :return: created BYOM ml engine object
+        """
+
+        if requirements is None:
+            requirements = ''
+        elif isinstance(requirements, list):
+            requirements = '\n'.join(requirements)
+
+        self.api.upload_byom(name, code, requirements)
+
+        return MLEngine(name, 'byom', {})
+
     def drop(self, name: str):
         """
         Drop ml engine by name
+
         :param name: name
         """
         ast_query = DropMLEngine(Identifier(name))

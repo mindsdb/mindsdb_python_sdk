@@ -102,7 +102,9 @@ class Table(Query):
 
     def delete(self, **kwargs):
         """
-        Deletes record from table using filters  table.delete(a=1, b=2)
+        Deletes record from table using filters
+
+        >>> table.delete(a=1, b=2)
 
         :param kwargs: filter
         """
@@ -121,15 +123,16 @@ class Table(Query):
     def update(self, values: Union[dict, Query], on: list = None, filters: dict = None):
         '''
         Update table by condition of from other table.
+
         If 'values' is a dict:
-        - it will be an update by condition
-        - 'filters' is required
-        - used command: update table set a=1 where x=1
+          it will be an update by condition
+          'filters' is required
+          used command: update table set a=1 where x=1
 
         If 'values' is a Query:
-        - it will be an update from select
-        - 'on' is required
-        - used command: update table on a,b from (query)
+          it will be an update from select
+          'on' is required
+          used command: update table on a,b from (query)
 
         :param values: input for update, can be dict or query
         :param on: list of column to map subselect to table ['a', 'b', ...]
@@ -233,10 +236,6 @@ class Tables(CollectionBase):
         :return: Table object
         """
 
-        if name not in self._list_tables():
-            if '.' not in name:
-                # fixme: schemas not visible in 'show tables'
-                raise AttributeError("Table doesn't exist")
         return Table(self.database, name)
 
     def create(self, name: str, query: Union[pd.DataFrame, Query], replace: bool = False) -> Table:

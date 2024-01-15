@@ -5,3 +5,6 @@ Server
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+   :ref:`jobs<Jobs>`
