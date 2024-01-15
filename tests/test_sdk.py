@@ -181,10 +181,14 @@ class Test(BaseFlow):
     @patch('requests.Session.put')
     @patch('requests.Session.post')
     def test_flow(self, mock_post, mock_put):
+        # check local
+        server = mindsdb_sdk.connect()
 
+        assert server.api.url == 'http://127.0.0.1:47334'
+
+        # check cloud login
         server = mindsdb_sdk.connect(login='a@b.com')
 
-        # check login
         call_args = mock_post.call_args
         assert call_args[0][0] == 'https://cloud.mindsdb.com/cloud/login'
         assert call_args[1]['json']['email'] == 'a@b.com'
@@ -197,6 +201,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
 
         database = databases[0]
+        str(database)
         assert database.name == 'db1'
         self.check_database(database)
 
@@ -364,6 +369,7 @@ class Test(BaseFlow):
             f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
+        model.wait_complete()
         self.check_model(model, database)
 
         # create, using deferred query.
@@ -373,6 +379,7 @@ class Test(BaseFlow):
             predict='price',
             query=query,
         )
+        str(query)
 
         check_sql_call(
             mock_post,
@@ -963,6 +970,7 @@ class TestSimplify(BaseFlow):
         assert job.query_str == 'select 1'
 
         job = project.jobs.job1
+        str(job)
         assert job.name == 'job1'
         assert job.query_str == 'select 1'
 
@@ -970,6 +978,13 @@ class TestSimplify(BaseFlow):
         check_sql_call(
             mock_post,
             f"select * from jobs where name = 'job1'"
+        )
+
+        job.get_history()
+
+        check_sql_call(
+            mock_post,
+            f"select * from jobs_history where name = 'job1'"
         )
 
         project.jobs.create(
