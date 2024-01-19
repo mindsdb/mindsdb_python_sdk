@@ -463,8 +463,6 @@ class Models(CollectionBase):
             targets = [Identifier(predict)]
         else:
             targets = None
-        if database is None:
-            raise RuntimeError('Database is not defined')
 
         ast_query = CreatePredictor(
             name=Identifier(name),
