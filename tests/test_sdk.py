@@ -844,6 +844,19 @@ class CustomPredictor():
             f'CREATE PREDICTOR m2 FROM {database.name} (select * from t2) PREDICT price'
         )
 
+        # create without database
+        model = project.models.create(
+            'm2',
+            predict='response',
+            engine='openai',
+            options={'prompt': 'make up response'},
+        )
+
+        check_sql_call(
+            mock_post,
+            f'CREATE PREDICTOR m2 PREDICT response USING prompt="make up response", `engine`="openai"'
+        )
+
         assert model.name == 'm2'
         self.check_model(model, database)
 

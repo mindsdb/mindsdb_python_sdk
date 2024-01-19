@@ -45,7 +45,8 @@ class MLEngines(CollectionBase):
 
     >>>  con.ml_engines.drop('openai1')
 
-    Upload BYOM model. After uploading a new ml engin will be availbe to create new model from it.
+    Upload BYOM model.
+    After uploading a new ml engin will be availbe to create new model from it.
 
     >>> model_code = open('/path/to/model/code').read()
     >>> model_requirements = open('/path/to/model/requirements').read()
