@@ -32,7 +32,7 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, is_managed=False):
+    def __init__(self, url=None, login=None, password=None, is_managed=False, headers=None):
 
         self.url = url
         self.username = login
@@ -41,6 +41,9 @@ class RestAPI:
         self.session = requests.Session()
 
         self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
+
+        if headers is not None:
+            self.session.headers.update(headers)
 
         if login is not None:
             self.login()
