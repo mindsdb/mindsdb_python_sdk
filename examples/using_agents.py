@@ -12,7 +12,7 @@ except Exception:
 
 # Actually create the underlying model the agent will use.
 langchain_model = con.models.create(
-    'agent_model4',
+    'agent_model',
     predict='answer',
     engine='langchain',
     prompt_template='You are a spicy, cheeky assistant. Add some personality and flare when responding to the user question: {{question}}',
@@ -27,7 +27,7 @@ langchain_model = con.models.create(
 print('Agent ready to use.')
 
 # Now create an agent that will use the model we just created.
-agent = con.agents.create('new_agent4', langchain_model)
+agent = con.agents.create('new_agent', langchain_model)
 print('Ask a question: ')
 question = input()
 answer = agent.completion([{'question': question, 'answer': None}])
