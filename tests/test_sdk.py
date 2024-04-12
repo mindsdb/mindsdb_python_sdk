@@ -7,9 +7,12 @@ from unittest.mock import patch
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-from mindsdb_sdk.models import ModelVersion
+from mindsdb_sdk.models import Model, ModelVersion
 import mindsdb_sdk
 
+from mindsdb_sdk.agents import Agent
+from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL
+from mindsdb_sdk.skills import Skill
 from mindsdb_sdk.connectors import rest_api
 
 # patch _raise_for_status
@@ -1069,3 +1072,351 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+class TestAgents():
+    @patch('requests.Session.get')
+    def test_list(self, mock_get):
+        response_mock(mock_get, [])
+        server = mindsdb_sdk.connect()
+        assert len(server.agents.list()) == 0
+
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get, [
+            {
+                'id': 1,
+                'name': 'test_agent',
+                'project_id': 1,
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': created_at,
+                'updated_at': updated_at
+            }
+        ])
+        all_agents = server.agents.list()
+        # Check API call.
+        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+
+        assert len(all_agents) == 1
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [],
+            {},
+            created_at,
+            updated_at
+        )
+        assert all_agents[0] == expected_agent
+
+    @patch('requests.Session.get')
+    def test_get(self, mock_get):
+        server = mindsdb_sdk.connect()
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get,
+            {
+                'id': 1,
+                'name': 'test_agent',
+                'project_id': 1,
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': created_at,
+                'updated_at': updated_at
+            }
+        )
+        agent = server.agents.get('test_agent')
+        # Check API call.
+        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [],
+            {},
+            created_at,
+            updated_at
+        )
+        assert agent == expected_agent
+
+    @patch('requests.Session.post')
+    def test_create(self, mock_post):
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        data = {
+            'id': 1,
+            'name': 'test_agent',
+            'project_id': 1,
+            'model_name': 'test_model',
+            'skills': [{
+                'id': 0,
+                'name': 'test_skill',
+                'project_id': 1,
+                'type': 'test',
+                'params': {'k1': 'v1'},
+            }],
+            'params': {'k1': 'v1'},
+            'created_at': created_at,
+            'updated_at': updated_at
+        }
+        response_mock(mock_post, data)
+
+        # Create the agent.
+        server = mindsdb_sdk.connect()
+        new_agent = server.agents.create(
+            name='test_agent',
+            model=Model(None, {'name':'m1'}),
+            skills=[Skill('test_skill', 'test', {'k1': 'v1'})],
+            params={'k1': 'v1'}
+        )
+        # Check API call.
+        assert len(mock_post.call_args_list) == 2
+        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_post.call_args.kwargs['json'] == {
+            'agent': {
+                'name': 'test_agent',
+                'model_name':'m1',
+                'skills': ['test_skill'],
+                'params': {'k1': 'v1'}
+            }
+        }
+
+        # Skill should have been created too.
+        assert mock_post.call_args_list[-2].args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args_list[-2].kwargs['json'] == {
+           'skill': {
+                'name': 'test_skill',
+                'type': 'test',
+                'params': {'k1': 'v1'}
+            }
+        }
+
+        expected_skill = Skill('test_skill', 'test', {'k1': 'v1'})
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [expected_skill],
+            {'k1': 'v1'},
+            created_at,
+            updated_at
+        )
+
+        assert new_agent == expected_agent
+
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    # Mock creating new skills.
+    @patch('requests.Session.post')
+    def test_update(self, mock_get, mock_put, _):
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        data = {
+            'id': 1,
+            'name': 'updated_agent',
+            'project_id': 1,
+            'model_name': 'updated_model',
+            'skills': [{
+                'id': 1,
+                'name': 'updated_skill',
+                'project_id': 1,
+                'type': 'test',
+                'params': {'k2': 'v2'},
+            }],
+            'params': {'k2': 'v2'},
+            'created_at': created_at,
+            'updated_at': updated_at
+        }
+        response_mock(mock_put, data)
+
+        # Mock existing agent.
+        response_mock(mock_get, {
+            'id': 1,
+            'name': 'test_agent',
+            'project_id': 1,
+            'model_name': 'test_model',
+            'skills': [{
+                'id': 1,
+                'name': 'test_skill',
+                'project_id': 1,
+                'type': 'test',
+                'params': {'k1': 'v1'},
+            }],
+            'params': {'k1': 'v1'},
+        })
+
+        server = mindsdb_sdk.connect()
+        expected_agent = Agent(
+            'updated_agent',
+            'updated_model',
+            [Skill('updated_skill', 'test', {'k2': 'v2'})],
+            {'k2': 'v2'},
+            created_at,
+            updated_at
+        )
+
+        updated_agent = server.agents.update('test_agent', expected_agent)
+        # Check API calls.
+        assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        assert mock_put.call_args.kwargs['json'] == {
+            'agent': {
+                'name': 'updated_agent',
+                'model_name': 'updated_model',
+                'skills_to_add': ['updated_skill'],
+                'skills_to_remove': [],
+                'params': {'k2': 'v2'}
+            }
+        }
+
+        assert updated_agent == expected_agent
+
+
+    @patch('requests.Session.post')
+    def test_completion(self, mock_post):
+        response_mock(mock_post, {
+            'message':
+                {
+                    'content': 'Angel Falls in Venezuela at 979m',
+                    'role': 'assistant',
+                }
+        })
+        server = mindsdb_sdk.connect()
+        messages = [{
+            'question': 'What is the highest waterfall in the world?',
+            'answer': None
+        }]
+        completion = server.agents.completion('test_agent', messages)
+        # Check API call.
+        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent/completions'
+        assert mock_post.call_args.kwargs['json'] == {
+           'messages': messages
+        }
+        assert completion.content == 'Angel Falls in Venezuela at 979m'
+
+    @patch('requests.Session.delete')
+    def test_delete(self, mock_delete):
+        server = mindsdb_sdk.connect()
+        server.agents.delete('test_agent')
+        # Check API call.
+        assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+
+
+class TestSkills():
+    @patch('requests.Session.get')
+    def test_list(self, mock_get):
+        response_mock(mock_get, [])
+        server = mindsdb_sdk.connect()
+        # Check API call.
+        assert len(server.skills.list()) == 0
+        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get, [
+            {
+                'id': 1,
+                'name': 'test_skill',
+                'project_id': 1,
+                'params': {'k1': 'v1'},
+                'type': 'test'
+            }
+        ])
+        all_skills = server.skills.list()
+        assert len(all_skills) == 1
+
+        expected_skill = Skill(
+            'test_skill',
+            'test',
+            params={'k1': 'v1'}
+        )
+        assert all_skills[0] == expected_skill
+
+    @patch('requests.Session.get')
+    def test_get(self, mock_get):
+        server = mindsdb_sdk.connect()
+        response_mock(mock_get,
+            {
+                'id': 1,
+                'name': 'test_skill',
+                'project_id': 1,
+                'params': {'k1': 'v1'},
+                'type': 'test'
+            }
+        )
+        skill = server.skills.get('test_skill')
+        # Check API call.
+        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        expected_skill = Skill(
+            'test_skill',
+            'test',
+            params={'k1': 'v1'}
+        )
+        assert skill == expected_skill
+
+    @patch('requests.Session.post')
+    def test_create(self, mock_post):
+        data = {
+            'id': 1,
+            'name': 'test_skill',
+            'project_id': 1,
+            'params': {'k1': 'v1'},
+            'type': 'test'
+        }
+        response_mock(mock_post, data)
+
+        # Create the skill.
+        server = mindsdb_sdk.connect()
+        new_skill = server.skills.create(
+            'test_skill',
+            'test',
+            params={'k1': 'v1'}
+        )
+        # Check API call.
+        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args.kwargs['json'] == {
+           'skill': {
+                'name': 'test_skill',
+                'type': 'test',
+                'params': {'k1': 'v1'}
+            }
+        }
+        expected_skill = Skill('test_skill', 'test', {'k1': 'v1'})
+
+        assert new_skill == expected_skill
+
+    @patch('requests.Session.put')
+    def test_update(self, mock_put):
+        data = {
+            'id': 1,
+            'name': 'updated_skill',
+            'project_id': 1,
+            'params': {'k2': 'v2'},
+            'type': 'new_type'
+        }
+        response_mock(mock_put, data)
+
+        server = mindsdb_sdk.connect()
+        expected_skill = Skill(
+            'updated_skill',
+            'new_type',
+            params={'k2': 'v2'}
+        )
+
+        updated_skill = server.skills.update('test_skill', expected_skill)
+        # Check API call.
+        assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        assert mock_put.call_args.kwargs['json'] == {
+           'skill': {
+                'name': 'updated_skill',
+                'type': 'new_type',
+                'params': {'k2': 'v2'}
+            }
+        }
+
+        assert updated_skill == expected_skill
+
+    @patch('requests.Session.delete')
+    def test_delete(self, mock_delete):
+        server = mindsdb_sdk.connect()
+        server.skills.delete('test_skill')
+        # Check API call.
+        assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
