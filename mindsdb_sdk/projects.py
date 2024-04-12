@@ -2,7 +2,7 @@ from typing import  List
 
 from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
 from mindsdb_sql.parser.ast import DropDatabase
-from mindsdb_sql.parser.ast import  Identifier, Delete
+from mindsdb_sql.parser.ast import Identifier, Delete
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op
 
@@ -12,6 +12,7 @@ from .models import Models
 from .query import Query
 from .views import Views
 from .jobs import Jobs
+from .knowledge_bases import KnowledgeBases
 
 
 class Project:
@@ -72,6 +73,8 @@ class Project:
         self.list_jobs = self.jobs.list
         self.create_job = self.jobs.create
         self.drop_job = self.jobs.drop
+
+        self.knowledge_bases = KnowledgeBases(self, api)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
