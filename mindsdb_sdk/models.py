@@ -30,7 +30,7 @@ class Model:
 
     Get info
 
-    >>> print(model.status)
+    >>> print(model.get_status())
     >>> print(model.data)
 
     Update model data from server
