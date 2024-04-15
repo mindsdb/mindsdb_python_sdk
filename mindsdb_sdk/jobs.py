@@ -55,12 +55,7 @@ class Jobs(CollectionBase):
         self.project = project
         self.api = api
 
-    def list(self, name: str = None) -> List[Job]:
-        """
-        Show list of jobs in project
-
-        :return: list of Job objects
-        """
+    def _list(self, name: str = None) -> List[Job]:
 
         ast_query = Select(targets=[Star()], from_table=Identifier('jobs'))
 
@@ -78,6 +73,15 @@ class Jobs(CollectionBase):
             for item in df.to_dict('records')
         ]
 
+    def list(self) -> List[Job]:
+        """
+        Show list of jobs in project
+
+        :return: list of Job objects
+        """
+
+        return self._list()
+
     def get(self, name: str) -> Job:
         """
         Get job by name from project
@@ -86,7 +90,7 @@ class Jobs(CollectionBase):
         :return: Job object
         """
 
-        jobs = self.list(name)
+        jobs = self._list(name)
         if len(jobs) == 1:
             return jobs[0]
         elif len(jobs) == 0:
@@ -133,7 +137,7 @@ class Jobs(CollectionBase):
         self.api.sql_query(ast_query.to_string(), database=self.project.name)
 
         # job can be executed and remove it is not repeatable
-        jobs = self.list(name)
+        jobs = self._list(name)
         if len(jobs) == 1:
             return jobs[0]
 

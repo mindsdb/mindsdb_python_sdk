@@ -108,7 +108,7 @@ class BaseFlow:
         model.predict(query)
 
         check_sql_call(mock_post,
-                       f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) as t JOIN {model.project.name}.{model_name} AS m")
+                       f"SELECT m.* FROM (SELECT * FROM t1 WHERE type = 'house' AND saledate > LATEST) as t JOIN {model.project.name}.{model_name} AS m")
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
@@ -166,7 +166,7 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
+                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -176,7 +176,7 @@ class BaseFlow:
         table = table.limit(3)
         table.fetch()
         str(table)
-        check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')
+        check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
 
 
 class Test(BaseFlow):
@@ -977,7 +977,7 @@ class CustomPredictor():
 
         # -- delete in table --
         table2.delete(a=1, b='2')
-        check_sql_call(mock_post, f"DELETE FROM {database.name}.t2 WHERE (a = 1) AND (b = '2')")
+        check_sql_call(mock_post, f"DELETE FROM {database.name}.t2 WHERE a = 1 AND b = '2'")
 
         # -- update table --
         # from query
