@@ -1107,6 +1107,26 @@ class CustomPredictor():
         assert kb.storage.db.name == 'pvec'
         assert kb.model.name == 'openai_emb'
 
+        # insert
+
+        kb.insert(
+            database.tables.tbl2.filter(a=1)
+        )
+        check_sql_call(
+            mock_post,
+            f''' insert into {project.name}.{kb.name} (
+               select * from tbl2 where a=1
+            )'''
+        )
+
+        # query
+        df = kb.find(query='dog', limit=5).fetch()
+
+        check_sql_call(
+            mock_post,
+            f'''select * from {project.name}.{kb.name} where content='dog' limit 5'''
+        )
+
         # create 1
         project.knowledge_bases.create(
             name='kb2',
@@ -1128,7 +1148,7 @@ class CustomPredictor():
         )
 
         # create 2
-        project.knowledge_bases.create(
+        kb = project.knowledge_bases.create(
             name='kb2',
             storage=database.tables.tbl1,
             content_columns=['review'],
