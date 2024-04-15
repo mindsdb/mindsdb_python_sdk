@@ -5,9 +5,9 @@ from typing import List
 import pandas as pd
 
 from mindsdb_sql.parser.ast import DropTables
-from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant, Delete, Insert, Update
+from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant, Delete, Insert, Update, Last, BinaryOperation
 
-from mindsdb_sdk.utils.sql import dict_to_binary_op
+from mindsdb_sdk.utils.sql import dict_to_binary_op, add_condition
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 from .query import Query
@@ -20,6 +20,7 @@ class Table(Query):
         self.db = db
         self._filters = {}
         self._limit = None
+        self._track_column = None
         self._update_query()
 
     def _filters_repr(self):
@@ -45,6 +46,7 @@ class Table(Query):
         'select * from table1 where a=1 and b=2'
 
         :param kwargs: filter
+        :return: Table object
         """
         # creates new object
         query = copy.deepcopy(self)
@@ -57,17 +59,38 @@ class Table(Query):
         Applies limit condition to table query
 
         :param val: limit size
+        :return: Table object
         """
         query = copy.deepcopy(self)
         query._limit = val
         query._update_query()
         return query
 
+    def track(self, column):
+        """
+        Apply tracking column to table. ('LAST' keyword in mindsdb)
+        First call returns nothing
+        The next calls return new records since previous call (where value of track_column is greater)
+
+        :param column: column to track new data from table.
+        :return: Table object
+        """
+        query = copy.deepcopy(self)
+        query._track_column = column
+
+        query._update_query()
+        return query
+
     def _update_query(self):
+        where = dict_to_binary_op(self._filters)
+        if self._track_column is not None:
+            condition = BinaryOperation(op='>', args=[Identifier(self._track_column), Last()])
+            where = add_condition(where, condition)
+
         ast_query = Select(
             targets=[Star()],
             from_table=Identifier(self.name),
-            where=dict_to_binary_op(self._filters)
+            where=where
         )
         if self._limit is not None:
             ast_query.limit = Constant(self._limit)
