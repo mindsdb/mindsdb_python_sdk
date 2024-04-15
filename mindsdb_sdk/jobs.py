@@ -98,9 +98,15 @@ class Jobs(CollectionBase):
         else:
             raise RuntimeError("Several jobs with the same name")
 
-    def create(self, name: str, query_str: str,
-                   start_at: dt.datetime = None, end_at: dt.datetime = None,
-                   repeat_str: str = None) -> Union[Job, None]:
+    def create(
+            self,
+            name: str,
+            query_str: str,
+            start_at: dt.datetime = None,
+            end_at: dt.datetime = None,
+            repeat_str: str = None,
+            repeat_min: int = None,
+        ) -> Union[Job, None]:
         """
         Create new job in project and return it.
 
@@ -114,6 +120,7 @@ class Jobs(CollectionBase):
         :param start_at: datetime, first start of job,
         :param end_at: datetime, when job have to be stopped,
         :param repeat_str: str, optional, how to repeat job (e.g. '1 hour', '2 weeks', '3 min')
+        :param repeat_min: int, optional, period to repeat the job in minutes
         :return: Job object or None
         """
 
@@ -126,6 +133,10 @@ class Jobs(CollectionBase):
             end_str = end_at.strftime("%Y-%m-%d %H:%M:%S")
         else:
             end_str = None
+
+        if repeat_min is not None:
+            repeat_str = f'{repeat_min} minutes'
+
         ast_query = CreateJob(
             name=Identifier(name),
             query_str=query_str,

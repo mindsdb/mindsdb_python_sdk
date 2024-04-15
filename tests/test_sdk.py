@@ -1044,14 +1044,14 @@ class CustomPredictor():
         project.jobs.create(
             name='job2',
             query_str='retrain m1',
-            repeat_str='1 min',
+            repeat_min=1,
             start_at=dt.datetime(2025, 2, 5, 11, 22),
             end_at=dt.date(2030, 1, 2)
         )
 
         check_sql_call(
             mock_post,
-            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 min",
+            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 minutes",
             call_stack_num=-2
         )
 
