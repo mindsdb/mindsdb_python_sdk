@@ -172,22 +172,9 @@ class KnowledgeBases(CollectionBase):
 
     >>> df = kb.find('flats').fetch()
 
-    Create using query object:
+    Drop:
 
-    >>> view = views.create(
-    ...   'view1',
-    ...   query=database.query('select * from table1')
-    ...)
-
-    Getting data:
-
-    >>> view = view.filter(a=1, b=2)
-    >>> view = view.limit(100)
-    >>> df = view.fetch()
-
-    Drop view:
-
-    >>> views.drop('view1')
+    >>> server.knowledge_bases.drop('my_kb')
 
     """
 
