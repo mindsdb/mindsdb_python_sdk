@@ -167,17 +167,19 @@ class KnowledgeBases(CollectionBase):
         params: dict = None,
     ) -> KnowledgeBase:
 
-        if params is None:
-            params = {}
+        params_out = {}
 
         if metadata_columns is not None:
-            params['metadata_columns'] = metadata_columns
+            params_out['metadata_columns'] = metadata_columns
 
         if content_columns is not None:
-            params['content_columns'] = content_columns
+            params_out['content_columns'] = content_columns
 
         if id_column is not None:
-            params['id_column'] = id_column
+            params_out['id_column'] = id_column
+
+        if params is not None:
+            params_out.update(params)
 
         if model is not None:
             model_name = Identifier(parts=[model.project.name, model.name])
@@ -193,7 +195,7 @@ class KnowledgeBases(CollectionBase):
             Identifier(name),
             model=model_name,
             storage=storage_name,
-            params=params
+            params=params_out
         )
 
         self.api.sql_query(ast_query.to_string(), database=self.project.name)

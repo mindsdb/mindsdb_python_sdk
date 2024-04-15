@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-from mindsdb_sdk.models import ModelVersion
+from mindsdb_sdk.models import ModelVersion, Model
+from mindsdb_sdk.tables import Table
 import mindsdb_sdk
 
 from mindsdb_sdk.connectors import rest_api
@@ -724,11 +725,13 @@ class CustomPredictor():
     def check_project(self, project, database):
         self.check_project_views( project, database)
 
-        self.check_project_models(project, database)
+        model = self.check_project_models(project, database)
 
         self.check_project_models_versions(project, database)
 
         self.check_project_jobs(project)
+
+        self.check_project_kb(project, model, database)
 
     @patch('requests.Session.get')
     @patch('requests.Session.post')
@@ -892,6 +895,7 @@ class CustomPredictor():
                     'group1': ['a', 'b'],
                 }
             )
+        return model
 
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
@@ -1069,3 +1073,84 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+    @patch('requests.Session.post')
+    def check_project_kb(self, project, model, database, mock_post):
+
+        response_mock(mock_post, pd.DataFrame([{
+            'NAME': 'my_kb',
+            'PROJECT': 'mindsdb',
+            'MODEL': 'openai_emb',
+            'STORAGE': 'pvec.tbl1',
+            'PARAMS': {"id_column": "num"},
+        }]))
+
+        kbs = project.knowledge_bases.list()
+
+        # TODO add filter by project
+        check_sql_call(mock_post, "select * from information_schema.knowledge_bases")
+
+        kb = kbs[0]
+
+        assert kb.name == 'my_kb'
+
+        assert isinstance(kb.model, Model)
+        assert kb.model.name == 'openai_emb'
+
+        assert isinstance(kb.storage, Table)
+        assert kb.storage.name == 'tbl1'
+        assert kb.storage.db.name == 'pvec'
+
+        kb = project.knowledge_bases.my_kb
+
+        str(kb)
+        assert kb.name == 'my_kb'
+        assert kb.storage.db.name == 'pvec'
+        assert kb.model.name == 'openai_emb'
+
+        # create 1
+        project.knowledge_bases.create(
+            name='kb2',
+            model=model,
+            metadata_columns=['date', 'author'],
+            params={'k': 'v'}
+        )
+
+        model_name = f'{model.project.name}.{model.name}'
+        check_sql_call(
+            mock_post,
+            f'''
+            CREATE KNOWLEDGE_BASE kb2
+              USING model={model_name}, 
+              metadata_columns=['date', 'author'],
+              k='v'
+            ''',
+            call_stack_num=-2
+        )
+
+        # create 2
+        project.knowledge_bases.create(
+            name='kb2',
+            storage=database.tables.tbl1,
+            content_columns=['review'],
+            id_column='num'
+        )
+
+        table_name = f'{database.name}.tbl1'
+        check_sql_call(
+            mock_post,
+            f'''
+            CREATE KNOWLEDGE_BASE kb2
+              USING storage={table_name}, 
+              content_columns=['review'],
+              id_column='num'
+            ''',
+            call_stack_num=-2
+        )
+
+        # drop
+        project.knowledge_bases.drop('kb2')
+
+        check_sql_call(
+            mock_post,
+            "DROP KNOWLEDGE_BASE kb2"
+        )
