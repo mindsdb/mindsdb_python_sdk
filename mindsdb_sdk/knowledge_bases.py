@@ -64,6 +64,21 @@ class KnowledgeBase(Query):
         return f'{self.__class__.__name__}({self.project.name}.{self.name})'
 
     def find(self, query, limit=100):
+        """
+
+        Query data from knowledge base.
+        Knowledge base should return a most relevant results for the query
+
+        >>> # query knowledge base
+        >>> query = my_kb.find('dogs')
+        >>> # fetch dataframe to client
+        >>> print(query.fetch())
+
+        :param query: text query
+        :param limit: count of rows in result, default 100
+        :return: Query object
+        """
+
         kb = copy.deepcopy(self)
         kb._query = query
         kb._limit = limit
@@ -89,8 +104,23 @@ class KnowledgeBase(Query):
             ast_query.limit = Constant(self._limit)
         self.sql = ast_query.to_string()
 
-
     def insert(self, data: Union[pd.DataFrame, Query, dict]):
+        """
+        Insert data to knowledge base
+
+        >>> # insert using query
+        >>> my_kb.insert(server.databases.example_db.tables.houses_sales.filter(type='house'))
+        >>> # using dataframe
+        >>> my_kb.insert(pd.read_csv('house_sales.csv'))
+        >>> # using dict
+        >>> my_kb.insert({'type': 'house', 'date': '2020-02-02'})
+
+        Data will be if id (defined by id_column param, see create knowledge base) is already exists in knowledge base
+        it will be replaced
+
+        :param data: Dataframe or Query object or dict.
+        """
+
         if isinstance(data, dict):
             data = pd.DataFrame([data])
 
@@ -117,7 +147,48 @@ class KnowledgeBase(Query):
 
 class KnowledgeBases(CollectionBase):
     """
-    todo
+    **Knowledge bases**
+
+    Get list:
+
+    >>> kb_list = server.knowledge_bases.list()
+    >>> kb = kb_list[0]
+
+    Get by name:
+
+    >>> kb = server.knowledge_bases.get('my_kb')
+    >>> # or :
+    >>> kb = server.knowledge_bases.my_kb
+
+    Create:
+
+    >>> kb = server.knowledge_bases.create('my_kb')
+
+    Add data to knowledge base:
+
+    >>> kb.insert(pd.read_csv('house_sales.csv'))
+
+    Query relevant results
+
+    >>> df = kb.find('flats').fetch()
+
+    Create using query object:
+
+    >>> view = views.create(
+    ...   'view1',
+    ...   query=database.query('select * from table1')
+    ...)
+
+    Getting data:
+
+    >>> view = view.filter(a=1, b=2)
+    >>> view = view.limit(100)
+    >>> df = view.fetch()
+
+    Drop view:
+
+    >>> views.drop('view1')
+
     """
 
     def __init__(self, project, api):
@@ -143,11 +214,23 @@ class KnowledgeBases(CollectionBase):
         ]
 
     def list(self) -> List[KnowledgeBase]:
+        """
 
+        Get list of knowledge bases inside of project:
+
+        >>> kb_list = project.knowledge_bases.list()
+
+        :return: list of knowledge bases
+        """
         return self._list()
 
     def get(self, name: str) -> KnowledgeBase:
+        """
+        Get knowledge base by name
 
+        :param name: name of the knowledge base
+        :return: KnowledgeBase object
+        """
         item = self._list(name)
         if len(item) == 1:
             return item[0]
@@ -166,6 +249,29 @@ class KnowledgeBases(CollectionBase):
         id_column: str = None,
         params: dict = None,
     ) -> KnowledgeBase:
+        """
+
+        Create knowledge base:
+
+        >>> kb = server.knowledge_bases.create(
+        ...   'my_kb',
+        ...   model=server.models.emb_model,
+        ...   storage=server.databases.pvec.tables.tbl1,
+        ...   metadata_columns=['date', 'author'],
+        ...   content_columns=['review', 'description'],
+        ...   id_column='number',
+        ...   params={'a': 1}
+        ...)
+
+        :param name: name of the knowledge base
+        :param model: embedding model, optional. Default: 'sentence_transformers' will be used (defined in mindsdb server)
+        :param storage: vector storage, optional. Default: chromadb database will be created
+        :param metadata_columns: columns to use as metadata, optional. Default: all columns which are not content and id
+        :param content_columns: columns to use as content, optional. Default: all columns except id column
+        :param id_column: the column to use as id, optinal. Default: 'id', if exists
+        :param params: other parameters to knowledge base
+        :return: created KnowledgeBase object
+        """
 
         params_out = {}
 
@@ -203,6 +309,11 @@ class KnowledgeBases(CollectionBase):
         return self.get(name)
 
     def drop(self, name: str):
+        """
+
+        :param name:
+        :return:
+        """
 
         ast_query = DropKnowledgeBase(Identifier(name))
 
