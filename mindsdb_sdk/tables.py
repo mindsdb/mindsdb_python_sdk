@@ -72,6 +72,14 @@ class Table(Query):
         First call returns nothing
         The next calls return new records since previous call (where value of track_column is greater)
 
+        Example:
+
+        >>> query = con.databases.my_db.tables.sales.filter(type='house').track('created_at')
+        >>> # first call returns no records
+        >>> df = query.fetch()
+        >>> # second call returns rows with created_at is greater since previous fetch
+        >>> df = query.fetch()
+
         :param column: column to track new data from table.
         :return: Table object
         """
