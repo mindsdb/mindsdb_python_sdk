@@ -1095,7 +1095,7 @@ class TestAgents():
         ])
         all_agents = server.agents.list()
         # Check API call.
-        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
 
         assert len(all_agents) == 1
         expected_agent = Agent(
@@ -1127,7 +1127,7 @@ class TestAgents():
         )
         agent = server.agents.get('test_agent')
         # Check API call.
-        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
         expected_agent = Agent(
             'test_agent',
             'test_model',
@@ -1170,8 +1170,8 @@ class TestAgents():
         )
         # Check API call.
         assert len(mock_post.call_args_list) == 2
-        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
-        assert mock_post.call_args.kwargs['json'] == {
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_post.call_args[1]['json'] == {
             'agent': {
                 'name': 'test_agent',
                 'model_name':'m1',
@@ -1181,8 +1181,8 @@ class TestAgents():
         }
 
         # Skill should have been created too.
-        assert mock_post.call_args_list[-2].args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args_list[-2].kwargs['json'] == {
+        assert mock_post.call_args_list[-2][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args_list[-2][1]['json'] == {
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
@@ -1250,8 +1250,8 @@ class TestAgents():
 
         updated_agent = server.agents.update('test_agent', expected_agent)
         # Check API calls.
-        assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
-        assert mock_put.call_args.kwargs['json'] == {
+        assert mock_put.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        assert mock_put.call_args[1]['json'] == {
             'agent': {
                 'name': 'test_agent',
                 'model_name': 'updated_model',
@@ -1280,8 +1280,8 @@ class TestAgents():
         }]
         completion = server.agents.completion('test_agent', messages)
         # Check API call.
-        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent/completions'
-        assert mock_post.call_args.kwargs['json'] == {
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent/completions'
+        assert mock_post.call_args[1]['json'] == {
            'messages': messages
         }
         assert completion.content == 'Angel Falls in Venezuela at 979m'
@@ -1291,7 +1291,7 @@ class TestAgents():
         server = mindsdb_sdk.connect()
         server.agents.drop('test_agent')
         # Check API call.
-        assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
 
 
 class TestSkills():
@@ -1301,7 +1301,7 @@ class TestSkills():
         server = mindsdb_sdk.connect()
         # Check API call.
         assert len(server.skills.list()) == 0
-        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
 
         created_at = dt.datetime(2000, 3, 1, 9, 30)
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
@@ -1334,7 +1334,7 @@ class TestSkills():
         )
         skill = server.skills.get('test_skill')
         # Check API call.
-        assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
         expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
         assert skill == expected_skill
 
@@ -1357,8 +1357,8 @@ class TestSkills():
             params={'tables': ['test_table'], 'database': 'test_database'}
         )
         # Check API call.
-        assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args.kwargs['json'] == {
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args[1]['json'] == {
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
@@ -1385,8 +1385,8 @@ class TestSkills():
 
         updated_skill = server.skills.update('test_skill', expected_skill)
         # Check API call.
-        assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        assert mock_put.call_args.kwargs['json'] == {
+        assert mock_put.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        assert mock_put.call_args[1]['json'] == {
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
@@ -1401,4 +1401,4 @@ class TestSkills():
         server = mindsdb_sdk.connect()
         server.skills.drop('test_skill')
         # Check API call.
-        assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
