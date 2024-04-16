@@ -51,8 +51,8 @@ class Skill():
     @classmethod
     def from_json(cls, json: dict):
         if json['type'] == 'sql':
-            return SQLSkill.from_json(json)
-        raise NotImplementedError(f'Unknown skill type: {json["type"]}')
+            return SQLSkill(json['name'], json['params']['tables'], json['params']['database'])
+        return Skill(json['name'], json['type'], json['params'])
 
 
 class SQLSkill(Skill):
