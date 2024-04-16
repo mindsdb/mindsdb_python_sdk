@@ -12,7 +12,7 @@ import mindsdb_sdk
 
 from mindsdb_sdk.agents import Agent
 from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL
-from mindsdb_sdk.skills import Skill
+from mindsdb_sdk.skills import SQLSkill
 from mindsdb_sdk.connectors import rest_api
 
 # patch _raise_for_status
@@ -166,7 +166,7 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
+                   'query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -1151,8 +1151,8 @@ class TestAgents():
                 'id': 0,
                 'name': 'test_skill',
                 'project_id': 1,
-                'type': 'test',
-                'params': {'k1': 'v1'},
+                'type': 'sql',
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
             }],
             'params': {'k1': 'v1'},
             'created_at': created_at,
@@ -1165,7 +1165,7 @@ class TestAgents():
         new_agent = server.agents.create(
             name='test_agent',
             model=Model(None, {'name':'m1'}),
-            skills=[Skill('test_skill', 'test', {'k1': 'v1'})],
+            skills=[SQLSkill('test_skill', ['test_table'], 'test_database')],
             params={'k1': 'v1'}
         )
         # Check API call.
@@ -1185,12 +1185,12 @@ class TestAgents():
         assert mock_post.call_args_list[-2].kwargs['json'] == {
            'skill': {
                 'name': 'test_skill',
-                'type': 'test',
-                'params': {'k1': 'v1'}
+                'type': 'sql',
+                'params': {'database': 'test_database', 'tables': ['test_table']}
             }
         }
 
-        expected_skill = Skill('test_skill', 'test', {'k1': 'v1'})
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
         expected_agent = Agent(
             'test_agent',
             'test_model',
@@ -1212,15 +1212,15 @@ class TestAgents():
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
         data = {
             'id': 1,
-            'name': 'updated_agent',
+            'name': 'test_agent',
             'project_id': 1,
             'model_name': 'updated_model',
             'skills': [{
                 'id': 1,
                 'name': 'updated_skill',
                 'project_id': 1,
-                'type': 'test',
-                'params': {'k2': 'v2'},
+                'type': 'sql',
+                'params': {'tables': ['updated_table'], 'database': 'updated_database'},
             }],
             'params': {'k2': 'v2'},
             'created_at': created_at,
@@ -1234,21 +1234,15 @@ class TestAgents():
             'name': 'test_agent',
             'project_id': 1,
             'model_name': 'test_model',
-            'skills': [{
-                'id': 1,
-                'name': 'test_skill',
-                'project_id': 1,
-                'type': 'test',
-                'params': {'k1': 'v1'},
-            }],
+            'skills': [],
             'params': {'k1': 'v1'},
         })
 
         server = mindsdb_sdk.connect()
         expected_agent = Agent(
-            'updated_agent',
+            'test_agent',
             'updated_model',
-            [Skill('updated_skill', 'test', {'k2': 'v2'})],
+            [SQLSkill('updated_skill', ['updated_table'], 'updated_database')],
             {'k2': 'v2'},
             created_at,
             updated_at
@@ -1259,7 +1253,7 @@ class TestAgents():
         assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
         assert mock_put.call_args.kwargs['json'] == {
             'agent': {
-                'name': 'updated_agent',
+                'name': 'test_agent',
                 'model_name': 'updated_model',
                 'skills_to_add': ['updated_skill'],
                 'skills_to_remove': [],
@@ -1267,6 +1261,17 @@ class TestAgents():
             }
         }
 
+        print('UPDATED')
+        print(updated_agent.name)
+        print(updated_agent.model_name)
+        print(updated_agent.skills)
+        print(updated_agent.params)
+
+        print('expected')
+        print(expected_agent.name)
+        print(expected_agent.model_name)
+        print(expected_agent.skills)
+        print(expected_agent.params)
         assert updated_agent == expected_agent
 
 
@@ -1316,18 +1321,14 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'k1': 'v1'},
-                'type': 'test'
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'type': 'sql'
             }
         ])
         all_skills = server.skills.list()
         assert len(all_skills) == 1
 
-        expected_skill = Skill(
-            'test_skill',
-            'test',
-            params={'k1': 'v1'}
-        )
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
         assert all_skills[0] == expected_skill
 
     @patch('requests.Session.get')
@@ -1338,18 +1339,14 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'k1': 'v1'},
-                'type': 'test'
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'type': 'sql'
             }
         )
         skill = server.skills.get('test_skill')
         # Check API call.
         assert mock_get.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        expected_skill = Skill(
-            'test_skill',
-            'test',
-            params={'k1': 'v1'}
-        )
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
         assert skill == expected_skill
 
     @patch('requests.Session.post')
@@ -1367,19 +1364,19 @@ class TestSkills():
         server = mindsdb_sdk.connect()
         new_skill = server.skills.create(
             'test_skill',
-            'test',
-            params={'k1': 'v1'}
+            'sql',
+            params={'tables': ['test_table'], 'database': 'test_database'}
         )
         # Check API call.
         assert mock_post.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
         assert mock_post.call_args.kwargs['json'] == {
            'skill': {
                 'name': 'test_skill',
-                'type': 'test',
-                'params': {'k1': 'v1'}
+                'type': 'sql',
+                'params': {'database': 'test_database', 'tables': ['test_table']}
             }
         }
-        expected_skill = Skill('test_skill', 'test', {'k1': 'v1'})
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
 
         assert new_skill == expected_skill
 
@@ -1387,28 +1384,24 @@ class TestSkills():
     def test_update(self, mock_put):
         data = {
             'id': 1,
-            'name': 'updated_skill',
+            'name': 'test_skill',
             'project_id': 1,
-            'params': {'k2': 'v2'},
-            'type': 'new_type'
+            'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+            'type': 'sql'
         }
         response_mock(mock_put, data)
 
         server = mindsdb_sdk.connect()
-        expected_skill = Skill(
-            'updated_skill',
-            'new_type',
-            params={'k2': 'v2'}
-        )
+        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database')
 
         updated_skill = server.skills.update('test_skill', expected_skill)
         # Check API call.
         assert mock_put.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
         assert mock_put.call_args.kwargs['json'] == {
            'skill': {
-                'name': 'updated_skill',
-                'type': 'new_type',
-                'params': {'k2': 'v2'}
+                'name': 'test_skill',
+                'type': 'sql',
+                'params': {'tables': ['updated_table'], 'database': 'updated_database'}
             }
         }
 

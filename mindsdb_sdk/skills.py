@@ -36,7 +36,7 @@ class SQLSkill(Skill):
             'database': database,
             'tables': tables,
         }
-        super().__init__(name, params)
+        super().__init__(name, 'sql', params)
 
 
 class Skills(CollectionBase):
