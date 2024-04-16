@@ -28,7 +28,7 @@ class Server(Project):
     def __init__(self, api, skills: Skills = None, agents: Agents = None):
         # server is also mindsdb project
         project_name = 'mindsdb'
-        super().__init__(api, project_name)
+        super().__init__(api, project_name, skills=skills, agents=agents)
 
         self.projects = Projects(api)
 
@@ -50,9 +50,6 @@ class Server(Project):
 
         self.ml_handlers = Handlers(self.api, 'ml')
         self.data_handlers = Handlers(self.api, 'data')
-
-        self.skills = skills or Skills(api, project_name)
-        self.agents = agents or Agents(api, project_name, self.skills)
 
     def status(self) -> dict:
         """

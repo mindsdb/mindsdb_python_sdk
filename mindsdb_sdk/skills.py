@@ -45,7 +45,9 @@ class Skill():
 
     @classmethod
     def from_json(cls, json: dict):
-        return cls(json['name'], json['type'], json['params'])
+        if json['type'] == 'sql':
+            return SQLSkill.from_json(json)
+        raise NotImplementedError(f'Unknown skill type: {json["type"]}')
 
 
 class SQLSkill(Skill):
@@ -111,10 +113,10 @@ class Skills(CollectionBase):
         data = self.api.update_skill(self.project, name, updated_skill.name, updated_skill.type, updated_skill.params)
         return Skill.from_json(data)
 
-    def delete(self, name: str):
+    def drop(self, name: str):
         """
-        Delete a skill by name.
+        Drop a skill by name.
 
-        :param name: Name of the skill to be deleted
+        :param name: Name of the skill to be dropped
         """
         _ = self.api.delete_skill(self.project, name)

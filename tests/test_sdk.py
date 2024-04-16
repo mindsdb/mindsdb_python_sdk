@@ -1289,7 +1289,7 @@ class TestAgents():
     @patch('requests.Session.delete')
     def test_delete(self, mock_delete):
         server = mindsdb_sdk.connect()
-        server.agents.delete('test_agent')
+        server.agents.drop('test_agent')
         # Check API call.
         assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
 
@@ -1399,6 +1399,6 @@ class TestSkills():
     @patch('requests.Session.delete')
     def test_delete(self, mock_delete):
         server = mindsdb_sdk.connect()
-        server.skills.delete('test_skill')
+        server.skills.drop('test_skill')
         # Check API call.
         assert mock_delete.call_args.args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'

@@ -6,6 +6,8 @@ from mindsdb_sql.parser.ast import  Identifier, Delete
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op
 
+from mindsdb_sdk.agents import Agents
+from mindsdb_sdk.skills import Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 from .models import Models
@@ -45,7 +47,7 @@ class Project:
 
     """
 
-    def __init__(self, api, name):
+    def __init__(self, api, name, agents: Agents = None, skills: Skills = None):
         self.name = name
         self.api = api
 
@@ -72,6 +74,9 @@ class Project:
         self.list_jobs = self.jobs.list
         self.create_job = self.jobs.create
         self.drop_job = self.jobs.drop
+
+        self.skills = skills or Skills(api, name)
+        self.agents = agents or Agents(api, name, self.skills)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'

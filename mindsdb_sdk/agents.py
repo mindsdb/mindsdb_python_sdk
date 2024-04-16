@@ -102,7 +102,7 @@ class Agents(CollectionBase):
     def __init__(self, api, project: str, skills: Skills = None):
         self.api = api
         self.project = project
-        self.skills = skills or Skills(self.api)
+        self.skills = skills or Skills(self.api, project)
 
     def list(self) -> List[Agent]:
         """
@@ -208,10 +208,10 @@ class Agents(CollectionBase):
         )
         return Agent.from_json(data, self)
 
-    def delete(self, name: str):
+    def drop(self, name: str):
         """
-        Delete an agent by name.
+        Drop an agent by name.
 
-        :param name: Name of the agent to be deleted
+        :param name: Name of the agent to be dropped
         """
         _ = self.api.delete_agent(self.project, name)
