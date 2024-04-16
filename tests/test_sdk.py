@@ -166,7 +166,7 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
+                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -1261,17 +1261,6 @@ class TestAgents():
             }
         }
 
-        print('UPDATED')
-        print(updated_agent.name)
-        print(updated_agent.model_name)
-        print(updated_agent.skills)
-        print(updated_agent.params)
-
-        print('expected')
-        print(expected_agent.name)
-        print(expected_agent.model_name)
-        print(expected_agent.skills)
-        print(expected_agent.params)
         assert updated_agent == expected_agent
 
 
