@@ -17,7 +17,21 @@ from .databases import Database
 
 
 class KnowledgeBase(Query):
-    def __init__(self, project, data):
+    """
+
+    Knowledge base object, used to update or query knowledge base
+
+    Add data to knowledge base:
+
+    >>> kb.insert(pd.read_csv('house_sales.csv'))
+
+    Query relevant results
+
+    >>> df = kb.find('flats').fetch()
+
+    """
+
+    def __init__(self, project: Project, data: dict):
 
         self.project = project
         self.name = data['name']
@@ -163,14 +177,6 @@ class KnowledgeBases(CollectionBase):
     Create:
 
     >>> kb = server.knowledge_bases.create('my_kb')
-
-    Add data to knowledge base:
-
-    >>> kb.insert(pd.read_csv('house_sales.csv'))
-
-    Query relevant results
-
-    >>> df = kb.find('flats').fetch()
 
     Drop:
 
