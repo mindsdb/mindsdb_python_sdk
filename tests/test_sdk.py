@@ -1181,8 +1181,8 @@ class TestAgents():
         }
 
         # Skill should have been created too.
-        assert mock_post.call_args_list[-2].args[0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args_list[-2].kwargs['json'] == {
+        assert mock_post.call_args_list[-2][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args_list[-2][1]['json'] == {
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
