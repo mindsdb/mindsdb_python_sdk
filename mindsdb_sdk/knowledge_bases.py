@@ -14,6 +14,7 @@ from .models import Model
 from .tables import Table
 from .query import Query
 from .databases import Database
+from .projects import Project
 
 
 class KnowledgeBase(Query):
@@ -77,7 +78,7 @@ class KnowledgeBase(Query):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.project.name}.{self.name})'
 
-    def find(self, query, limit=100):
+    def find(self, query: str, limit: int = 100):
         """
 
         Query data from knowledge base.
@@ -184,7 +185,7 @@ class KnowledgeBases(CollectionBase):
 
     """
 
-    def __init__(self, project, api):
+    def __init__(self, project: Project, api):
         self.project = project
         self.api = api
 
