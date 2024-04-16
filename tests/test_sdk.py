@@ -169,11 +169,15 @@ class BaseFlow:
     def check_table(self, table, mock_post):
         response_mock(mock_post, pd.DataFrame([{'x': 'a'}]))
 
-        table = table.filter(a=3, b='2')
-        table = table.limit(3)
-        table.fetch()
-        str(table)
-        check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
+        table2 = table.filter(a=3, b='2').limit(3)
+        table2.fetch()
+        str(table2)
+        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
+
+        # last
+        table2 = table.filter(a=3).track('type')
+        table2.fetch()
+        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND type > last')
 
 
 class Test(BaseFlow):
@@ -1040,14 +1044,14 @@ class CustomPredictor():
         project.jobs.create(
             name='job2',
             query_str='retrain m1',
-            repeat_str='1 min',
+            repeat_min=1,
             start_at=dt.datetime(2025, 2, 5, 11, 22),
             end_at=dt.date(2030, 1, 2)
         )
 
         check_sql_call(
             mock_post,
-            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 min",
+            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 minutes",
             call_stack_num=-2
         )
 
