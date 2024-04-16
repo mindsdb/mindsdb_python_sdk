@@ -41,6 +41,7 @@ class Agent:
     >>> new_model = models.get('new_model')
     >>> agent.model_name = new_model.name
     >>> new_skill = skills.create('new_skill', 'sql', { 'tables': ['new_table'], 'database': 'new_database' })
+    >>> updated_agent.skills.append(new_skill)
     >>> updated_agent = agents.update('my_agent', agent)
 
     Delete an agent by name:
