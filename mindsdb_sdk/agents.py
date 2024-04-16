@@ -17,7 +17,35 @@ class AgentCompletion:
 
 
 class Agent:
-    """Represents a MindsDB agent"""
+    """Represents a MindsDB agent.
+    
+    Working with agents:
+
+    Get an agent by name:
+    >>> agent = agents.get('my_agent')
+
+    Query an agent:
+    >>> completion = agent.completion([{'question': 'What is your name?', 'answer': None}])
+    >>> print(completion.content)
+
+    List all agents:
+    >>> agents = agents.list()
+
+    Create a new agent:
+    >>> model = models.get('my_model') # Or use models.create(...)
+    >>> # Connect your agent to a MindsDB table.
+    >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database' })
+    >>> agent = agents.create('my_agent', model, [text_to_sql_skill])
+
+    Update an agent:
+    >>> new_model = models.get('new_model')
+    >>> agent.model_name = new_model.name
+    >>> new_skill = skills.create('new_skill', 'sql', { 'tables': ['new_table'], 'database': 'new_database' })
+    >>> updated_agent = agents.update('my_agent', agent)
+
+    Delete an agent by name:
+    >>> agents.delete('my_agent')
+    """
     def __init__(
             self,
             name: str,
