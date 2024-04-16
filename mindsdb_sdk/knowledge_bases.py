@@ -14,7 +14,6 @@ from .models import Model
 from .tables import Table
 from .query import Query
 from .databases import Database
-from .projects import Project
 
 
 class KnowledgeBase(Query):
@@ -32,7 +31,7 @@ class KnowledgeBase(Query):
 
     """
 
-    def __init__(self, project: Project, data: dict):
+    def __init__(self, project, data: dict):
 
         self.project = project
         self.name = data['name']
@@ -185,7 +184,7 @@ class KnowledgeBases(CollectionBase):
 
     """
 
-    def __init__(self, project: Project, api):
+    def __init__(self, project, api):
         self.project = project
         self.api = api
 
