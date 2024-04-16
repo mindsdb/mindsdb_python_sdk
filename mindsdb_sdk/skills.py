@@ -9,19 +9,24 @@ class Skill():
     Working with skills:
 
     Get a skill by name:
+
     >>> skill = skills.get('my_skill')
 
     List all skills:
+
     >>> skills = skills.list()
 
     Create a new SQL skill:
+
     >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database' })
 
     Update a skill:
+
     >>> skill.params = { 'tables': ['new_table'], 'database': 'new_database' }
     >>> updated_skill = skills.update('my_skill', skill)
 
     Delete a skill by name
+
     >>> skills.delete('my_skill')
     """
     def __init__(
