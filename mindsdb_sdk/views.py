@@ -102,7 +102,7 @@ class Views(CollectionBase):
             database = sql.database
             sql = sql.sql
         elif not isinstance(sql, str):
-            raise ValueError()
+            raise ValueError(sql)
 
         if database is not None:
             database = Identifier(database)
