@@ -2,6 +2,9 @@ from mindsdb_sdk.server import Server
 
 from mindsdb_sdk.connectors.rest_api import RestAPI
 
+DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:47334'
+DEFAULT_CLOUD_API_URL = 'https://cloud.mindsdb.com'
+
 
 def connect(url: str = None, login: str = None, password: str = None, is_managed: bool = False, headers=None) -> Server:
     """
@@ -37,10 +40,10 @@ def connect(url: str = None, login: str = None, password: str = None, is_managed
     if url is None:
         if login is not None:
             # default is cloud
-            url = 'https://cloud.mindsdb.com'
+            url = DEFAULT_CLOUD_API_URL
         else:
             # is local
-            url = 'http://127.0.0.1:47334'
+            url = DEFAULT_LOCAL_API_URL
 
     api = RestAPI(url, login, password, is_managed, headers=headers)
 
