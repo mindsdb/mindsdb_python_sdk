@@ -37,7 +37,7 @@ class Model:
 
     >>> model.refresh()
 
-Usng model
+    **Usng model**
 
     Dataframe on input
 
