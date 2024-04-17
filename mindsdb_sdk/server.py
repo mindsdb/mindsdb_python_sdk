@@ -25,10 +25,10 @@ class Server(Project):
 
     """
 
-    def __init__(self, api, skills: Skills = None, agents: Agents = None):
+    def __init__(self, api):
         # server is also mindsdb project
         project_name = 'mindsdb'
-        super().__init__(api, project_name, skills=skills, agents=agents)
+        super().__init__(api, project_name)
 
         self.projects = Projects(api)
 

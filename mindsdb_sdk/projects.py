@@ -48,7 +48,7 @@ class Project:
 
     """
 
-    def __init__(self, api, name, agents: Agents = None, skills: Skills = None):
+    def __init__(self, api, name):
         self.name = name
         self.api = api
 
@@ -76,8 +76,8 @@ class Project:
         self.create_job = self.jobs.create
         self.drop_job = self.jobs.drop
 
-        self.skills = skills or Skills(api, name)
-        self.agents = agents or Agents(api, name, self.skills)
+        self.skills = Skills(api, name)
+        self.agents = Agents(api, name, self.skills)
         self.knowledge_bases = KnowledgeBases(self, api)
 
     def __repr__(self):
