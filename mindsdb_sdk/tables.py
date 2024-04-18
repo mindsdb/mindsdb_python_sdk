@@ -9,6 +9,7 @@ from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant, Delete, I
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, add_condition, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase
+from mindsdb_sdk.utils.context import is_saving
 
 from .query import Query
 
@@ -159,7 +160,11 @@ class Table(Query):
             where=dict_to_binary_op(kwargs)
         )
         sql = ast_query.to_string()
-        self.api.sql_query(sql, 'mindsdb')
+
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
 
     def update(self, values: Union[dict, Query], on: list = None, filters: dict = None):
         '''
@@ -217,6 +222,11 @@ class Table(Query):
             sql = ast_query.to_string()
         else:
             raise NotImplementedError
+
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
 
 
 class Tables(CollectionBase):

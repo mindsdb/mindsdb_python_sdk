@@ -104,6 +104,15 @@ class BaseFlow:
                        f'SELECT m.* FROM (SELECT * FROM {query.database} (select a from t1)) AS t JOIN {model.project.name}.{model_name} AS m USING x="1"')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
+        # using table
+        table0 = database.tables.tbl0
+        pred_df = model.predict(table0)
+
+        check_sql_call(mock_post,
+                       f'SELECT m.* FROM (SELECT * FROM {table0.db.name}.tbl0) AS t JOIN {model.project.name}.{model_name} AS m')
+        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+
+
         # time series prediction
         query = database.query('select * from t1 where type="house" and saledate>latest')
         model.predict(query)
@@ -167,7 +176,7 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
+                   'query'] == f"update {model2.project.name}.models_versions set active=1 where name = '{model2.name}' AND version = 3"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -382,7 +391,7 @@ class Test(BaseFlow):
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
+            f'CREATE PREDICTOR {project.name}.m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         model.wait_complete()
@@ -399,14 +408,14 @@ class Test(BaseFlow):
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM {database.name} (select * from t2) PREDICT price'
+            f'CREATE PREDICTOR {project.name}.m2 FROM {database.name} (select * from t2) PREDICT price'
         )
 
         assert model.name == 'm2'
         self.check_model(model, database)
 
         project.drop_model('m3-a')
-        check_sql_call(mock_post, f'DROP PREDICTOR `m3-a`')
+        check_sql_call(mock_post, f'DROP PREDICTOR {project.name}.`m3-a`')
 
         # the old way of join model with table
         sql = '''
@@ -737,9 +746,9 @@ class CustomPredictor():
 
         self.check_project_models_versions(project, database)
 
-        self.check_project_jobs(project)
+        kb = self.check_project_kb(project, model, database)
 
-        self.check_project_kb(project, model, database)
+        self.check_project_jobs(project, model, database, kb)
 
     @patch('requests.Session.get')
     @patch('requests.Session.post')
@@ -837,7 +846,7 @@ class CustomPredictor():
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
+            f'CREATE PREDICTOR {project.name}.m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         self.check_model(model, database)
@@ -852,7 +861,7 @@ class CustomPredictor():
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM {database.name} (select * from t2) PREDICT price'
+            f'CREATE PREDICTOR {project.name}.m2 FROM {database.name} (select * from t2) PREDICT price'
         )
 
         # create without database
@@ -865,14 +874,14 @@ class CustomPredictor():
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 PREDICT response USING prompt="make up response", `engine`="openai"'
+            f'CREATE PREDICTOR {project.name}.m2 PREDICT response USING prompt="make up response", `engine`="openai"'
         )
 
         assert model.name == 'm2'
         self.check_model(model, database)
 
         project.models.drop('m3-a')
-        check_sql_call(mock_post, f'DROP PREDICTOR `m3-a`')
+        check_sql_call(mock_post, f'DROP PREDICTOR {project.name}.`m3-a`')
 
         # the old way of join model with table
         sql = '''
@@ -1014,7 +1023,7 @@ class CustomPredictor():
         check_sql_call(mock_post, f'drop table {database.name}.t3')
 
     @patch('requests.Session.post')
-    def check_project_jobs(self, project, mock_post):
+    def check_project_jobs(self, project, model, database, kb, mock_post):
 
         response_mock(mock_post, pd.DataFrame([{
             'NAME': 'job1',
@@ -1084,6 +1093,22 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+        # using context
+        with project.jobs.create(name='job2', repeat_min=1) as job:
+            job.add_query(model.retrain())
+            job.add_query(model.predict(database.tables.tbl1))
+            job.add_query(kb.insert(database.tables.tbl1))
+            job.add_query('show models')
+
+        retrain_sql = f'RETRAIN {model.project.name}.{model.name}'
+        predict_sql = f'SELECT m.* FROM (SELECT * FROM {database.name}.tbl1) AS t JOIN {model.project.name}.{model.name} AS m'
+        kb_sql = f'INSERT INTO {kb.project.name}.{kb.name} (SELECT * FROM {database.name}.tbl1)'
+
+        check_sql_call(
+            mock_post,
+            f"CREATE JOB job2 ({retrain_sql}; {predict_sql}; {kb_sql}; show models) EVERY 1 minutes",
+            call_stack_num=-2
+        )
 
     @patch('requests.Session.post')
     def check_project_kb(self, project, model, database, mock_post):
@@ -1186,6 +1211,8 @@ class CustomPredictor():
             mock_post,
             f"DROP KNOWLEDGE_BASE {project.name}.kb2"
         )
+
+        return kb
 
 
 class TestAgents():
