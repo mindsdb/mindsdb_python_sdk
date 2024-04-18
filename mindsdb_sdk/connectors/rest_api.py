@@ -5,7 +5,7 @@ import io
 import requests
 import pandas as pd
 
-from .. import __about__
+from mindsdb_sdk import __about__
 
 
 def _try_relogin(fnc):
@@ -73,7 +73,11 @@ class RestAPI:
         _raise_for_status(r)
 
     @_try_relogin
-    def sql_query(self, sql, database='mindsdb', lowercase_columns=False):
+    def sql_query(self, sql, database=None, lowercase_columns=False):
+
+        if database is None:
+            # it means the database is included in query
+            database = 'mindsdb'
         url = self.url + '/api/sql/query'
         r = self.session.post(url, json={
             'query': sql,

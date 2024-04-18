@@ -4,10 +4,10 @@ from typing import List
 
 import pandas as pd
 
-from mindsdb_sql.parser.ast import DropTables
+from mindsdb_sql.parser.ast import DropTables, CreateTable
 from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant, Delete, Insert, Update, Last, BinaryOperation
 
-from mindsdb_sdk.utils.sql import dict_to_binary_op, add_condition
+from mindsdb_sdk.utils.sql import dict_to_binary_op, add_condition, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 from .query import Query
@@ -15,8 +15,10 @@ from .query import Query
 
 class Table(Query):
     def __init__(self, db, name):
-        super().__init__(db.api, '', db.name)
+        # empty database
+        super().__init__(db.api, '', None)
         self.name = name
+        self.table_name = Identifier(parts=[db.name, name])
         self.db = db
         self._filters = {}
         self._limit = None
@@ -37,7 +39,7 @@ class Table(Query):
         limit_str = ''
         if self._limit is not None:
             limit_str = f'; limit={self._limit}'
-        return f'{self.__class__.__name__}({self.name}{self._filters_repr()}{limit_str})'
+        return f'{self.__class__.__name__}({self.table_name}{self._filters_repr()}{limit_str})'
 
     def filter(self, **kwargs):
         """
@@ -97,7 +99,7 @@ class Table(Query):
 
         ast_query = Select(
             targets=[Star()],
-            from_table=Identifier(self.name),
+            from_table=self.table_name,
             where=where
         )
         if self._limit is not None:
@@ -116,20 +118,32 @@ class Table(Query):
             data_split = query.to_dict('split')
 
             ast_query = Insert(
-                table=Identifier(self.name),
+                table=self.table_name,
                 columns=data_split['columns'],
                 values=data_split['data']
             )
 
             sql = ast_query.to_string()
-            self.api.sql_query(sql, self.database)
-        else:
+
+        elif isinstance(query, Query):
             # insert from select
-            table = Identifier(parts=[self.database, self.name])
-            self.api.sql_query(
-                f'INSERT INTO {table.to_string()} ({query.sql})',
-                database=query.database
-            )
+
+            if query.database is not None:
+                # use native query
+                ast_query = Insert(
+                    table=self.table_name,
+                    from_select=query_to_native_query(query)
+                )
+                sql = ast_query.to_string()
+            else:
+                sql = f'INSERT INTO {self.table_name.to_string()} ({query.sql})',
+        else:
+            raise ValueError(f'Invalid query type: {query}')
+
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
 
     def delete(self, **kwargs):
         """
@@ -139,15 +153,11 @@ class Table(Query):
 
         :param kwargs: filter
         """
-        identifier = Identifier(self.name)
-        # add database
-        identifier.parts.insert(0, self.database)
 
         ast_query = Delete(
-            table=identifier,
+            table=self.table_name,
             where=dict_to_binary_op(kwargs)
         )
-
         sql = ast_query.to_string()
         self.api.sql_query(sql, 'mindsdb')
 
@@ -177,12 +187,17 @@ class Table(Query):
                 raise ValueError('"on" parameter is required for update from query')
 
             # insert from select
-            table = Identifier(parts=[self.database, self.name])
-            map_cols = ', '.join(on)
-            self.api.sql_query(
-                f'UPDATE {table.to_string()} ON {map_cols} FROM ({values.sql})',
-                database=values.database
-            )
+            if values.database is not None:
+                ast_query = Update(
+                    table=self.table_name,
+                    keys=[Identifier(col) for col in on],
+                    from_select=query_to_native_query(values)
+                )
+                sql = ast_query.to_string()
+            else:
+                map_cols = ', '.join(on)
+                sql = f'UPDATE {self.table_name.to_string()} ON {map_cols} FROM ({values.sql})'
+
         elif isinstance(values, dict):
             # is regular update
             if filters is None:
@@ -194,13 +209,12 @@ class Table(Query):
             }
 
             ast_query = Update(
-                table=Identifier(self.name),
+                table=self.table_name,
                 update_columns=update_columns,
                 where=dict_to_binary_op(filters)
             )
 
             sql = ast_query.to_string()
-            self.api.sql_query(sql, self.database)
         else:
             raise NotImplementedError
 
@@ -269,7 +283,7 @@ class Tables(CollectionBase):
 
         return Table(self.database, name)
 
-    def create(self, name: str, query: Union[pd.DataFrame, Query], replace: bool = False) -> Table:
+    def create(self, name: str, query: Union[pd.DataFrame, Query], replace: bool = False) -> Union[Table, Query]:
         """
         Create new table and return it.
 
@@ -313,14 +327,25 @@ class Tables(CollectionBase):
         # call in query database
         table = Identifier(parts=[self.database.name, name])
 
-        replace_str = ''
-        if replace:
-            replace_str = ' or replace'
+        if query.database is not None:
+            # use native query
+            ast_query = CreateTable(
+                name=table,
+                is_replace=replace,
+                from_select=query_to_native_query(query)
+            )
+            sql = ast_query.to_string()
+        else:
+            replace_str = ''
+            if replace:
+                replace_str = ' or replace'
 
-        self.api.sql_query(
-            f'create{replace_str} table {table.to_string()} ({query.sql})',
-            database=query.database
-        )
+            sql = f'create{replace_str} table {table.to_string()} ({query.sql})'
+
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
 
         return Table(self.database, name)
 
@@ -330,10 +355,14 @@ class Tables(CollectionBase):
 
         :param name: name of table
         """
+        table = Identifier(parts=[self.database.name, name])
+
         ast_query = DropTables(
-            tables=[
-                Identifier(parts=[name])
-            ]
+            tables=[table]
         )
-        self.api.sql_query(ast_query.to_string(), database=self.database.name)
+        sql = ast_query.to_string()
+
+        if is_saving():
+            return Query(self, sql)
+        self.api.sql_query(sql)
 
