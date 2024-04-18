@@ -9,11 +9,12 @@ from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
 from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
 from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
+from mindsdb_sql.exceptions import ParsingException
 
 from .ml_engines import MLEngine
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
-from mindsdb_sdk.utils.sql import dict_to_binary_op
+from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
 
 from .query import Query
 
@@ -132,7 +133,10 @@ class Model:
         """
         if isinstance(data, Query):
             # create join from select if it is simple select
-            ast_query = parse_sql(data.sql, dialect='mindsdb')
+            try:
+                ast_query = parse_sql(data.sql, dialect='mindsdb')
+            except ParsingException:
+                ast_query = None
 
             # injection of join disabled yet
             # if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
@@ -165,24 +169,41 @@ class Model:
             #     ast_query.targets = [Identifier(parts=['m', Star()])]
             #
 
-            # wrap query to subselect
             model_identifier = self._get_identifier()
             model_identifier.alias = Identifier('m')
 
-            ast_query.parentheses = True
-            ast_query.alias = Identifier('t')
-            upper_query = Select(
-                targets=[Identifier(parts=['m', Star()])],
-                from_table=Join(
-                    join_type='join',
-                    left=ast_query,
-                    right=model_identifier
+            if data.database is not None or ast_query is None or not isinstance(ast_query, Select):
+                # use native query
+                native_query = query_to_native_query(data)
+                native_query.parentheses = True
+                native_query.alias = Identifier('t')
+                upper_query = Select(
+                    targets=[Identifier(parts=['m', Star()])],
+                    from_table=Join(
+                        join_type='join',
+                        left=native_query,
+                        right=model_identifier
+                    )
                 )
-            )
+            else:
+                # wrap query to subselect
+                model_identifier = self._get_identifier()
+                model_identifier.alias = Identifier('m')
+
+                ast_query.parentheses = True
+                ast_query.alias = Identifier('t')
+                upper_query = Select(
+                    targets=[Identifier(parts=['m', Star()])],
+                    from_table=Join(
+                        join_type='join',
+                        left=ast_query,
+                        right=model_identifier
+                    )
+                )
             if params is not None:
                 upper_query.using = params
             # execute in query's database
-            return self.project.api.sql_query(upper_query.to_string(), database=data.database)
+            return self.project.api.sql_query(upper_query.to_string(), database=None)
 
         elif isinstance(data, dict):
             data = pd.DataFrame([data])
