@@ -25,7 +25,7 @@ class Server(Project):
 
     """
 
-    def __init__(self, api, skills: Skills = None, agents: Agents = None):
+    def __init__(self, api):
         # server is also mindsdb project
         project_name = 'mindsdb'
         self.databases = Databases(api)

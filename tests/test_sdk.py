@@ -902,6 +902,7 @@ class CustomPredictor():
                     'group1': ['a', 'b'],
                 }
             )
+
         return model
 
     @patch('requests.Session.post')
@@ -1080,6 +1081,7 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+
     @patch('requests.Session.post')
     def check_project_kb(self, project, model, database, mock_post):
 
@@ -1181,7 +1183,7 @@ class CustomPredictor():
             mock_post,
             "DROP KNOWLEDGE_BASE kb2"
         )
-    
+
 class TestAgents():
     @patch('requests.Session.get')
     def test_list(self, mock_get):
