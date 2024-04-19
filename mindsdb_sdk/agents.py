@@ -188,18 +188,19 @@ class Agents(CollectionBase):
             except AttributeError as e:
                 # Create KB if it doesn't exist.
                 kb = self.knowledge_bases.create(kb_name)
+                # Wait for underlying embedding model to finish training.
+                kb.model.wait_complete()
+
         # Insert the entire file.
         kb.insert(self.databases.files.tables.get(filename_no_extension))
 
         # Make sure skill name is unique.
         skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4()}'
         retrieval_params = {
-            'knowledge_base': kb.name,
-            # Use default configs.
-            'retriever_config': {},
+            'source': kb.name,
             'description': description,
         }
-        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
+        file_retrieval_skill = self.skills.create(skill_name, 'knowledge_base', retrieval_params)
         agent = self.get(name)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)

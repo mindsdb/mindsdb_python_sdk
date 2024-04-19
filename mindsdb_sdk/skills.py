@@ -73,7 +73,7 @@ class RetrievalSkill(Skill):
             'knowledge_base': knowledge_base,
             'description': description
         }
-        super().__init__(name, 'retrieval', params)
+        super().__init__(name, 'knowledge_base', params)
 
 
 class Skills(CollectionBase):
