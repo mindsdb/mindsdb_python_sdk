@@ -7,6 +7,7 @@ from mindsdb_sql.parser.ast import Identifier, Delete
 from mindsdb_sdk.utils.sql import dict_to_binary_op
 
 from mindsdb_sdk.agents import Agents
+from mindsdb_sdk.databases import Databases
 from mindsdb_sdk.skills import Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
@@ -48,7 +49,7 @@ class Project:
 
     """
 
-    def __init__(self, api, name, agents: Agents = None, skills: Skills = None):
+    def __init__(self, api, name, agents: Agents = None, skills: Skills = None, knowledge_bases: KnowledgeBases = None, databases: Databases = None):
         self.name = name
         self.api = api
 
@@ -76,10 +77,11 @@ class Project:
         self.create_job = self.jobs.create
         self.drop_job = self.jobs.drop
 
-        self.knowledge_bases = KnowledgeBases(self, api)
+        self.databases = databases or Databases(api)
+        self.knowledge_bases = knowledge_bases or KnowledgeBases(self, api)
 
         self.skills = skills or Skills(api, name)
-        self.agents = agents or Agents(api, name, self.skills)
+        self.agents = agents or Agents(api, name, self.knowledge_bases, self.databases, self.skills)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'

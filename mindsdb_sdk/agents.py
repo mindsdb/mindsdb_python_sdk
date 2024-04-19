@@ -1,7 +1,11 @@
 from requests.exceptions import HTTPError
 from typing import List, Union
+from uuid import uuid4
 import datetime
+import pandas as pd
 
+from mindsdb_sdk.databases import Databases
+from mindsdb_sdk.knowledge_bases import KnowledgeBases
 from mindsdb_sdk.models import Model
 from mindsdb_sdk.skills import Skill, Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
@@ -74,6 +78,14 @@ class Agent:
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
 
+    def add_file(self, file_path: str, description: str, knowledge_base: str = None):
+        """
+        Add a file to the agent for retrieval.
+
+        :param file_path: Path to the file to be added.
+        """
+        self.collection.add_file(self.name, file_path, description, knowledge_base)
+
     def __repr__(self):
         return f'{self.__class__.__name__}(name: {self.name})'
 
@@ -105,10 +117,12 @@ class Agent:
 
 class Agents(CollectionBase):
     """Collection for agents"""
-    def __init__(self, api, project: str, skills: Skills = None):
+    def __init__(self, api, project: str, knowledge_bases: KnowledgeBases, databases: Databases, skills: Skills = None):
         self.api = api
         self.project = project
         self.skills = skills or Skills(self.api, project)
+        self.databases = databases
+        self.knowledge_bases = knowledge_bases
 
     def list(self) -> List[Agent]:
         """
@@ -141,6 +155,54 @@ class Agents(CollectionBase):
         """
         data = self.api.agent_completion(self.project, name, messages)
         return AgentCompletion(data['message']['content'])
+
+    def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
+        """
+        Add a file to the agent for retrieval.
+
+        :param name: Name of the agent
+        :param file_path: Path to the file to be added, or name of existing file.
+        :param description: Description of the file. Used by agent to know when to do retrieval
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        """
+        filename = file_path.split('/')[-1]
+        filename_no_extension = filename.split('.')[0]
+        try:
+            _ = self.api.get_file_metadata(filename_no_extension)
+        except HTTPError as e:
+            if e.response.status_code >= 400 and e.response.status_code != 404:
+                raise e
+            # Upload file if it doesn't exist.
+            with open(file_path, 'rb') as file:
+                content = file.read()
+                df = pd.DataFrame.from_records([{'content': content}])
+                self.api.upload_file(filename_no_extension, df)
+
+        # Insert uploaded file into new knowledge base.
+        if knowledge_base is not None:
+            kb = self.knowledge_bases.get(knowledge_base)
+        else:
+            kb_name = f'{name}_{filename_no_extension}_kb'
+            try:
+                kb = self.knowledge_bases.get(kb_name)
+            except AttributeError as e:
+                # Create KB if it doesn't exist.
+                kb = self.knowledge_bases.create(kb_name)
+        # Insert the entire file.
+        kb.insert(self.databases.files.tables.get(filename_no_extension))
+
+        # Make sure skill name is unique.
+        skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4()}'
+        retrieval_params = {
+            'knowledge_base': kb.name,
+            # Use default configs.
+            'retriever_config': {},
+            'description': description,
+        }
+        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
+        agent = self.get(name)
+        agent.skills.append(file_retrieval_skill)
+        self.update(agent.name, agent)
 
     def create(
             self,
@@ -200,7 +262,7 @@ class Agents(CollectionBase):
             updated_skills.add(skill.name)
 
         existing_agent = self.api.agent(self.project, name)
-        existing_skills = set([s.name for s in existing_agent['skills']])
+        existing_skills = set([s['name'] for s in existing_agent['skills']])
         skills_to_add = updated_skills.difference(existing_skills)
         skills_to_remove = existing_skills.difference(updated_skills)
         data = self.api.update_agent(

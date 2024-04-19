@@ -28,7 +28,8 @@ class Server(Project):
     def __init__(self, api, skills: Skills = None, agents: Agents = None):
         # server is also mindsdb project
         project_name = 'mindsdb'
-        super().__init__(api, project_name, skills=skills, agents=agents)
+        self.databases = Databases(api)
+        super().__init__(api, project_name, skills=skills, agents=agents, databases=self.databases)
 
         self.projects = Projects(api)
 
@@ -38,7 +39,6 @@ class Server(Project):
         self.create_project = self.projects.create
         self.drop_project = self.projects.drop
 
-        self.databases = Databases(api)
 
         # old api
         self.get_database = self.databases.get
