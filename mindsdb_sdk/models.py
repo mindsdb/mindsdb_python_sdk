@@ -30,14 +30,14 @@ class Model:
 
     Get info
 
-    >>> print(model.status)
+    >>> print(model.get_status())
     >>> print(model.data)
 
     Update model data from server
 
     >>> model.refresh()
 
-Usng model
+    **Usng model**
 
     Dataframe on input
 

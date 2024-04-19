@@ -7,9 +7,13 @@ from unittest.mock import patch
 import pandas as pd
 from mindsdb_sql import parse_sql
 
-from mindsdb_sdk.models import ModelVersion
+from mindsdb_sdk.models import ModelVersion, Model
+from mindsdb_sdk.tables import Table
 import mindsdb_sdk
 
+from mindsdb_sdk.agents import Agent
+from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL
+from mindsdb_sdk.skills import SQLSkill
 from mindsdb_sdk.connectors import rest_api
 
 # patch _raise_for_status
@@ -105,7 +109,7 @@ class BaseFlow:
         model.predict(query)
 
         check_sql_call(mock_post,
-                       f"SELECT m.* FROM (SELECT * FROM t1 WHERE (type = 'house') AND (saledate > LATEST)) as t JOIN {model.project.name}.{model_name} AS m")
+                       f"SELECT m.* FROM (SELECT * FROM t1 WHERE type = 'house' AND saledate > LATEST) as t JOIN {model.project.name}.{model_name} AS m")
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
@@ -163,17 +167,21 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where (name = '{model2.name}') AND (version = 3)"
+                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
         response_mock(mock_post, pd.DataFrame([{'x': 'a'}]))
 
-        table = table.filter(a=3, b='2')
-        table = table.limit(3)
-        table.fetch()
-        str(table)
-        check_sql_call(mock_post, f'SELECT * FROM {table.name} WHERE (a = 3) AND (b = \'2\') LIMIT 3')
+        table2 = table.filter(a=3, b='2').limit(3)
+        table2.fetch()
+        str(table2)
+        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
+
+        # last
+        table2 = table.filter(a=3).track('type')
+        table2.fetch()
+        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND type > last')
 
 
 class Test(BaseFlow):
@@ -724,11 +732,13 @@ class CustomPredictor():
     def check_project(self, project, database):
         self.check_project_views( project, database)
 
-        self.check_project_models(project, database)
+        model = self.check_project_models(project, database)
 
         self.check_project_models_versions(project, database)
 
         self.check_project_jobs(project)
+
+        self.check_project_kb(project, model, database)
 
     @patch('requests.Session.get')
     @patch('requests.Session.post')
@@ -893,6 +903,8 @@ class CustomPredictor():
                 }
             )
 
+        return model
+
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
         # -----------  model version --------------
@@ -974,7 +986,7 @@ class CustomPredictor():
 
         # -- delete in table --
         table2.delete(a=1, b='2')
-        check_sql_call(mock_post, f"DELETE FROM {database.name}.t2 WHERE (a = 1) AND (b = '2')")
+        check_sql_call(mock_post, f"DELETE FROM {database.name}.t2 WHERE a = 1 AND b = '2'")
 
         # -- update table --
         # from query
@@ -1040,14 +1052,14 @@ class CustomPredictor():
         project.jobs.create(
             name='job2',
             query_str='retrain m1',
-            repeat_str='1 min',
+            repeat_min=1,
             start_at=dt.datetime(2025, 2, 5, 11, 22),
             end_at=dt.date(2030, 1, 2)
         )
 
         check_sql_call(
             mock_post,
-            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 min",
+            f"CREATE JOB job2 (retrain m1) START '2025-02-05 11:22:00' END '2030-01-02 00:00:00' EVERY 1 minutes",
             call_stack_num=-2
         )
 
@@ -1069,3 +1081,436 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+
+    @patch('requests.Session.post')
+    def check_project_kb(self, project, model, database, mock_post):
+
+        response_mock(mock_post, pd.DataFrame([{
+            'NAME': 'my_kb',
+            'PROJECT': 'mindsdb',
+            'MODEL': 'openai_emb',
+            'STORAGE': 'pvec.tbl1',
+            'PARAMS': {"id_column": "num"},
+        }]))
+
+        kbs = project.knowledge_bases.list()
+
+        # TODO add filter by project
+        check_sql_call(mock_post, "select * from information_schema.knowledge_bases")
+
+        kb = kbs[0]
+
+        assert kb.name == 'my_kb'
+
+        assert isinstance(kb.model, Model)
+        assert kb.model.name == 'openai_emb'
+
+        assert isinstance(kb.storage, Table)
+        assert kb.storage.name == 'tbl1'
+        assert kb.storage.db.name == 'pvec'
+
+        kb = project.knowledge_bases.my_kb
+
+        str(kb)
+        assert kb.name == 'my_kb'
+        assert kb.storage.db.name == 'pvec'
+        assert kb.model.name == 'openai_emb'
+
+        # insert
+
+        kb.insert(
+            database.tables.tbl2.filter(a=1)
+        )
+        check_sql_call(
+            mock_post,
+            f''' insert into {project.name}.{kb.name} (
+               select * from tbl2 where a=1
+            )'''
+        )
+
+        # query
+        df = kb.find(query='dog', limit=5).fetch()
+
+        check_sql_call(
+            mock_post,
+            f'''select * from {project.name}.{kb.name} where content='dog' limit 5'''
+        )
+
+        # create 1
+        project.knowledge_bases.create(
+            name='kb2',
+            model=model,
+            metadata_columns=['date', 'author'],
+            params={'k': 'v'}
+        )
+
+        model_name = f'{model.project.name}.{model.name}'
+        check_sql_call(
+            mock_post,
+            f'''
+            CREATE KNOWLEDGE_BASE kb2
+              USING model={model_name}, 
+              metadata_columns=['date', 'author'],
+              k='v'
+            ''',
+            call_stack_num=-2
+        )
+
+        # create 2
+        kb = project.knowledge_bases.create(
+            name='kb2',
+            storage=database.tables.tbl1,
+            content_columns=['review'],
+            id_column='num'
+        )
+
+        table_name = f'{database.name}.tbl1'
+        check_sql_call(
+            mock_post,
+            f'''
+            CREATE KNOWLEDGE_BASE kb2
+              USING storage={table_name}, 
+              content_columns=['review'],
+              id_column='num'
+            ''',
+            call_stack_num=-2
+        )
+
+        # drop
+        project.knowledge_bases.drop('kb2')
+
+        check_sql_call(
+            mock_post,
+            "DROP KNOWLEDGE_BASE kb2"
+        )
+
+class TestAgents():
+    @patch('requests.Session.get')
+    def test_list(self, mock_get):
+        response_mock(mock_get, [])
+        server = mindsdb_sdk.connect()
+        assert len(server.agents.list()) == 0
+
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get, [
+            {
+                'id': 1,
+                'name': 'test_agent',
+                'project_id': 1,
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': created_at,
+                'updated_at': updated_at
+            }
+        ])
+        all_agents = server.agents.list()
+        # Check API call.
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+
+        assert len(all_agents) == 1
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [],
+            {},
+            created_at,
+            updated_at
+        )
+        assert all_agents[0] == expected_agent
+
+    @patch('requests.Session.get')
+    def test_get(self, mock_get):
+        server = mindsdb_sdk.connect()
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get,
+            {
+                'id': 1,
+                'name': 'test_agent',
+                'project_id': 1,
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': created_at,
+                'updated_at': updated_at
+            }
+        )
+        agent = server.agents.get('test_agent')
+        # Check API call.
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [],
+            {},
+            created_at,
+            updated_at
+        )
+        assert agent == expected_agent
+
+    @patch('requests.Session.post')
+    def test_create(self, mock_post):
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        data = {
+            'id': 1,
+            'name': 'test_agent',
+            'project_id': 1,
+            'model_name': 'test_model',
+            'skills': [{
+                'id': 0,
+                'name': 'test_skill',
+                'project_id': 1,
+                'type': 'sql',
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
+            }],
+            'params': {'k1': 'v1'},
+            'created_at': created_at,
+            'updated_at': updated_at
+        }
+        response_mock(mock_post, data)
+
+        # Create the agent.
+        server = mindsdb_sdk.connect()
+        new_agent = server.agents.create(
+            name='test_agent',
+            model=Model(None, {'name':'m1'}),
+            skills=[SQLSkill('test_skill', ['test_table'], 'test_database')],
+            params={'k1': 'v1'}
+        )
+        # Check API call.
+        assert len(mock_post.call_args_list) == 2
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_post.call_args[1]['json'] == {
+            'agent': {
+                'name': 'test_agent',
+                'model_name':'m1',
+                'skills': ['test_skill'],
+                'params': {'k1': 'v1'}
+            }
+        }
+
+        # Skill should have been created too.
+        assert mock_post.call_args_list[-2][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args_list[-2][1]['json'] == {
+           'skill': {
+                'name': 'test_skill',
+                'type': 'sql',
+                'params': {'database': 'test_database', 'tables': ['test_table']}
+            }
+        }
+
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_agent = Agent(
+            'test_agent',
+            'test_model',
+            [expected_skill],
+            {'k1': 'v1'},
+            created_at,
+            updated_at
+        )
+
+        assert new_agent == expected_agent
+
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    # Mock creating new skills.
+    @patch('requests.Session.post')
+    def test_update(self, mock_get, mock_put, _):
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        data = {
+            'id': 1,
+            'name': 'test_agent',
+            'project_id': 1,
+            'model_name': 'updated_model',
+            'skills': [{
+                'id': 1,
+                'name': 'updated_skill',
+                'project_id': 1,
+                'type': 'sql',
+                'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+            }],
+            'params': {'k2': 'v2'},
+            'created_at': created_at,
+            'updated_at': updated_at
+        }
+        response_mock(mock_put, data)
+
+        # Mock existing agent.
+        response_mock(mock_get, {
+            'id': 1,
+            'name': 'test_agent',
+            'project_id': 1,
+            'model_name': 'test_model',
+            'skills': [],
+            'params': {'k1': 'v1'},
+        })
+
+        server = mindsdb_sdk.connect()
+        expected_agent = Agent(
+            'test_agent',
+            'updated_model',
+            [SQLSkill('updated_skill', ['updated_table'], 'updated_database')],
+            {'k2': 'v2'},
+            created_at,
+            updated_at
+        )
+
+        updated_agent = server.agents.update('test_agent', expected_agent)
+        # Check API calls.
+        assert mock_put.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+        assert mock_put.call_args[1]['json'] == {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'updated_model',
+                'skills_to_add': ['updated_skill'],
+                'skills_to_remove': [],
+                'params': {'k2': 'v2'}
+            }
+        }
+
+        assert updated_agent == expected_agent
+
+
+    @patch('requests.Session.post')
+    def test_completion(self, mock_post):
+        response_mock(mock_post, {
+            'message':
+                {
+                    'content': 'Angel Falls in Venezuela at 979m',
+                    'role': 'assistant',
+                }
+        })
+        server = mindsdb_sdk.connect()
+        messages = [{
+            'question': 'What is the highest waterfall in the world?',
+            'answer': None
+        }]
+        completion = server.agents.completion('test_agent', messages)
+        # Check API call.
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent/completions'
+        assert mock_post.call_args[1]['json'] == {
+           'messages': messages
+        }
+        assert completion.content == 'Angel Falls in Venezuela at 979m'
+
+    @patch('requests.Session.delete')
+    def test_delete(self, mock_delete):
+        server = mindsdb_sdk.connect()
+        server.agents.drop('test_agent')
+        # Check API call.
+        assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+
+
+class TestSkills():
+    @patch('requests.Session.get')
+    def test_list(self, mock_get):
+        response_mock(mock_get, [])
+        server = mindsdb_sdk.connect()
+        # Check API call.
+        assert len(server.skills.list()) == 0
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+
+        created_at = dt.datetime(2000, 3, 1, 9, 30)
+        updated_at = dt.datetime(2001, 3, 1, 9, 30)
+        response_mock(mock_get, [
+            {
+                'id': 1,
+                'name': 'test_skill',
+                'project_id': 1,
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'type': 'sql'
+            }
+        ])
+        all_skills = server.skills.list()
+        assert len(all_skills) == 1
+
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        assert all_skills[0] == expected_skill
+
+    @patch('requests.Session.get')
+    def test_get(self, mock_get):
+        server = mindsdb_sdk.connect()
+        response_mock(mock_get,
+            {
+                'id': 1,
+                'name': 'test_skill',
+                'project_id': 1,
+                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'type': 'sql'
+            }
+        )
+        skill = server.skills.get('test_skill')
+        # Check API call.
+        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        assert skill == expected_skill
+
+    @patch('requests.Session.post')
+    def test_create(self, mock_post):
+        data = {
+            'id': 1,
+            'name': 'test_skill',
+            'project_id': 1,
+            'params': {'k1': 'v1'},
+            'type': 'test'
+        }
+        response_mock(mock_post, data)
+
+        # Create the skill.
+        server = mindsdb_sdk.connect()
+        new_skill = server.skills.create(
+            'test_skill',
+            'sql',
+            params={'tables': ['test_table'], 'database': 'test_database'}
+        )
+        # Check API call.
+        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
+        assert mock_post.call_args[1]['json'] == {
+           'skill': {
+                'name': 'test_skill',
+                'type': 'sql',
+                'params': {'database': 'test_database', 'tables': ['test_table']}
+            }
+        }
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+
+        assert new_skill == expected_skill
+
+    @patch('requests.Session.put')
+    def test_update(self, mock_put):
+        data = {
+            'id': 1,
+            'name': 'test_skill',
+            'project_id': 1,
+            'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+            'type': 'sql'
+        }
+        response_mock(mock_put, data)
+
+        server = mindsdb_sdk.connect()
+        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database')
+
+        updated_skill = server.skills.update('test_skill', expected_skill)
+        # Check API call.
+        assert mock_put.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+        assert mock_put.call_args[1]['json'] == {
+           'skill': {
+                'name': 'test_skill',
+                'type': 'sql',
+                'params': {'tables': ['updated_table'], 'database': 'updated_database'}
+            }
+        }
+
+        assert updated_skill == expected_skill
+
+    @patch('requests.Session.delete')
+    def test_delete(self, mock_delete):
+        server = mindsdb_sdk.connect()
+        server.skills.drop('test_skill')
+        # Check API call.
+        assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
