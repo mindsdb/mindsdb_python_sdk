@@ -52,6 +52,8 @@ class Skill():
     def from_json(cls, json: dict):
         if json['type'] == 'sql':
             return SQLSkill(json['name'], json['params']['tables'], json['params']['database'])
+        if json['type'] == 'retrieval':
+            return RetrievalSkill(json['name'], json['params']['knowledge_base'], json['params']['description'])
         return Skill(json['name'], json['type'], json['params'])
 
 
@@ -63,6 +65,15 @@ class SQLSkill(Skill):
             'tables': tables,
         }
         super().__init__(name, 'sql', params)
+
+class RetrievalSkill(Skill):
+    """Represents a MindsDB skill for agents to interact with MindsDB data sources"""
+    def __init__(self, name: str, knowledge_base: str, description: str):
+        params = {
+            'knowledge_base': knowledge_base,
+            'description': description
+        }
+        super().__init__(name, 'knowledge_base', params)
 
 
 class Skills(CollectionBase):

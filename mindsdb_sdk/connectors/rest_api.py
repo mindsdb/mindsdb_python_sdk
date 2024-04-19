@@ -147,6 +147,19 @@ class RestAPI:
         _raise_for_status(r)
 
     @_try_relogin
+    def get_file_metadata(self, name: str) -> dict:
+        # No endpoint currently to get single file.
+        url = self.url + f'/api/files/'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        all_file_metadata = r.json()
+        for metadata in all_file_metadata:
+            if metadata.get('name', None) == name:
+                return metadata
+        r.status_code = 404
+        raise requests.HTTPError(f'Not found: No file named {name} found', response=r)
+
+    @_try_relogin
     def upload_byom(self, name: str, code: str, requirements: str):
 
         url = self.url + f'/api/handlers/byom/{name}'
