@@ -14,6 +14,7 @@ except Exception:
 langchain_model = con.models.create(
     'agent_model',
     predict='answer',
+    mode='retrieval', # Use retrieval mode if using knowledge bases.
     engine='langchain',
     prompt_template='You are a spicy, cheeky assistant. Add some personality and flare when responding to the user question: {{question}}',
     model_name='gpt-4-0125-preview' # This is the underlying LLM. Can use OpenAI, Claude, local Ollama, etc
