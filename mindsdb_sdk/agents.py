@@ -200,7 +200,7 @@ class Agents(CollectionBase):
             'source': kb.name,
             'description': description,
         }
-        file_retrieval_skill = self.skills.create(skill_name, 'knowledge_base', retrieval_params)
+        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
         agent = self.get(name)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
