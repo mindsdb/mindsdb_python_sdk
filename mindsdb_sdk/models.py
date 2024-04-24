@@ -130,6 +130,7 @@ class Model:
         :param params: parameters for predictor, optional
         :return: dataframe with result of prediction
         """
+
         if isinstance(data, Query):
             # create join from select if it is simple select
             ast_query = parse_sql(data.sql, dialect='mindsdb')
