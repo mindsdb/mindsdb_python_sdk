@@ -1277,7 +1277,7 @@ class TestAgents():
         new_agent = server.agents.create(
             name='test_agent',
             model=Model(None, {'name':'m1'}),
-            skills=[SQLSkill('test_skill', ['test_table'], 'test_database')],
+            skills=[SQLSkill('test_skill', ['test_table'], 'test_database'), 'test_description'],
             params={'k1': 'v1'}
         )
         # Check API call.
@@ -1302,7 +1302,7 @@ class TestAgents():
             }
         }
 
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_descrition')
         expected_agent = Agent(
             'test_agent',
             'test_model',
@@ -1354,7 +1354,7 @@ class TestAgents():
         expected_agent = Agent(
             'test_agent',
             'updated_model',
-            [SQLSkill('updated_skill', ['updated_table'], 'updated_database')],
+            [SQLSkill('updated_skill', ['updated_table'], 'updated_database', 'test_description')],
             {'k2': 'v2'},
             created_at,
             updated_at
@@ -1429,7 +1429,7 @@ class TestSkills():
         all_skills = server.skills.list()
         assert len(all_skills) == 1
 
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         assert all_skills[0] == expected_skill
 
     @patch('requests.Session.get')
@@ -1447,7 +1447,7 @@ class TestSkills():
         skill = server.skills.get('test_skill')
         # Check API call.
         assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         assert skill == expected_skill
 
     @patch('requests.Session.post')
@@ -1493,7 +1493,7 @@ class TestSkills():
         response_mock(mock_put, data)
 
         server = mindsdb_sdk.connect()
-        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database')
+        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database', 'test_description')
 
         updated_skill = server.skills.update('test_skill', expected_skill)
         # Check API call.

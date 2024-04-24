@@ -51,7 +51,7 @@ class Skill():
     @classmethod
     def from_json(cls, json: dict):
         if json['type'] == 'sql':
-            return SQLSkill(json['name'], json['params']['tables'], json['params']['database'])
+            return SQLSkill(json['name'], json['params']['tables'], json['params']['database'], json['params']['description'])
         if json['type'] == 'retrieval':
             return RetrievalSkill(json['name'], json['params']['source'], json['params']['description'])
         return Skill(json['name'], json['type'], json['params'])
@@ -59,10 +59,11 @@ class Skill():
 
 class SQLSkill(Skill):
     """Represents a MindsDB skill for agents to interact with MindsDB databases"""
-    def __init__(self, name: str, tables: List[str], database: str):
+    def __init__(self, name: str, tables: List[str], database: str, description: str):
         params = {
             'database': database,
             'tables': tables,
+            'description': description
         }
         super().__init__(name, 'sql', params)
 
@@ -114,7 +115,7 @@ class Skills(CollectionBase):
         """
         _ = self.api.create_skill(self.project, name, type, params)
         if type == 'sql':
-            return SQLSkill(name, params['tables'], params['database'])
+            return SQLSkill(name, params['tables'], params['database'], params['description'])
         return Skill(name, type, params)
 
     def update(self, name: str, updated_skill: Skill) -> Skill:
