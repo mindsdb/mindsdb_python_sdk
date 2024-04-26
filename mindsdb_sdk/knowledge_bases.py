@@ -7,8 +7,9 @@ import pandas as pd
 from mindsdb_sql.parser.dialects.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
 from mindsdb_sql.parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
 
-from mindsdb_sdk.utils.sql import dict_to_binary_op
+from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase
+from mindsdb_sdk.utils.context import is_saving
 
 from .models import Model
 from .tables import Table
@@ -35,6 +36,7 @@ class KnowledgeBase(Query):
 
         self.project = project
         self.name = data['name']
+        self.table_name = Identifier(parts=[self.project.name, self.name])
 
         self.storage = None
         if data['storage'] is not None:
@@ -69,10 +71,10 @@ class KnowledgeBase(Query):
         self._query = None
         self._limit = None
 
-        database = project.name
         self._update_query()
 
-        super().__init__(project.api, self.sql, database)
+        # empty database
+        super().__init__(project.api, self.sql, None)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.project.name}.{self.name})'
@@ -104,9 +106,7 @@ class KnowledgeBase(Query):
 
         ast_query = Select(
             targets=[Star()],
-            from_table=Identifier(parts=[
-                self.project.name, self.name
-            ])
+            from_table=self.table_name
         )
         if self._query is not None:
             ast_query.where = BinaryOperation(op='=', args=[
@@ -143,20 +143,28 @@ class KnowledgeBase(Query):
             data_split = data.to_dict('split')
 
             ast_query = Insert(
-                table=Identifier(self.name),
+                table=Identifier(self.table_name),
                 columns=data_split['columns'],
                 values=data_split['data']
             )
-
             sql = ast_query.to_string()
-            self.api.sql_query(sql, self.database)
+
         else:
             # insert from select
-            table = Identifier(parts=[self.database, self.name])
-            self.api.sql_query(
-                f'INSERT INTO {table.to_string()} ({data.sql})',
-                database=data.database
-            )
+            if data.database is not None:
+                ast_query = Insert(
+                    table=Identifier(self.table_name),
+                    from_select=query_to_native_query(data)
+                )
+                sql = ast_query.to_string()
+            else:
+                sql = f'INSERT INTO {self.table_name.to_string()} ({data.sql})'
+
+        if is_saving():
+            # don't execute it right now, return query object
+            return Query(self, sql, self.database)
+
+        self.api.sql_query(sql, self.database)
 
 
 class KnowledgeBases(CollectionBase):
@@ -241,7 +249,7 @@ class KnowledgeBases(CollectionBase):
         content_columns: list = None,
         id_column: str = None,
         params: dict = None,
-    ) -> KnowledgeBase:
+    ) -> Union[KnowledgeBase, Query]:
         """
 
         Create knowledge base:
@@ -291,13 +299,17 @@ class KnowledgeBases(CollectionBase):
             storage_name = None
 
         ast_query = CreateKnowledgeBase(
-            Identifier(name),
+            Identifier(parts=[self.project.name, name]),
             model=model_name,
             storage=storage_name,
             params=params_out
         )
+        sql = ast_query.to_string()
 
-        self.api.sql_query(ast_query.to_string(), database=self.project.name)
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
 
         return self.get(name)
 
@@ -308,6 +320,10 @@ class KnowledgeBases(CollectionBase):
         :return:
         """
 
-        ast_query = DropKnowledgeBase(Identifier(name))
+        ast_query = DropKnowledgeBase(Identifier(parts=[self.project.name, name]))
+        sql = ast_query.to_string()
 
-        self.api.sql_query(ast_query.to_string())
+        if is_saving():
+            return Query(self, sql)
+
+        self.api.sql_query(sql)
