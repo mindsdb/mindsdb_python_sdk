@@ -38,7 +38,10 @@ class Job:
 
     def __enter__(self):
         if self._create_callback is None:
-            raise RuntimeError('It can not be used to create context')
+            raise ValueError("The job is already created and can't be used to create context."
+                               " To be able to use context: create job without 'query_str' parameter: "
+                               "\n>>> with con.jobs.create('j1') as job:"
+                               "\n>>>    job.add_query(...)")
         set_saving(f'job-{self.name}')
 
         return self
@@ -47,7 +50,7 @@ class Job:
         set_saving(None)
         if type is None:
             if len(self._queries) == 0:
-                raise RuntimeError('No queries were added to job')
+                raise ValueError('No queries were added to job')
 
             query_str = '; '.join(self._queries)
 
@@ -79,7 +82,7 @@ class Job:
 
             query = query.sql
         elif not isinstance(query, str):
-            raise RuntimeError(f'Unable to use add this object as a query: {query}. Try to use sql string instead')
+            raise ValueError(f'Unable to use add this object as a query: {query}. Try to use sql string instead')
         self._queries.append(query)
 
     def get_history(self) -> pd.DataFrame:
@@ -164,7 +167,7 @@ class Jobs(CollectionBase):
         Usage options:
 
         Option 1: to use string query
-        All job tasks could be passed as string with sql queries. Job is created emmideiately
+        All job tasks could be passed as string with sql queries. Job is created immediately
 
         >>> job = con.jobs.create('j1', query_str='retrain m1; show models', repeat_min=1):
 
