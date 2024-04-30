@@ -192,7 +192,7 @@ class Agents(CollectionBase):
                 kb.model.wait_complete()
 
         # Insert the entire file.
-        kb.insert(self.databases.files.tables.get(filename_no_extension))
+        kb.insert_files([filename_no_extension])
 
         # Make sure skill name is unique.
         skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4()}'

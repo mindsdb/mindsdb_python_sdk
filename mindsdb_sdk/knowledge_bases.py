@@ -31,8 +31,8 @@ class KnowledgeBase(Query):
 
     """
 
-    def __init__(self, project, data: dict):
-
+    def __init__(self, api, project, data: dict):
+        self.api = api
         self.project = project
         self.name = data['name']
 
@@ -118,6 +118,12 @@ class KnowledgeBase(Query):
             ast_query.limit = Constant(self._limit)
         self.sql = ast_query.to_string()
 
+    def insert_files(self, file_paths: List[str]):
+        """
+        Insert data from file to knowledge base
+        """
+        self.api.insert_files_into_knowledge_base(self.project.name, self.name, file_paths)
+
     def insert(self, data: Union[pd.DataFrame, Query, dict]):
         """
         Insert data to knowledge base
@@ -202,7 +208,7 @@ class KnowledgeBases(CollectionBase):
         df = df.rename(columns=cols_map)
 
         return [
-            KnowledgeBase(self.project, item)
+            KnowledgeBase(self.api, self.project, item)
             for item in df.to_dict('records')
         ]
 

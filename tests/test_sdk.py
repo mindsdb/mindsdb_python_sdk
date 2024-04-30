@@ -1264,7 +1264,7 @@ class TestAgents():
                 'name': 'test_skill',
                 'project_id': 1,
                 'type': 'sql',
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
             }],
             'params': {'k1': 'v1'},
             'created_at': created_at,
@@ -1277,7 +1277,7 @@ class TestAgents():
         new_agent = server.agents.create(
             name='test_agent',
             model=Model(None, {'name':'m1'}),
-            skills=[SQLSkill('test_skill', ['test_table'], 'test_database'), 'test_description'],
+            skills=[SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')],
             params={'k1': 'v1'}
         )
         # Check API call.
@@ -1298,11 +1298,11 @@ class TestAgents():
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table']}
+                'params': {'database': 'test_database', 'tables': ['test_table'], 'description': 'test_description'}
             }
         }
 
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_descrition')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         expected_agent = Agent(
             'test_agent',
             'test_model',
@@ -1332,7 +1332,7 @@ class TestAgents():
                 'name': 'updated_skill',
                 'project_id': 1,
                 'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'test_description'},
             }],
             'params': {'k2': 'v2'},
             'created_at': created_at,
@@ -1422,7 +1422,7 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description' },
                 'type': 'sql'
             }
         ])
@@ -1440,7 +1440,7 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
                 'type': 'sql'
             }
         )
@@ -1456,7 +1456,7 @@ class TestSkills():
             'id': 1,
             'name': 'test_skill',
             'project_id': 1,
-            'params': {'k1': 'v1'},
+            'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
             'type': 'test'
         }
         response_mock(mock_post, data)
@@ -1466,7 +1466,7 @@ class TestSkills():
         new_skill = server.skills.create(
             'test_skill',
             'sql',
-            params={'tables': ['test_table'], 'database': 'test_database'}
+            params={'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}
         )
         # Check API call.
         assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
@@ -1474,10 +1474,10 @@ class TestSkills():
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table']}
+                'params': {'database': 'test_database', 'tables': ['test_table'], 'description': 'test_description'}
             }
         }
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
 
         assert new_skill == expected_skill
 
@@ -1487,13 +1487,13 @@ class TestSkills():
             'id': 1,
             'name': 'test_skill',
             'project_id': 1,
-            'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+            'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'},
             'type': 'sql'
         }
         response_mock(mock_put, data)
 
         server = mindsdb_sdk.connect()
-        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database', 'test_description')
+        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database', 'updated_description')
 
         updated_skill = server.skills.update('test_skill', expected_skill)
         # Check API call.
@@ -1502,7 +1502,7 @@ class TestSkills():
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database'}
+                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'}
             }
         }
 
