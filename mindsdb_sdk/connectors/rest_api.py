@@ -323,3 +323,18 @@ class RestAPI:
         url = self.url + f'/api/projects/{project}/skills/{name}'
         r = self.session.delete(url)
         _raise_for_status(r)
+
+    # Knowledge Base operations.
+    @_try_relogin
+    def insert_files_into_knowledge_base(self, project: str, knowledge_base_name: str, file_names: List[str]):
+        r = self.session.put(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
+            json={
+                'knowledge_base': {
+                    'files': file_names
+                }
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
