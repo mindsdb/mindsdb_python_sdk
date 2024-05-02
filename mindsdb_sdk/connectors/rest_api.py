@@ -338,3 +338,17 @@ class RestAPI:
         _raise_for_status(r)
 
         return r.json()
+
+    @_try_relogin
+    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str]):
+        r = self.session.put(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
+            json={
+                'knowledge_base': {
+                    'urls': urls
+                }
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
