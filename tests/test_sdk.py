@@ -1538,7 +1538,7 @@ class TestAgents():
                 'updated_at': None
             },
             # Skills get in Agent update to check if it exists.
-            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}},
             # Existing agent get in Agent update.
             {
                 'name': 'test_agent',
