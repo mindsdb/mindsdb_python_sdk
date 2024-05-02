@@ -1,5 +1,6 @@
 from requests.exceptions import HTTPError
 from typing import List, Union
+from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
 import pandas as pd
@@ -85,6 +86,14 @@ class Agent:
         :param file_path: Path to the file to be added.
         """
         self.collection.add_file(self.name, file_path, description, knowledge_base)
+
+    def add_webpage(self, url: str, description: str, knowledge_base: str = None):
+        """
+        Add a crawled URL to the agent for retrieval.
+
+        :param url: URL of the page to be crawled and added.
+        """
+        self.collection.add_webpage(self.name, url, description, knowledge_base)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(name: {self.name})'
@@ -203,6 +212,44 @@ class Agents(CollectionBase):
         file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
         agent = self.get(name)
         agent.skills.append(file_retrieval_skill)
+        self.update(agent.name, agent)
+
+    def add_webpage(self, name: str, url: str, description: str, knowledge_base: str = None):
+        """
+        Add a webpage to the agent for retrieval.
+
+        :param name: Name of the agent
+        :param file_path: URL of the webpage to be added, or name of existing webpage.
+        :param description: Description of the webpage. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        """
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.replace('.', '_')
+        path = parsed_url.path.replace('/', '_')
+        if knowledge_base is not None:
+            kb = self.knowledge_bases.get(knowledge_base)
+        else:
+            kb_name = f'{name}_{domain}{path}_kb'
+            try:
+                kb = self.knowledge_bases.get(kb_name)
+            except AttributeError:
+                # Create KB if it doesn't exist.
+                kb = self.knowledge_bases.create(kb_name)
+                # Wait for underlying embedding model to finish training.
+                kb.model.wait_complete()
+
+        # Insert crawled webpage.
+        kb.insert_webpages([url])
+
+        # Make sure skill name is unique.
+        skill_name = f'{domain}{path}_retrieval_skill_{uuid4()}'
+        retrieval_params = {
+            'source': kb.name,
+            'description': description,
+        }
+        webpage_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
+        agent = self.get(name)
+        agent.skills.append(webpage_retrieval_skill)
         self.update(agent.name, agent)
 
     def create(

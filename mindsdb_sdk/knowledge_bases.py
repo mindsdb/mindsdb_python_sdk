@@ -124,6 +124,12 @@ class KnowledgeBase(Query):
         """
         self.api.insert_files_into_knowledge_base(self.project.name, self.name, file_paths)
 
+    def insert_webpages(self, urls: List[str]):
+        """
+        Insert data from crawled URLs to knowledge base
+        """
+        self.api.insert_webpages_into_knowledge_base(self.project.name, self.name, urls)
+
     def insert(self, data: Union[pd.DataFrame, Query, dict]):
         """
         Insert data to knowledge base

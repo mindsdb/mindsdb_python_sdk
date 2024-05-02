@@ -38,6 +38,25 @@ def response_mock(mock, data):
     mock.side_effect = side_effect
 
 
+def responses_mock(mock, data):
+    side_effect_fns = []
+    for d in data:
+        if isinstance(d, pd.DataFrame):
+            # to sql/query format (mostly used)
+            pd_data = d.to_dict('split')
+            d = {
+                'type': 'table',
+                'column_names': pd_data['columns'],
+                'data': pd_data['data']
+            }
+        def side_effect(*args, **kwargs):
+            r_mock = Mock()
+            r_mock.status_code = 200
+            r_mock.json.return_value = d
+            return r_mock
+        side_effect_fns.append(side_effect())
+    mock.side_effect = side_effect_fns
+
 def check_sql_call(mock, sql, database=None, call_stack_num=None):
     if call_stack_num is not None:
         call_args = mock.mock_calls[call_stack_num]
@@ -1435,6 +1454,137 @@ class TestAgents():
         server.agents.drop('test_agent')
         # Check API call.
         assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_file(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # File metadata get.
+            [{'name': 'tokaido_rules'}],
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # KB get (POST /sql).
+            pd.DataFrame([
+                {'name': 'test_agent_tokaido_rules_kb', 'storage': None, 'model': None},
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}
+        ])
+        responses_mock(mock_put, [
+            # KB update.
+            {'name': 'test_agent_tokaido_rules_kb'},
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
+
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_webpage(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # KB get (POST /sql).
+            pd.DataFrame([
+                {'name': 'test_agent_docs_mdb_ai_kb', 'storage': None, 'model': None},
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}
+        ])
+        responses_mock(mock_put, [
+            # KB update.
+            {'name': 'test_agent_docs_mdb_ai_kb'},
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
 
 
 class TestSkills():
