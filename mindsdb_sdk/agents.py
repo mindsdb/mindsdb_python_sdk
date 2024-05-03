@@ -7,7 +7,8 @@ import pandas as pd
 
 from mindsdb_sdk.databases import Databases
 from mindsdb_sdk.knowledge_bases import KnowledgeBases
-from mindsdb_sdk.models import Model
+from mindsdb_sdk.ml_engines import MLEngines
+from mindsdb_sdk.models import Model, Models
 from mindsdb_sdk.skills import Skill, Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
@@ -79,6 +80,14 @@ class Agent:
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
 
+    def add_files(self, file_paths: List[str], description: str, knowledge_base: str = None):
+        """
+        Add a list of files to the agent for retrieval.
+
+        :param file_paths: List of paths to the files to be added.
+        """
+        self.collection.add_files(self.name, file_paths, description, knowledge_base)
+
     def add_file(self, file_path: str, description: str, knowledge_base: str = None):
         """
         Add a file to the agent for retrieval.
@@ -87,6 +96,14 @@ class Agent:
         """
         self.collection.add_file(self.name, file_path, description, knowledge_base)
 
+    def add_webpages(self, urls: List[str], description: str, knowledge_base: str = None):
+        """
+        Add a list of crawled URLs to the agent for retrieval.
+
+        :param urls: List of URLs to be crawled and added.
+        """
+        self.collection.add_webpages(self.name, urls, description, knowledge_base)
+
     def add_webpage(self, url: str, description: str, knowledge_base: str = None):
         """
         Add a crawled URL to the agent for retrieval.
@@ -94,6 +111,16 @@ class Agent:
         :param url: URL of the page to be crawled and added.
         """
         self.collection.add_webpage(self.name, url, description, knowledge_base)
+
+    def add_database(self, database: str, tables: List[str], description: str):
+        """
+        Add a database to the agent for retrieval.
+
+        :param database: Name of the database to be added.
+        :param tables: List of tables to be added.
+        :param description: Description of the database tables. Used by the agent to know when to use SQL skill.
+        """
+        self.collection.add_database(self.name, database, tables, description)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(name: {self.name})'
@@ -126,12 +153,14 @@ class Agent:
 
 class Agents(CollectionBase):
     """Collection for agents"""
-    def __init__(self, api, project: str, knowledge_bases: KnowledgeBases, databases: Databases, skills: Skills = None):
+    def __init__(self, api, project: str, knowledge_bases: KnowledgeBases, databases: Databases, models: Models, ml_engines: MLEngines, skills: Skills = None):
         self.api = api
         self.project = project
         self.skills = skills or Skills(self.api, project)
         self.databases = databases
         self.knowledge_bases = knowledge_bases
+        self.ml_engines = ml_engines
+        self.models = models
 
     def list(self) -> List[Agent]:
         """
@@ -165,43 +194,46 @@ class Agents(CollectionBase):
         data = self.api.agent_completion(self.project, name, messages)
         return AgentCompletion(data['message']['content'])
 
-    def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
+    def add_files(self, name: str, file_paths: List[str], description: str, knowledge_base: str = None):
         """
-        Add a file to the agent for retrieval.
+        Add a list of files to the agent for retrieval.
 
         :param name: Name of the agent
-        :param file_path: Path to the file to be added, or name of existing file.
+        :param file_paths: List of paths to the files to be added.
         :param description: Description of the file. Used by agent to know when to do retrieval
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
-        filename = file_path.split('/')[-1]
-        filename_no_extension = filename.split('.')[0]
-        try:
-            _ = self.api.get_file_metadata(filename_no_extension)
-        except HTTPError as e:
-            if e.response.status_code >= 400 and e.response.status_code != 404:
-                raise e
-            # Upload file if it doesn't exist.
-            with open(file_path, 'rb') as file:
-                content = file.read()
-                df = pd.DataFrame.from_records([{'content': content}])
-                self.api.upload_file(filename_no_extension, df)
+        if not file_paths:
+            return
+        filename_no_extension = ''
+        all_filenames = []
+        for file_path in file_paths:
+            filename = file_path.split('/')[-1]
+            filename_no_extension = filename.split('.')[0]
+            all_filenames.append(filename_no_extension)
+            try:
+                _ = self.api.get_file_metadata(filename_no_extension)
+            except HTTPError as e:
+                if e.response.status_code >= 400 and e.response.status_code != 404:
+                    raise e
+                # Upload file if it doesn't exist.
+                with open(file_path, 'rb') as file:
+                    content = file.read()
+                    df = pd.DataFrame.from_records([{'content': content}])
+                    self.api.upload_file(filename_no_extension, df)
 
-        # Insert uploaded file into new knowledge base.
+        # Insert uploaded files into new knowledge base.
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_{filename_no_extension}_kb'
-            try:
-                kb = self.knowledge_bases.get(kb_name)
-            except AttributeError as e:
-                # Create KB if it doesn't exist.
-                kb = self.knowledge_bases.create(kb_name)
-                # Wait for underlying embedding model to finish training.
-                kb.model.wait_complete()
+            kb_name = f'{name}_{filename_no_extension}_{uuid4()}_kb'
+            # Create KB if it doesn't exist.
+            kb = self.knowledge_bases.create(kb_name)
+            # Wait for underlying embedding model to finish training.
+            kb.model.wait_complete()
 
         # Insert the entire file.
-        kb.insert_files([filename_no_extension])
+        kb.insert_files(all_filenames)
 
         # Make sure skill name is unique.
         skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4()}'
@@ -214,32 +246,47 @@ class Agents(CollectionBase):
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
 
-    def add_webpage(self, name: str, url: str, description: str, knowledge_base: str = None):
+
+    def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
         """
-        Add a webpage to the agent for retrieval.
+        Add a file to the agent for retrieval.
 
         :param name: Name of the agent
-        :param file_path: URL of the webpage to be added, or name of existing webpage.
-        :param description: Description of the webpage. Used by agent to know when to do retrieval.
+        :param file_path: Path to the file to be added, or name of existing file.
+        :param description: Description of the file. Used by agent to know when to do retrieval
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc.replace('.', '_')
-        path = parsed_url.path.replace('/', '_')
+        self.add_files(name, [file_path], description, knowledge_base)
+
+    def add_webpages(self, name: str, urls: List[str], description: str, knowledge_base: str = None):
+        """
+        Add a list of webpages to the agent for retrieval.
+
+        :param name: Name of the agent
+        :param urls: List of URLs of the webpages to be added.
+        :param description: Description of the webpages. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        """
+        if not urls:
+            return
+        domain = ''
+        path = ''
+        for url in urls:
+            # Validate URLs.
+            parsed_url = urlparse(url)
+            domain = parsed_url.netloc.replace('.', '_')
+            path = parsed_url.path.replace('/', '_')
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_{domain}{path}_kb'
-            try:
-                kb = self.knowledge_bases.get(kb_name)
-            except AttributeError:
-                # Create KB if it doesn't exist.
-                kb = self.knowledge_bases.create(kb_name)
-                # Wait for underlying embedding model to finish training.
-                kb.model.wait_complete()
+            kb_name = f'{name}_{domain}{path}_{uuid4()}_kb'
+            # Create KB if it doesn't exist.
+            kb = self.knowledge_bases.create(kb_name)
+            # Wait for underlying embedding model to finish training.
+            kb.model.wait_complete()
 
         # Insert crawled webpage.
-        kb.insert_webpages([url])
+        kb.insert_webpages(urls)
 
         # Make sure skill name is unique.
         skill_name = f'{domain}{path}_retrieval_skill_{uuid4()}'
@@ -252,10 +299,84 @@ class Agents(CollectionBase):
         agent.skills.append(webpage_retrieval_skill)
         self.update(agent.name, agent)
 
+    def add_webpage(self, name: str, url: str, description: str, knowledge_base: str = None):
+        """
+        Add a webpage to the agent for retrieval.
+
+        :param name: Name of the agent
+        :param file_path: URL of the webpage to be added, or name of existing webpage.
+        :param description: Description of the webpage. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        """
+        self.add_webpages(name, [url], description, knowledge_base)
+
+    def add_database(self, name: str, database: str, tables: List[str], description: str):
+        """
+        Add a database to the agent for retrieval.
+
+        :param name: Name of the agent
+        :param database: Name of the database to be added.
+        :param tables: List of tables to be added.
+        :param description: Description of the database. Used by agent to know when to do retrieval.
+        """
+        # Make sure database exists.
+        db = self.databases.get(database)
+        # Make sure tables exist.
+        all_table_names = set([t.name for t in db.tables.list()])
+        for t in tables:
+            if t not in all_table_names:
+                raise ValueError(f'Table {t} does not exist in database {database}.')
+
+        # Make sure skill name is unique.
+        skill_name = f'{database}_sql_skill_{uuid4()}'
+        sql_params = {
+            'database': database,
+            'tables': tables,
+            'description': description,
+        }
+        database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
+        agent = self.get(name)
+        agent.skills.append(database_sql_skill)
+        self.update(agent.name, agent)
+
+    def _create_ml_engine_if_not_exists(self, name: str = 'langchain'):
+        try:
+            _ = self.ml_engines.get('langchain')
+        except Exception:
+            # Create the engine if it doesn't exist.
+            _ = self.ml_engines.create('langchain', handler='langchain')
+
+    def _create_model_if_not_exists(self, name: str, model: Union[Model, dict]) -> Model:
+        # Create langchain engine if it doesn't exist.
+        self._create_ml_engine_if_not_exists()
+        # Create a default model if it doesn't exist.
+        default_model_params = {
+            'predict': 'answer',
+            'mode': 'retrieval',
+            'engine': 'langchain',
+            'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
+            # Use GPT-4 by default.
+            'provider': 'openai',
+            'model_name': 'gpt-4'
+        }
+        if model is None:
+            return self.models.create(
+                f'{name}_default_model',
+                **default_model_params
+            )
+        if isinstance(model, dict):
+            default_model_params.update(model)
+            # Create model with passed in params.
+            return self.models.create(
+                f'{name}_default_model',
+                **default_model_params
+            )
+        return model
+
     def create(
             self,
             name: str,
-            model: Model,
+            model: Union[Model, dict] = None,
             skills: List[Union[Skill, str]] = None,
             params: dict = None) -> Agent:
         """
@@ -280,6 +401,8 @@ class Agents(CollectionBase):
             _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
+        # Create a default model if it doesn't exist.
+        model = self._create_model_if_not_exists(name, model)
         data = self.api.create_agent(self.project, name, model.name, skill_names, params)
         return Agent.from_json(data, self)
 
