@@ -618,8 +618,11 @@ class Models(CollectionBase):
         filters = { }
         if name is not None:
             filters['NAME'] = name
+
         if version is not None:
             filters['VERSION'] = version
+        else:
+            filters['ACTIVE'] = True
 
         ast_query = Select(
             targets=[Star()],
