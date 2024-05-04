@@ -3,10 +3,11 @@ from typing import List, Union
 from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
+import json
 import pandas as pd
 
 from mindsdb_sdk.databases import Databases
-from mindsdb_sdk.knowledge_bases import KnowledgeBases
+from mindsdb_sdk.knowledge_bases import KnowledgeBase, KnowledgeBases
 from mindsdb_sdk.ml_engines import MLEngines
 from mindsdb_sdk.models import Model, Models
 from mindsdb_sdk.skills import Skill, Skills
@@ -194,6 +195,22 @@ class Agents(CollectionBase):
         data = self.api.agent_completion(self.project, name, messages)
         return AgentCompletion(data['message']['content'])
 
+    def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
+        # Make sure default ML engine for embeddings exists.
+        try:
+            _ = self.ml_engines.get('langchain_embedding')
+        except AttributeError:
+            _ = self.ml_engines.create('langchain_embedding', 'langchain_embedding')
+        # Include API keys in embeddings.
+        agent_model = self.models.get(agent.model_name)
+        training_options = json.loads(agent_model.data.get('training_options', '{}'))
+        training_options_using = training_options.get('using', {})
+        api_key_params = {k:v for k, v in training_options_using.items() if 'api_key' in k}
+        kb = self.knowledge_bases.create(name, params=api_key_params)
+        # Wait for underlying embedding model to finish training.
+        kb.model.wait_complete()
+        return kb
+
     def add_files(self, name: str, file_paths: List[str], description: str, knowledge_base: str = None):
         """
         Add a list of files to the agent for retrieval.
@@ -223,14 +240,12 @@ class Agents(CollectionBase):
                     self.api.upload_file(filename_no_extension, df)
 
         # Insert uploaded files into new knowledge base.
+        agent = self.get(name)
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
             kb_name = f'{name}_{filename_no_extension}_{uuid4()}_kb'
-            # Create KB if it doesn't exist.
-            kb = self.knowledge_bases.create(kb_name)
-            # Wait for underlying embedding model to finish training.
-            kb.model.wait_complete()
+            kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert the entire file.
         kb.insert_files(all_filenames)
@@ -242,7 +257,6 @@ class Agents(CollectionBase):
             'description': description,
         }
         file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent = self.get(name)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
 
@@ -271,6 +285,7 @@ class Agents(CollectionBase):
             return
         domain = ''
         path = ''
+        agent = self.get(name)
         for url in urls:
             # Validate URLs.
             parsed_url = urlparse(url)
@@ -280,10 +295,7 @@ class Agents(CollectionBase):
             kb = self.knowledge_bases.get(knowledge_base)
         else:
             kb_name = f'{name}_{domain}{path}_{uuid4()}_kb'
-            # Create KB if it doesn't exist.
-            kb = self.knowledge_bases.create(kb_name)
-            # Wait for underlying embedding model to finish training.
-            kb.model.wait_complete()
+            kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
         kb.insert_webpages(urls)
@@ -295,7 +307,6 @@ class Agents(CollectionBase):
             'description': description,
         }
         webpage_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent = self.get(name)
         agent.skills.append(webpage_retrieval_skill)
         self.update(agent.name, agent)
 
