@@ -233,11 +233,8 @@ class Agents(CollectionBase):
             except HTTPError as e:
                 if e.response.status_code >= 400 and e.response.status_code != 404:
                     raise e
-                # Upload file if it doesn't exist.
-                with open(file_path, 'rb') as file:
-                    content = file.read()
-                    df = pd.DataFrame.from_records([{'content': content}])
-                    self.api.upload_file(filename_no_extension, df)
+                # upload file to mindsdb
+                self.api.upload_file(filename, file_path)
 
         # Insert uploaded files into new knowledge base.
         agent = self.get(name)

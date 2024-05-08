@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import List
+from typing import List, Union
 import io
 
 import requests
@@ -128,27 +128,71 @@ class RestAPI:
 
         return pd.DataFrame(r.json())
 
-    @_try_relogin
-    def upload_file(self, name: str, df: pd.DataFrame):
-
-        # convert to file
+    @staticmethod
+    def read_file_as_bytes(file_path: str):
+        """
+        Read and return content of a file in bytes, given its path.
+        :param file_path: Path of the file to read.
+        :return: File content in bytes.
+        """
+        try:
+            with open(file_path, 'rb+') as file:
+                return file.read()
+        except FileNotFoundError:
+            raise Exception(f'File {file_path} does not exist.')
+        except PermissionError:
+            raise Exception(f'Permission denied when reading file {file_path}.')
+        except Exception as e:
+            raise Exception(f'Unknown error occurred when reading file {file_path} - {str(e)}')
+    @staticmethod
+    def read_dataframe_as_csv(data: pd.DataFrame):
+        """
+        Read and return content of a DataFrame as CSV in bytes.
+        :param data: DataFrame to read.
+        :return: DataFrame content as CSV in bytes.
+        """
         fd = io.BytesIO()
-        df.to_csv(fd, index=False)
+        data.to_csv(fd, index=False)
         fd.seek(0)
+        return fd.read()
+
+    def upload_data(self, file_name: str, data: bytes):
+        """
+        Upload binary data to MindsDB.
+        :param file_name: Name of the file.
+        :param data: Binary data to upload.
+        """
+        # remove suffix from file if present
+        name = file_name.split('.')[0]
 
         url = self.url + f'/api/files/{name}'
         r = self.session.put(
             url,
             data={
-                'source': name,
-                'name': name,
-                'source_type': 'file',
+                'original_file_name':file_name,
+                'name':name,
+                'source_type':'file',
             },
             files={
-                'file': fd,
+                'file': (file_name, data)
+
             }
         )
         _raise_for_status(r)
+
+    @_try_relogin
+    def upload_file(self, name: str, data: Union[pd.DataFrame, str]):
+        """
+        Upload a file or a DataFrame to MindsDB.
+        :param name: Name of the file or DataFrame.
+        :param data: DataFrame data or file path.
+        """
+        if isinstance(data, pd.DataFrame):
+            data_in_bytes = self.read_dataframe_as_csv(data)
+        else:
+            data_in_bytes = self.read_file_as_bytes(data)
+
+        self.upload_data(name, data_in_bytes)
 
     @_try_relogin
     def get_file_metadata(self, name: str) -> dict:
