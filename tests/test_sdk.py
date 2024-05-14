@@ -1301,7 +1301,8 @@ class TestAgents():
         assert agent == expected_agent
 
     @patch('requests.Session.post')
-    def test_create(self, mock_post):
+    @patch('requests.Session.get')
+    def test_create(self, mock_get, mock_post):
         created_at = dt.datetime(2000, 3, 1, 9, 30)
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
         data = {
@@ -1320,20 +1321,28 @@ class TestAgents():
             'created_at': created_at,
             'updated_at': updated_at
         }
-        response_mock(mock_post, data)
+        responses_mock(mock_post, [
+            # ML Engine get (SQL post for SHOW ML_ENGINES)
+            pd.DataFrame([{'name': 'langchain', 'handler': 'langchain', 'connection_data': {}}]),
+            data
+        ])
+        responses_mock(mock_get, [
+            # Skill get.
+            {'name': 'test_skill', 'type': 'sql', 'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}},
+        ])
 
         # Create the agent.
         server = mindsdb_sdk.connect()
         new_agent = server.agents.create(
             name='test_agent',
             model=Model(None, {'name':'m1'}),
-            skills=[SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')],
+            skills=['test_skill'],
             params={'k1': 'v1'}
         )
         # Check API call.
         assert len(mock_post.call_args_list) == 2
-        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
-        assert mock_post.call_args[1]['json'] == {
+        assert mock_post.call_args_list[-1][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_post.call_args_list[-1][1]['json'] == {
             'agent': {
                 'name': 'test_agent',
                 'model_name':'m1',
@@ -1341,17 +1350,6 @@ class TestAgents():
                 'params': {'k1': 'v1'}
             }
         }
-
-        # Skill should have been created too.
-        assert mock_post.call_args_list[-2][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args_list[-2][1]['json'] == {
-           'skill': {
-                'name': 'test_skill',
-                'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table'], 'description': 'test_description'}
-            }
-        }
-
         expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         expected_agent = Agent(
             'test_agent',
@@ -1505,7 +1503,7 @@ class TestAgents():
                 'updated_at': None
             },
         ])
-        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido')
+        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido', 'existing_kb')
 
         # Check Agent was updated with a new skill.
         agent_update_json = mock_put.call_args[-1]['json']
@@ -1570,7 +1568,7 @@ class TestAgents():
                 'updated_at': None
             },
         ])
-        server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB')
+        server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB', 'existing_kb')
 
         # Check Agent was updated with a new skill.
         agent_update_json = mock_put.call_args[-1]['json']
@@ -1586,6 +1584,71 @@ class TestAgents():
         }
         assert agent_update_json == expected_agent_json
 
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_database(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # DB get (POST /sql).
+            pd.DataFrame([
+                {'NAME': 'existing_db'}
+            ]),
+            # DB tables get (POST /sql).
+            pd.DataFrame([
+                {'name': 'existing_table'}
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}
+        ])
+        responses_mock(mock_put, [
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_database('test_agent', 'existing_db', ['existing_table'], 'My data')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
 
 class TestSkills():
     @patch('requests.Session.get')
