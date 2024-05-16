@@ -1,15 +1,18 @@
 from openai import OpenAI, OpenAIError
-from mindsdb_sdk.utils.table_schema import get_table_schemas
-from mindsdb_sdk.utils.openai import make_openai_tool
+from mindsdb_sdk.utils.openai import extract_sql_query, make_openai_tool, query_database
+
 import mindsdb_sdk
 import os
+
+from mindsdb_sdk.utils.table_schema import get_table_schemas
 
 # generate the key at https://llm.mdb.ai
 MINDSDB_API_KEY = os.environ.get("MINDSDB_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 MODEL = "gpt-3.5-turbo"
-# text2sql prompt here (e.g. "What is the average satisfaction of passengers in the airline_passenger_satisfaction table?")
+
+# the prompt should be a question that can be answered by the database
 SYSTEM_PROMPT = """You are a SQL expert. Given an input question, first create a syntactically correct SQL query to run, 
 then look at the results of the query and return the answer to the input question.
 Unless the user specifies in the question a specific number of examples to obtain, query for at most 5 results using the 
@@ -34,7 +37,7 @@ Only use the following tables:
 PROMPT = "what was the average delay on arrivals?"
 
 
-def generate_system_prompt(system_prompt, schema):
+def generate_system_prompt(system_prompt: str, schema: dict) -> dict:
     prompt = {
         "role": "system",
         "content": system_prompt.format(schema=schema)
@@ -42,7 +45,7 @@ def generate_system_prompt(system_prompt, schema):
     return prompt
 
 
-def generate_user_prompt(query):
+def generate_user_prompt(query: str) -> dict:
     prompt = {
         "role": "user",
         "content": query
@@ -50,39 +53,12 @@ def generate_user_prompt(query):
     return prompt
 
 
-def extract_sql_query(result):
-    # Split the result into lines
-    lines = result.split('\n')
-
-    # Initialize an empty string to hold the query
-    query = ""
-
-    # Initialize a flag to indicate whether we're currently reading the query
-    reading_query = False
-
-    # Iterate over the lines
-    for line in lines:
-        # If the line starts with "SQLQuery:", start reading the query
-        if line.startswith("SQLQuery:"):
-            query = line[len("SQLQuery:"):].strip()
-            reading_query = True
-        # If the line starts with "SQLResult:", stop reading the query
-        elif line.startswith("SQLResult:"):
-            break
-        # If we're currently reading the query, append the line to the query
-        elif reading_query:
-            query += " " + line.strip()
-
-    # If no line starts with "SQLQuery:", return None
-    if query == "":
-        return None
-
-    return query
-
-
 con = mindsdb_sdk.connect()
 
-database = con.databases.get(name="example_db")
+# given database name, returns schema and database object
+# using example_db from mindsdb
+
+database = con.databases.get("example_db")
 schema = get_table_schemas(database, included_tables=["airline_passenger_satisfaction"])
 
 try:
@@ -95,16 +71,19 @@ try:
         api_key=OPENAI_API_KEY
     )
 
+    messages = [
+        generate_system_prompt(SYSTEM_PROMPT, schema),
+        generate_user_prompt(PROMPT)
+    ]
+
     chat_completion_gpt = client_mindsdb_serve.chat.completions.create(
-        messages=[
-            generate_system_prompt(SYSTEM_PROMPT, schema),
-            generate_user_prompt(PROMPT)
-        ],
+        messages=messages,
         model=MODEL
     )
 
     response = chat_completion_gpt.choices[0].message.content
 
+    # extract the SQL query from the response
     query = extract_sql_query(response)
 
     print(f"Generated SQL query: {query}")
@@ -112,5 +91,23 @@ try:
 except OpenAIError as e:
     raise OpenAIError(f"An error occurred with the MindsDB Serve API: {e}")
 
-result = database.query(query).fetch()
-print(result)
+result = query_database(database, query)
+
+# format the result to be displayed in the prompt
+query_result = "SQLResult: " + str(result)
+
+# generate the user prompt with the query result, this will be used to generate the final response
+query = generate_user_prompt(query_result)
+
+# add the query to the messages list
+messages.append(query)
+
+# generate the final response
+chat_completion_gpt = client_mindsdb_serve.chat.completions.create(
+    messages=messages,
+    model=MODEL
+)
+
+response = chat_completion_gpt.choices[0].message.content
+
+print(response)

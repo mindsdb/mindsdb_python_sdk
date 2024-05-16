@@ -1,23 +1,50 @@
+import json
 
-import inspect
-import docstring_parser
+from mindsdb_sdk.databases import Database
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 
-def make_openai_tool(function: callable):
+@retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
+def chat_completion_request(client, model, messages, tools=None, tool_choice=None):
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+            tool_choice=tool_choice,
+        )
+        return response
+    except Exception as e:
+        print("Unable to generate ChatCompletion response")
+        print(f"Exception: {e}")
+        return e
+
+
+def make_openai_tool(function: callable, description: str = None) -> dict:
     """
-    Make an OpenAI tool for a function
+    Make a generic OpenAI tool for a function
 
     :param function: function to generate metadata for
+    :param description: description of the function
+
     :return: dictionary containing function metadata
     """
+    # You will need to pip install docstring-parser to use this function
+
+    import inspect
+    import docstring_parser
+
     params = inspect.signature(function).parameters
     docstring = docstring_parser.parse(function.__doc__)
+
+    # Get the first line of the docstring as the function description or use the user-provided description
+    function_description = description or docstring.short_description
 
     function_dict = {
         "type":"function",
         "function":{
             "name":function.__name__,
-            "description":docstring.short_description,
+            "description":function_description,
             "parameters":{
                 "type":"object",
                 "properties":{},
@@ -49,3 +76,124 @@ def make_openai_tool(function: callable):
 
     return function_dict
 
+
+def make_mindsdb_tool(schema: dict) -> dict:
+    """
+    Make an OpenAI tool for querying a database connection in MindsDB
+
+    :param schema: database schema
+
+    :return: dictionary containing function metadata for openai tools
+    """
+    return {
+        "type":"function",
+        "function":{
+            "name":"query_database",
+            "description":"Use this function to answer user questions. Input should be a fully formed SQL query.",
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "query":{
+                        "type":"string",
+                        "description":f"""
+                                    SQL query extracting info to answer the user's question.
+                                    SQL should be written using this database schema:
+                                    {schema}
+                                    The query should be returned in plain text, not in JSON.
+                                    """,
+                    }
+                },
+                "required":["query"],
+            },
+        }
+    }
+
+
+def extract_sql_query(result: str) -> str:
+    """
+    Extract the SQL query from an openai result string
+
+    :param result: OpenAI result string
+    :return: SQL query string
+    """
+    # Split the result into lines
+    lines = result.split('\n')
+
+    # Initialize an empty string to hold the query
+    query = ""
+
+    # Initialize a flag to indicate whether we're currently reading the query
+    reading_query = False
+
+    # Iterate over the lines
+    for line in lines:
+        # If the line starts with "SQLQuery:", start reading the query
+        if line.startswith("SQLQuery:"):
+            query = line[len("SQLQuery:"):].strip()
+            reading_query = True
+        # If the line starts with "SQLResult:", stop reading the query
+        elif line.startswith("SQLResult:"):
+            break
+        # If we're currently reading the query, append the line to the query
+        elif reading_query:
+            query += " " + line.strip()
+
+    # If no line starts with "SQLQuery:", return None
+    if query == "":
+        return None
+
+    return query
+
+
+def query_database(database: Database, query: str) -> str:
+    """
+    Execute a query on a database connection
+
+    :param database: mindsdb Database object
+    :param query: SQL query string
+
+    :return: query results as a string
+    """
+    try:
+        results = str(
+            database.query(query).fetch()
+        )
+    except Exception as e:
+        results = f"query failed with error: {e}"
+    return results
+
+
+def execute_function_call(message, database: Database = None) -> str:
+    """
+    Execute a function call in a message
+
+    """
+    if message.tool_calls[0].function.name == "query_database":
+        query = json.loads(message.tool_calls[0].function.arguments)["query"]
+        results = query_database(database, query)
+    else:
+        results = f"Error: function {message.tool_calls[0].function.name} does not exist"
+    return results
+
+
+def pretty_print_conversation(messages):
+    # you will need to pip install termcolor
+    from termcolor import colored
+    role_to_color = {
+        "system":"red",
+        "user":"green",
+        "assistant":"blue",
+        "function":"magenta",
+    }
+
+    for message in messages:
+        if message["role"] == "system":
+            print(colored(f"system: {message['content']}\n", role_to_color[message["role"]]))
+        elif message["role"] == "user":
+            print(colored(f"user: {message['content']}\n", role_to_color[message["role"]]))
+        elif message["role"] == "assistant" and message.get("function_call"):
+            print(colored(f"assistant: {message['function_call']}\n", role_to_color[message["role"]]))
+        elif message["role"] == "assistant" and not message.get("function_call"):
+            print(colored(f"assistant: {message['content']}\n", role_to_color[message["role"]]))
+        elif message["role"] == "function":
+            print(colored(f"function ({message['name']}): {message['content']}\n", role_to_color[message["role"]]))

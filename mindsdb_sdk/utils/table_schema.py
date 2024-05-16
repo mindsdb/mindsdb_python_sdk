@@ -1,8 +1,21 @@
 from typing import List
+
+import pandas as pd
+
 from mindsdb_sdk.databases import Databases
 
 
-def get_dataframe_schema(df):
+N_ROWS = 10
+
+
+def get_dataframe_schema(df: pd.DataFrame):
+    """
+    Get the schema of a DataFrame
+
+    :param df: DataFrame
+
+    :return: list of dictionaries containing column names and types
+    """
     # Get the dtypes Series
     try:
         df = df.convert_dtypes()
@@ -17,12 +30,14 @@ def get_dataframe_schema(df):
     return schema
 
 
-def get_table_schemas(database: Databases, included_tables: List[str] = None):
+def get_table_schemas(database: Databases, included_tables: List[str] = None, n_rows: int = N_ROWS) -> dict:
     """
     Get table schemas from a database
 
     :param database: database object
     :param included_tables: list of table names to get schemas for
+    :param n_rows: number of rows to fetch from each table
+
     :return: dictionary containing table schemas
     """
 
@@ -33,7 +48,8 @@ def get_table_schemas(database: Databases, included_tables: List[str] = None):
 
     table_schemas = {}
     for table in tables:
-        table_df = database.get_table(table).fetch()
+        # Get the first 10 rows of the table
+        table_df = database.get_table(table).fetch().head(n_rows)
         # Convert schema to list of dictionaries
         table_schemas[table] = get_dataframe_schema(table_df)
 
