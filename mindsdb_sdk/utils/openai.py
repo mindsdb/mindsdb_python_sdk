@@ -109,7 +109,7 @@ def make_mindsdb_tool(schema: dict) -> dict:
     }
 
 
-def make_data_tool(
+def litellm_text2sql_callback_tool(
     model: str,
     data_source: str,
     description: str,
