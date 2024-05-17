@@ -34,19 +34,22 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, is_managed=False, headers=None):
+    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, headers=None):
 
         self.url = url
         self.username = login
         self.password = password
+        self.api_key = api_key
         self.is_managed = is_managed
         self.session = requests.Session()
 
         self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
-
         if headers is not None:
             self.session.headers.update(headers)
-
+        if self.api_key is not None:
+            # Authenticate with API key instead of logging in, if present.
+            self.session.headers['X-Api-Key'] = self.api_key
+            return
         if login is not None:
             self.login()
 

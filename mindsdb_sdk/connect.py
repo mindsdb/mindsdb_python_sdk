@@ -6,13 +6,20 @@ DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:47334'
 DEFAULT_CLOUD_API_URL = 'https://cloud.mindsdb.com'
 
 
-def connect(url: str = None, login: str = None, password: str = None, is_managed: bool = False, headers=None) -> Server:
+def connect(
+        url: str = None,
+        login: str = None,
+        password: str = None,
+        api_key: str = None,
+        is_managed: bool = False,
+        headers=None) -> Server:
     """
     Create connection to mindsdb server
 
     :param url: url to mindsdb server
     :param login: user login, for cloud version it contents email
     :param password: user password to login (for cloud version)
+    :param api_key: API key to authenticate (for cloud version)
     :param is_managed: whether or not the URL points to a managed instance
     :param headers: addtional headers to send with the connection, optional
     :return: Server object
@@ -29,8 +36,7 @@ def connect(url: str = None, login: str = None, password: str = None, is_managed
 
     Connect to cloud server
 
-    >>> con = mindsdb_sdk.connect(login='a@b.com', password='-')
-    >>> con = mindsdb_sdk.connect('https://cloud.mindsdb.com', login='a@b.com', password='-')
+    >>> con = mindsdb_sdk.connect('https://cloud.mindsdb.com', api_key='-')
 
     Connect to MindsDB pro
 
@@ -45,6 +51,6 @@ def connect(url: str = None, login: str = None, password: str = None, is_managed
             # is local
             url = DEFAULT_LOCAL_API_URL
 
-    api = RestAPI(url, login, password, is_managed, headers=headers)
+    api = RestAPI(url, login, password, api_key, is_managed, headers=headers)
 
     return Server(api)
