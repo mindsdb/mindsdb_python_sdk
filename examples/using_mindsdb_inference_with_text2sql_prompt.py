@@ -1,5 +1,6 @@
 from openai import OpenAI
-from mindsdb_sdk.utils.openai import extract_sql_query, query_database, chat_completion_request
+from mindsdb_sdk.utils.openai import extract_sql_query, query_database, chat_completion_request, \
+    pretty_print_conversation
 
 import mindsdb_sdk
 import os
@@ -90,4 +91,5 @@ chat_completion_gpt = chat_completion_request(client=client_mindsdb_serve, model
                                               tool_choice=None)
 response = chat_completion_gpt.choices[0].message.content
 
-print(response)
+pretty_print_conversation(messages)
+

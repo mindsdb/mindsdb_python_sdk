@@ -109,6 +109,64 @@ def make_mindsdb_tool(schema: dict) -> dict:
     }
 
 
+def make_data_tool(
+    model: str,
+    data_source: str,
+    description: str,
+    connection_args: dict
+):
+    """
+    tool passing connection details for datasource to litellm callback
+
+    :param model: model name for text to sql completion
+    :param data_source: data source name
+    :param description: description of the data source
+    :param connection_args: connection arguments for the data source
+
+    :return: dictionary containing function metadata for openai tools
+    """
+    # Convert the connection_args dictionary to a JSON object
+    connection_args_json = json.dumps(connection_args)
+
+    tool_description = f"""
+Queries the provided data source about user data. When calling this function, ALWAYS use the following arguments:
+- model: {model}
+- connection_args: {connection_args_json}
+- data_source: {data_source}
+- description: {description}
+"""
+
+    return {
+        "type":"function",
+        "function":{
+            "name":"get_mindsdb_text_to_sql_completion",
+            "description":tool_description,
+            "parameters":{
+                "type":"object",
+                "properties":{
+                    "model":{
+                        "type":"string",
+                        "description":"llm model name to use for text to sql completion",
+                    },
+                    "data_source":{
+                        "type":"string",
+                        "description":"Data source name",
+                    },
+                    "connection_args":{
+                        "type":"object",
+                        "description":"Connection arguments for the data source",
+                    },
+                    "description":{
+                        "type":"string",
+                        "description":"Description of the data source",
+                    }
+                },
+                "required": ['data_source', 'connection_args', 'model', 'description']
+            }
+        }
+    }
+
+
 def extract_sql_query(result: str) -> str:
     """
     Extract the SQL query from an openai result string
