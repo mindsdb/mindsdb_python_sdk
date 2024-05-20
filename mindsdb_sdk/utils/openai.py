@@ -49,7 +49,6 @@ def make_openai_tool(function: callable, description: str = None) -> dict:
 
     :return: dictionary containing function metadata
     """
-    # You will need to pip install docstring-parser to use this function
 
     import inspect
     import docstring_parser
