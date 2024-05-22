@@ -48,9 +48,7 @@ def get_table_schemas(database: Databases, included_tables: List[str] = None, n_
 
     table_schemas = {}
     for table in tables:
-        # Get the first 10 rows of the table
-        table_df = database.get_table(table).fetch().head(n_rows)
-        # Convert schema to list of dictionaries
+        table_df = database.get_table(table).limit(n_rows).fetch()
         table_schemas[table] = get_dataframe_schema(table_df)
 
     return table_schemas
