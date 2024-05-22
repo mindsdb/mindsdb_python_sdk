@@ -2,10 +2,10 @@ from openai import OpenAI
 
 
 from mindsdb_sdk.utils.openai import (
-                                      make_mindsdb_tool,
-                                      execute_function_call,
-                                      chat_completion_request,
-                                      pretty_print_conversation)
+    make_query_tool,
+    execute_function_call,
+    chat_completion_request,
+    pretty_print_conversation)
 
 import mindsdb_sdk
 import os
@@ -33,10 +33,10 @@ client_mindsdb_serve = OpenAI(
     api_key=OPENAI_API_KEY
 )
 
-database = con.databases.get("example_db")
+database = con.databases.get("mindsdb_demo_db")
 schema = get_table_schemas(database, included_tables=["airline_passenger_satisfaction"])
 
-tools = [make_mindsdb_tool(schema)]
+tools = [make_query_tool(schema)]
 
 SYSTEM_PROMPT = """You are a SQL expert. Given an input question, Answer user questions by generating SQL queries 
 against the database schema provided in tools 

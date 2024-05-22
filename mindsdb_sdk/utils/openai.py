@@ -96,7 +96,7 @@ def make_openai_tool(function: callable, description: str = None) -> dict:
     return function_dict
 
 
-def make_mindsdb_tool(schema: dict) -> dict:
+def make_query_tool(schema: dict) -> dict:
     """
     Make an OpenAI tool for querying a database connection in MindsDB
 
@@ -128,14 +128,14 @@ def make_mindsdb_tool(schema: dict) -> dict:
     }
 
 
-def litellm_text2sql_callback_tool(
+def make_data_tool(
     model: str,
     data_source: str,
     description: str,
     connection_args: dict
 ):
     """
-    tool passing connection details for datasource to litellm callback
+    tool passing mindsdb database connection details for datasource to litellm callback
 
     :param model: model name for text to sql completion
     :param data_source: data source name
