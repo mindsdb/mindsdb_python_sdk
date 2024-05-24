@@ -29,7 +29,8 @@ class Server(Project):
         # server is also mindsdb project
         project_name = 'mindsdb'
         self.databases = Databases(api)
-        super().__init__(api, project_name, skills=skills, agents=agents, databases=self.databases)
+        self.ml_engines = MLEngines(api)
+        super().__init__(api, project_name, skills=skills, agents=agents, databases=self.databases, ml_engines=self.ml_engines)
 
         self.projects = Projects(api)
 
@@ -46,7 +47,6 @@ class Server(Project):
         self.create_database = self.databases.create
         self.drop_database = self.databases.drop
 
-        self.ml_engines = MLEngines(self.api)
 
         self.ml_handlers = Handlers(self.api, 'ml')
         self.data_handlers = Handlers(self.api, 'data')

@@ -1,11 +1,11 @@
 from functools import wraps
-from typing import List
+from typing import List, Union
 import io
 
 import requests
 import pandas as pd
 
-from .. import __about__
+from mindsdb_sdk import __about__
 
 
 def _try_relogin(fnc):
@@ -34,19 +34,22 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, is_managed=False, headers=None):
+    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, headers=None):
 
         self.url = url
         self.username = login
         self.password = password
+        self.api_key = api_key
         self.is_managed = is_managed
         self.session = requests.Session()
 
         self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
-
         if headers is not None:
             self.session.headers.update(headers)
-
+        if self.api_key is not None:
+            # Authenticate with API key instead of logging in, if present.
+            self.session.headers['X-Api-Key'] = self.api_key
+            return
         if login is not None:
             self.login()
 
@@ -73,7 +76,11 @@ class RestAPI:
         _raise_for_status(r)
 
     @_try_relogin
-    def sql_query(self, sql, database='mindsdb', lowercase_columns=False):
+    def sql_query(self, sql, database=None, lowercase_columns=False):
+
+        if database is None:
+            # it means the database is included in query
+            database = 'mindsdb'
         url = self.url + '/api/sql/query'
         r = self.session.post(url, json={
             'query': sql,
@@ -124,27 +131,71 @@ class RestAPI:
 
         return pd.DataFrame(r.json())
 
-    @_try_relogin
-    def upload_file(self, name: str, df: pd.DataFrame):
-
-        # convert to file
+    @staticmethod
+    def read_file_as_bytes(file_path: str):
+        """
+        Read and return content of a file in bytes, given its path.
+        :param file_path: Path of the file to read.
+        :return: File content in bytes.
+        """
+        try:
+            with open(file_path, 'rb+') as file:
+                return file.read()
+        except FileNotFoundError:
+            raise Exception(f'File {file_path} does not exist.')
+        except PermissionError:
+            raise Exception(f'Permission denied when reading file {file_path}.')
+        except Exception as e:
+            raise Exception(f'Unknown error occurred when reading file {file_path} - {str(e)}')
+    @staticmethod
+    def read_dataframe_as_csv(data: pd.DataFrame):
+        """
+        Read and return content of a DataFrame as CSV in bytes.
+        :param data: DataFrame to read.
+        :return: DataFrame content as CSV in bytes.
+        """
         fd = io.BytesIO()
-        df.to_csv(fd, index=False)
+        data.to_csv(fd, index=False)
         fd.seek(0)
+        return fd.read()
+
+    def upload_data(self, file_name: str, data: bytes):
+        """
+        Upload binary data to MindsDB.
+        :param file_name: Name of the file.
+        :param data: Binary data to upload.
+        """
+        # remove suffix from file if present
+        name = file_name.split('.')[0]
 
         url = self.url + f'/api/files/{name}'
         r = self.session.put(
             url,
             data={
-                'source': name,
-                'name': name,
-                'source_type': 'file',
+                'original_file_name':file_name,
+                'name':name,
+                'source_type':'file',
             },
             files={
-                'file': fd,
+                'file': (file_name, data)
+
             }
         )
         _raise_for_status(r)
+
+    @_try_relogin
+    def upload_file(self, name: str, data: Union[pd.DataFrame, str]):
+        """
+        Upload a file or a DataFrame to MindsDB.
+        :param name: Name of the file or DataFrame.
+        :param data: DataFrame data or file path.
+        """
+        if isinstance(data, pd.DataFrame):
+            data_in_bytes = self.read_dataframe_as_csv(data)
+        else:
+            data_in_bytes = self.read_file_as_bytes(data)
+
+        self.upload_data(name, data_in_bytes)
 
     @_try_relogin
     def get_file_metadata(self, name: str) -> dict:
@@ -319,3 +370,32 @@ class RestAPI:
         url = self.url + f'/api/projects/{project}/skills/{name}'
         r = self.session.delete(url)
         _raise_for_status(r)
+
+    # Knowledge Base operations.
+    @_try_relogin
+    def insert_files_into_knowledge_base(self, project: str, knowledge_base_name: str, file_names: List[str]):
+        r = self.session.put(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
+            json={
+                'knowledge_base': {
+                    'files': file_names
+                }
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
+
+    @_try_relogin
+    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str]):
+        r = self.session.put(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
+            json={
+                'knowledge_base': {
+                    'urls': urls
+                }
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()

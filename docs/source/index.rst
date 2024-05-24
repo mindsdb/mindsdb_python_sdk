@@ -120,6 +120,10 @@ API documentation
    query
    jobs
 
+   knowledge_bases
+   skills
+   agents
+
 
 Indices and tables
 ------------------

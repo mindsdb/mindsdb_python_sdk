@@ -18,7 +18,7 @@ class Skill():
 
     Create a new SQL skill:
 
-    >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database' })
+    >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database', 'description': 'my_description'})
 
     Update a skill:
 
@@ -50,19 +50,23 @@ class Skill():
 
     @classmethod
     def from_json(cls, json: dict):
+        name = json['name']
+        type = json['type']
+        params = json['params']
         if json['type'] == 'sql':
-            return SQLSkill(json['name'], json['params']['tables'], json['params']['database'])
+            return SQLSkill(name, params['tables'], params['database'], params.get('description', ''))
         if json['type'] == 'retrieval':
-            return RetrievalSkill(json['name'], json['params']['knowledge_base'], json['params']['description'])
-        return Skill(json['name'], json['type'], json['params'])
+            return RetrievalSkill(name, params['source'], params.get('description', ''))
+        return Skill(name, type, params)
 
 
 class SQLSkill(Skill):
     """Represents a MindsDB skill for agents to interact with MindsDB databases"""
-    def __init__(self, name: str, tables: List[str], database: str):
+    def __init__(self, name: str, tables: List[str], database: str, description: str):
         params = {
             'database': database,
             'tables': tables,
+            'description': description
         }
         super().__init__(name, 'sql', params)
 
@@ -70,10 +74,10 @@ class RetrievalSkill(Skill):
     """Represents a MindsDB skill for agents to interact with MindsDB data sources"""
     def __init__(self, name: str, knowledge_base: str, description: str):
         params = {
-            'knowledge_base': knowledge_base,
+            'source': knowledge_base,
             'description': description
         }
-        super().__init__(name, 'knowledge_base', params)
+        super().__init__(name, 'retrieval', params)
 
 
 class Skills(CollectionBase):
@@ -114,7 +118,7 @@ class Skills(CollectionBase):
         """
         _ = self.api.create_skill(self.project, name, type, params)
         if type == 'sql':
-            return SQLSkill(name, params['tables'], params['database'])
+            return SQLSkill(name, params['tables'], params['database'], params['description'])
         return Skill(name, type, params)
 
     def update(self, name: str, updated_skill: Skill) -> Skill:

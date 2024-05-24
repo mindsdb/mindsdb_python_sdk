@@ -38,6 +38,25 @@ def response_mock(mock, data):
     mock.side_effect = side_effect
 
 
+def responses_mock(mock, data):
+    side_effect_fns = []
+    for d in data:
+        if isinstance(d, pd.DataFrame):
+            # to sql/query format (mostly used)
+            pd_data = d.to_dict('split')
+            d = {
+                'type': 'table',
+                'column_names': pd_data['columns'],
+                'data': pd_data['data']
+            }
+        def side_effect(*args, **kwargs):
+            r_mock = Mock()
+            r_mock.status_code = 200
+            r_mock.json.return_value = d
+            return r_mock
+        side_effect_fns.append(side_effect())
+    mock.side_effect = side_effect_fns
+
 def check_sql_call(mock, sql, database=None, call_stack_num=None):
     if call_stack_num is not None:
         call_args = mock.mock_calls[call_stack_num]
@@ -101,15 +120,24 @@ class BaseFlow:
         pred_df = model.predict(query, params={ 'x': '1' })
 
         check_sql_call(mock_post,
-                       f'SELECT m.* FROM (SELECT a FROM t1) as t JOIN {model.project.name}.{model_name} AS m USING x="1"')
+                       f'SELECT m.* FROM (SELECT * FROM {query.database} (select a from t1)) AS t JOIN {model.project.name}.{model_name} AS m USING x="1"')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
+
+        # using table
+        table0 = database.tables.tbl0
+        pred_df = model.predict(table0)
+
+        check_sql_call(mock_post,
+                       f'SELECT m.* FROM (SELECT * FROM {table0.db.name}.tbl0) AS t JOIN {model.project.name}.{model_name} AS m')
+        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+
 
         # time series prediction
         query = database.query('select * from t1 where type="house" and saledate>latest')
         model.predict(query)
 
         check_sql_call(mock_post,
-                       f"SELECT m.* FROM (SELECT * FROM t1 WHERE type = 'house' AND saledate > LATEST) as t JOIN {model.project.name}.{model_name} AS m")
+                       f'SELECT m.* FROM (SELECT * FROM {query.database} (select * from t1 where type="house" and saledate>latest)) as t JOIN {model.project.name}.{model_name} AS m')
         assert (pred_df == pd.DataFrame(data_out)).all().bool()
 
         # -----------  model managing  --------------
@@ -167,7 +195,7 @@ class BaseFlow:
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
         assert mock_call[1]['json'][
-                   'query'] == f"update models_versions set active=1 where name = '{model2.name}' AND version = 3"
+                   'query'] == f"update {model2.project.name}.models_versions set active=1 where name = '{model2.name}' AND version = 3"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -176,12 +204,12 @@ class BaseFlow:
         table2 = table.filter(a=3, b='2').limit(3)
         table2.fetch()
         str(table2)
-        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
+        check_sql_call(mock_post, f'SELECT * FROM {table2.db.name}.{table2.name} WHERE a = 3 AND b = \'2\' LIMIT 3')
 
         # last
         table2 = table.filter(a=3).track('type')
         table2.fetch()
-        check_sql_call(mock_post, f'SELECT * FROM {table2.name} WHERE a = 3 AND type > last')
+        check_sql_call(mock_post, f'SELECT * FROM {table2.db.name}.{table2.name} WHERE a = 3 AND type > last')
 
 
 class Test(BaseFlow):
@@ -382,7 +410,7 @@ class Test(BaseFlow):
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
+            f'CREATE PREDICTOR {project.name}.m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         model.wait_complete()
@@ -399,14 +427,14 @@ class Test(BaseFlow):
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM {database.name} (select * from t2) PREDICT price'
+            f'CREATE PREDICTOR {project.name}.m2 FROM {database.name} (select * from t2) PREDICT price'
         )
 
         assert model.name == 'm2'
         self.check_model(model, database)
 
         project.drop_model('m3-a')
-        check_sql_call(mock_post, f'DROP PREDICTOR `m3-a`')
+        check_sql_call(mock_post, f'DROP PREDICTOR {project.name}.`m3-a`')
 
         # the old way of join model with table
         sql = '''
@@ -476,6 +504,7 @@ class Test(BaseFlow):
         sql = 'select * from tbl1'
         query = database.query(sql)
         assert query.sql == sql
+        table0 = database.tables.tbl0
 
         result = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
         response_mock(mock_post, result)
@@ -498,8 +527,8 @@ class Test(BaseFlow):
         self.check_table(table)
 
         # create from query
-        table2 = database.create_table('t2', query)
-        check_sql_call(mock_post, f'create table {database.name}.t2 (select * from tbl1)')
+        table2 = database.create_table('t2', table0)
+        check_sql_call(mock_post, f'create table {database.name}.t2 (select * from {database.name}.tbl0)')
 
         assert table2.name == 't2'
         self.check_table(table2)
@@ -508,14 +537,14 @@ class Test(BaseFlow):
         table1 = database.get_table('t1')
         table1 = table1.filter(b=2)
         table3 = database.create_table('t3', table1)
-        check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM t1 WHERE b = 2)')
+        check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM {table1.db.name}.t1 WHERE b = 2)')
 
         assert table3.name == 't3'
         self.check_table(table3)
 
         # drop table
         database.drop_table('t3')
-        check_sql_call(mock_post, f'drop table t3')
+        check_sql_call(mock_post, f'drop table {database.name}.t3')
 
 
     @patch('requests.Session.post')
@@ -736,9 +765,9 @@ class CustomPredictor():
 
         self.check_project_models_versions(project, database)
 
-        self.check_project_jobs(project)
+        kb = self.check_project_kb(project, model, database)
 
-        self.check_project_kb(project, model, database)
+        self.check_project_jobs(project, model, database, kb)
 
     @patch('requests.Session.get')
     @patch('requests.Session.post')
@@ -836,7 +865,7 @@ class CustomPredictor():
         )
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
+            f'CREATE PREDICTOR {project.name}.m2 FROM example_db (select * from t1) PREDICT price ORDER BY date GROUP BY a, b WINDOW 10 HORIZON 2 USING module="LightGBM", `engine`="lightwood"'
         )
         assert model.name == 'm2'
         self.check_model(model, database)
@@ -851,7 +880,7 @@ class CustomPredictor():
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 FROM {database.name} (select * from t2) PREDICT price'
+            f'CREATE PREDICTOR {project.name}.m2 FROM {database.name} (select * from t2) PREDICT price'
         )
 
         # create without database
@@ -864,14 +893,14 @@ class CustomPredictor():
 
         check_sql_call(
             mock_post,
-            f'CREATE PREDICTOR m2 PREDICT response USING prompt="make up response", `engine`="openai"'
+            f'CREATE PREDICTOR {project.name}.m2 PREDICT response USING prompt="make up response", `engine`="openai"'
         )
 
         assert model.name == 'm2'
         self.check_model(model, database)
 
         project.models.drop('m3-a')
-        check_sql_call(mock_post, f'DROP PREDICTOR `m3-a`')
+        check_sql_call(mock_post, f'DROP PREDICTOR {project.name}.`m3-a`')
 
         # the old way of join model with table
         sql = '''
@@ -942,6 +971,8 @@ class CustomPredictor():
         query = database.query(sql)
         assert query.sql == sql
 
+        table0 = database.tables.tbl0
+
         result = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
         response_mock(mock_post, result)
 
@@ -964,12 +995,12 @@ class CustomPredictor():
         self.check_table(table)
 
         # create from query
-        table2 = database.tables.create('t2', query)
-        check_sql_call(mock_post, f'create table {database.name}.t2 (select * from tbl1)')
+        table2 = database.tables.create('t2', table0)
+        check_sql_call(mock_post, f'create table {database.name}.t2 (select * from {database.name}.tbl0)')
 
         # create with replace
-        database.tables.create('t2', query, replace=True)
-        check_sql_call(mock_post, f'create or replace table {database.name}.t2 (select * from tbl1)')
+        database.tables.create('t2', table0, replace=True)
+        check_sql_call(mock_post, f'create or replace table {database.name}.t2 (select * from {database.name}.tbl0)')
 
 
         assert table2.name == 't2'
@@ -978,11 +1009,11 @@ class CustomPredictor():
         # -- insert into table --
         # from dataframe
         table2.insert(pd.DataFrame([{'s': '1', 'x': 1}, {'s': 'a', 'x': 2}]))
-        check_sql_call(mock_post, "INSERT INTO t2(s, x) VALUES ('1', 1), ('a', 2)")
+        check_sql_call(mock_post, f"INSERT INTO {table2.db.name}.t2(s, x) VALUES ('1', 1), ('a', 2)")
 
         # from query
         table2.insert(query)
-        check_sql_call(mock_post, f"INSERT INTO {database.name}.t2 (select * from tbl1)")
+        check_sql_call(mock_post, f"INSERT INTO {database.name}.t2 (select * from {query.database}(select * from tbl1))")
 
         # -- delete in table --
         table2.delete(a=1, b='2')
@@ -991,27 +1022,27 @@ class CustomPredictor():
         # -- update table --
         # from query
         table2.update(query, on=['a', 'b'])
-        check_sql_call(mock_post, f"UPDATE {database.name}.t2 ON a, b FROM (select * from tbl1)")
+        check_sql_call(mock_post, f"UPDATE {database.name}.t2 ON a, b FROM (select * from  {query.database}(select * from tbl1))")
 
         # from dict
         table2.update({'a': '1', 'b': 1}, filters={'x': 3})
-        check_sql_call(mock_post, f"UPDATE t2 SET a='1', b=1 WHERE x=3")
+        check_sql_call(mock_post, f"UPDATE {table2.db.name}.t2 SET a='1', b=1 WHERE x=3")
 
         # create from table
         table1 = database.tables.t1
         table1 = table1.filter(b=2)
         table3 = database.tables.create('t3', table1)
-        check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM t1 WHERE b = 2)')
+        check_sql_call(mock_post, f'create table {database.name}.t3 (SELECT * FROM {table1.db.name}.t1 WHERE b = 2)')
 
         assert table3.name == 't3'
         self.check_table(table3)
 
         # drop table
         database.tables.drop('t3')
-        check_sql_call(mock_post, f'drop table t3')
+        check_sql_call(mock_post, f'drop table {database.name}.t3')
 
     @patch('requests.Session.post')
-    def check_project_jobs(self, project, mock_post):
+    def check_project_jobs(self, project, model, database, kb, mock_post):
 
         response_mock(mock_post, pd.DataFrame([{
             'NAME': 'job1',
@@ -1081,6 +1112,22 @@ class CustomPredictor():
             f"DROP JOB job2"
         )
 
+        # using context
+        with project.jobs.create(name='job2', repeat_min=1) as job:
+            job.add_query(model.retrain())
+            job.add_query(model.predict(database.tables.tbl1))
+            job.add_query(kb.insert(database.tables.tbl1))
+            job.add_query('show models')
+
+        retrain_sql = f'RETRAIN {model.project.name}.{model.name}'
+        predict_sql = f'SELECT m.* FROM (SELECT * FROM {database.name}.tbl1) AS t JOIN {model.project.name}.{model.name} AS m'
+        kb_sql = f'INSERT INTO {kb.project.name}.{kb.name} (SELECT * FROM {database.name}.tbl1)'
+
+        check_sql_call(
+            mock_post,
+            f"CREATE JOB job2 ({retrain_sql}; {predict_sql}; {kb_sql}; show models) EVERY 1 minutes",
+            call_stack_num=-2
+        )
 
     @patch('requests.Session.post')
     def check_project_kb(self, project, model, database, mock_post):
@@ -1124,7 +1171,7 @@ class CustomPredictor():
         check_sql_call(
             mock_post,
             f''' insert into {project.name}.{kb.name} (
-               select * from tbl2 where a=1
+               select * from {database.name}.tbl2 where a=1
             )'''
         )
 
@@ -1148,7 +1195,7 @@ class CustomPredictor():
         check_sql_call(
             mock_post,
             f'''
-            CREATE KNOWLEDGE_BASE kb2
+            CREATE KNOWLEDGE_BASE {project.name}.kb2
               USING model={model_name}, 
               metadata_columns=['date', 'author'],
               k='v'
@@ -1168,7 +1215,7 @@ class CustomPredictor():
         check_sql_call(
             mock_post,
             f'''
-            CREATE KNOWLEDGE_BASE kb2
+            CREATE KNOWLEDGE_BASE {project.name}.kb2
               USING storage={table_name}, 
               content_columns=['review'],
               id_column='num'
@@ -1181,8 +1228,11 @@ class CustomPredictor():
 
         check_sql_call(
             mock_post,
-            "DROP KNOWLEDGE_BASE kb2"
+            f"DROP KNOWLEDGE_BASE {project.name}.kb2"
         )
+
+        return kb
+
 
 class TestAgents():
     @patch('requests.Session.get')
@@ -1251,7 +1301,8 @@ class TestAgents():
         assert agent == expected_agent
 
     @patch('requests.Session.post')
-    def test_create(self, mock_post):
+    @patch('requests.Session.get')
+    def test_create(self, mock_get, mock_post):
         created_at = dt.datetime(2000, 3, 1, 9, 30)
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
         data = {
@@ -1264,26 +1315,34 @@ class TestAgents():
                 'name': 'test_skill',
                 'project_id': 1,
                 'type': 'sql',
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
             }],
             'params': {'k1': 'v1'},
             'created_at': created_at,
             'updated_at': updated_at
         }
-        response_mock(mock_post, data)
+        responses_mock(mock_post, [
+            # ML Engine get (SQL post for SHOW ML_ENGINES)
+            pd.DataFrame([{'name': 'langchain', 'handler': 'langchain', 'connection_data': {}}]),
+            data
+        ])
+        responses_mock(mock_get, [
+            # Skill get.
+            {'name': 'test_skill', 'type': 'sql', 'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}},
+        ])
 
         # Create the agent.
         server = mindsdb_sdk.connect()
         new_agent = server.agents.create(
             name='test_agent',
             model=Model(None, {'name':'m1'}),
-            skills=[SQLSkill('test_skill', ['test_table'], 'test_database')],
+            skills=['test_skill'],
             params={'k1': 'v1'}
         )
         # Check API call.
         assert len(mock_post.call_args_list) == 2
-        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
-        assert mock_post.call_args[1]['json'] == {
+        assert mock_post.call_args_list[-1][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
+        assert mock_post.call_args_list[-1][1]['json'] == {
             'agent': {
                 'name': 'test_agent',
                 'model_name':'m1',
@@ -1291,18 +1350,7 @@ class TestAgents():
                 'params': {'k1': 'v1'}
             }
         }
-
-        # Skill should have been created too.
-        assert mock_post.call_args_list[-2][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args_list[-2][1]['json'] == {
-           'skill': {
-                'name': 'test_skill',
-                'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table']}
-            }
-        }
-
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         expected_agent = Agent(
             'test_agent',
             'test_model',
@@ -1332,7 +1380,7 @@ class TestAgents():
                 'name': 'updated_skill',
                 'project_id': 1,
                 'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'test_description'},
             }],
             'params': {'k2': 'v2'},
             'created_at': created_at,
@@ -1354,7 +1402,7 @@ class TestAgents():
         expected_agent = Agent(
             'test_agent',
             'updated_model',
-            [SQLSkill('updated_skill', ['updated_table'], 'updated_database')],
+            [SQLSkill('updated_skill', ['updated_table'], 'updated_database', 'test_description')],
             {'k2': 'v2'},
             created_at,
             updated_at
@@ -1405,6 +1453,202 @@ class TestAgents():
         # Check API call.
         assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
 
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_file(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # File metadata get.
+            [{'name': 'tokaido_rules'}],
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # KB get (POST /sql).
+            pd.DataFrame([
+                {'name': 'test_agent_tokaido_rules_kb', 'storage': None, 'model': None},
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}
+        ])
+        responses_mock(mock_put, [
+            # KB update.
+            {'name': 'test_agent_tokaido_rules_kb'},
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido', 'existing_kb')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
+
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_webpage(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # KB get (POST /sql).
+            pd.DataFrame([
+                {'name': 'test_agent_docs_mdb_ai_kb', 'storage': None, 'model': None},
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}
+        ])
+        responses_mock(mock_put, [
+            # KB update.
+            {'name': 'test_agent_docs_mdb_ai_kb'},
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB', 'existing_kb')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
+    def test_add_database(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}},
+            # Existing agent get in Agent update.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        responses_mock(mock_post, [
+            # DB get (POST /sql).
+            pd.DataFrame([
+                {'NAME': 'existing_db'}
+            ]),
+            # DB tables get (POST /sql).
+            pd.DataFrame([
+                {'name': 'existing_table'}
+            ]),
+            # Skill creation.
+            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}
+        ])
+        responses_mock(mock_put, [
+            # Agent update with new skill.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [{'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}],
+                'params': {},
+                'created_at': None,
+                'updated_at': None
+            },
+        ])
+        server.agents.add_database('test_agent', 'existing_db', ['existing_table'], 'My data')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent': {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove': [],
+                'params': {},
+            }
+        }
+        assert agent_update_json == expected_agent_json
 
 class TestSkills():
     @patch('requests.Session.get')
@@ -1422,14 +1666,14 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description' },
                 'type': 'sql'
             }
         ])
         all_skills = server.skills.list()
         assert len(all_skills) == 1
 
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         assert all_skills[0] == expected_skill
 
     @patch('requests.Session.get')
@@ -1440,14 +1684,14 @@ class TestSkills():
                 'id': 1,
                 'name': 'test_skill',
                 'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database'},
+                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
                 'type': 'sql'
             }
         )
         skill = server.skills.get('test_skill')
         # Check API call.
         assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         assert skill == expected_skill
 
     @patch('requests.Session.post')
@@ -1456,7 +1700,7 @@ class TestSkills():
             'id': 1,
             'name': 'test_skill',
             'project_id': 1,
-            'params': {'k1': 'v1'},
+            'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
             'type': 'test'
         }
         response_mock(mock_post, data)
@@ -1466,7 +1710,7 @@ class TestSkills():
         new_skill = server.skills.create(
             'test_skill',
             'sql',
-            params={'tables': ['test_table'], 'database': 'test_database'}
+            params={'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}
         )
         # Check API call.
         assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
@@ -1474,10 +1718,10 @@ class TestSkills():
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table']}
+                'params': {'database': 'test_database', 'tables': ['test_table'], 'description': 'test_description'}
             }
         }
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database')
+        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
 
         assert new_skill == expected_skill
 
@@ -1487,13 +1731,13 @@ class TestSkills():
             'id': 1,
             'name': 'test_skill',
             'project_id': 1,
-            'params': {'tables': ['updated_table'], 'database': 'updated_database'},
+            'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'},
             'type': 'sql'
         }
         response_mock(mock_put, data)
 
         server = mindsdb_sdk.connect()
-        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database')
+        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database', 'updated_description')
 
         updated_skill = server.skills.update('test_skill', expected_skill)
         # Check API call.
@@ -1502,7 +1746,7 @@ class TestSkills():
            'skill': {
                 'name': 'test_skill',
                 'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database'}
+                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'}
             }
         }
 

@@ -9,11 +9,13 @@ from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
 from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
 from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
 from mindsdb_sql import parse_sql
+from mindsdb_sql.exceptions import ParsingException
 
 from .ml_engines import MLEngine
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
-from mindsdb_sdk.utils.sql import dict_to_binary_op
+from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
+from mindsdb_sdk.utils.context import is_saving
 
 from .query import Query
 
@@ -105,7 +107,7 @@ class Model:
         version = ''
         if self.version is not None:
             version = f', version={self.version}'
-        return f'{self.__class__.__name__}({self.name}{version}, status={self.data["status"]})'
+        return f'{self.__class__.__name__}({self.name}{version}, status={self.data.get("status")})'
 
     def _get_identifier(self):
         parts = [self.project.name, self.name]
@@ -113,7 +115,7 @@ class Model:
             parts.append(str(self.version))
         return Identifier(parts=parts)
 
-    def predict(self, data: Union[pd.DataFrame, Query, dict], params: dict = None) -> pd.DataFrame:
+    def predict(self, data: Union[pd.DataFrame, Query, dict], params: dict = None) -> Union[pd.DataFrame, Query]:
         """
         Make prediction using model
 
@@ -133,7 +135,10 @@ class Model:
 
         if isinstance(data, Query):
             # create join from select if it is simple select
-            ast_query = parse_sql(data.sql, dialect='mindsdb')
+            try:
+                ast_query = parse_sql(data.sql, dialect='mindsdb')
+            except ParsingException:
+                ast_query = None
 
             # injection of join disabled yet
             # if isinstance(ast_query, Select) and isinstance(ast_query.from_table, Identifier):
@@ -166,24 +171,45 @@ class Model:
             #     ast_query.targets = [Identifier(parts=['m', Star()])]
             #
 
-            # wrap query to subselect
             model_identifier = self._get_identifier()
             model_identifier.alias = Identifier('m')
 
-            ast_query.parentheses = True
-            ast_query.alias = Identifier('t')
-            upper_query = Select(
-                targets=[Identifier(parts=['m', Star()])],
-                from_table=Join(
-                    join_type='join',
-                    left=ast_query,
-                    right=model_identifier
+            if data.database is not None or ast_query is None or not isinstance(ast_query, Select):
+                # use native query
+                native_query = query_to_native_query(data)
+                native_query.parentheses = True
+                native_query.alias = Identifier('t')
+                upper_query = Select(
+                    targets=[Identifier(parts=['m', Star()])],
+                    from_table=Join(
+                        join_type='join',
+                        left=native_query,
+                        right=model_identifier
+                    )
                 )
-            )
+            else:
+                # wrap query to subselect
+                model_identifier = self._get_identifier()
+                model_identifier.alias = Identifier('m')
+
+                ast_query.parentheses = True
+                ast_query.alias = Identifier('t')
+                upper_query = Select(
+                    targets=[Identifier(parts=['m', Star()])],
+                    from_table=Join(
+                        join_type='join',
+                        left=ast_query,
+                        right=model_identifier
+                    )
+                )
             if params is not None:
                 upper_query.using = params
             # execute in query's database
-            return self.project.api.sql_query(upper_query.to_string(), database=data.database)
+            sql = upper_query.to_string()
+            if is_saving():
+                return Query(self, sql)
+
+            return self.project.api.sql_query(sql, database=None)
 
         elif isinstance(data, dict):
             data = pd.DataFrame([data])
@@ -290,15 +316,19 @@ class Model:
             integration_name=database,
             using=options or None,
         )
+        sql = ast_query.to_string()
 
-        data = self.project.query(ast_query.to_string()).fetch()
+        if is_saving():
+            return Query(self, sql)
+
+        data = self.project.api.sql_query(sql)
         data = {k.lower(): v for k, v in data.items()}
 
         # return new instance
         base_class = self.__class__
         return base_class(self.project, data)
 
-    def describe(self, type: str = None) -> pd.DataFrame:
+    def describe(self, type: str = None) -> Union[pd.DataFrame, Query]:
         """
         Return description of the model
 
@@ -312,7 +342,12 @@ class Model:
         if type is not None:
             identifier.parts.append(type)
         ast_query = Describe(identifier)
-        return self.project.query(ast_query.to_string()).fetch()
+
+        sql = ast_query.to_string()
+        if is_saving():
+            return Query(self, sql)
+
+        return self.project.api.sql_query(sql)
 
     def list_versions(self) -> List[ModelVersion]:
         """
@@ -354,7 +389,7 @@ class Model:
         :param version: version to set active
         """
         ast_query = Update(
-            table=Identifier('models_versions'),
+            table=Identifier(parts=[self.project.name, 'models_versions']),
             update_columns={
                 'active': Constant(1)
             },
@@ -363,7 +398,11 @@ class Model:
                 'version': version
             })
         )
-        self.project.query(ast_query.to_string()).fetch()
+        sql = ast_query.to_string()
+        if is_saving():
+            return Query(self, sql)
+
+        self.project.api.sql_query(sql)
         self.refresh()
 
 
@@ -410,7 +449,7 @@ class Models(CollectionBase):
         database: str = None,
         options: dict = None,
         timeseries_options: dict = None, **kwargs
-    ) -> Model:
+    ) -> Union[Model, Query]:
         """
         Create new model in project and return it
 
@@ -466,7 +505,7 @@ class Models(CollectionBase):
             targets = None
 
         ast_query = CreatePredictor(
-            name=Identifier(name),
+            name=Identifier(parts=[self.project.name, name]),
             query_str=query,
             integration_name=database,
             targets=targets,
@@ -502,7 +541,13 @@ class Models(CollectionBase):
 
             options['engine'] = engine
         ast_query.using = options
-        df = self.project.query(ast_query.to_string()).fetch()
+
+        sql = ast_query.to_string()
+
+        if is_saving():
+            return Query(self, sql)
+
+        df = self.project.api.sql_query(sql)
         if len(df) > 0:
             data = dict(df.iloc[0])
             # to lowercase
@@ -539,8 +584,12 @@ class Models(CollectionBase):
 
         :param name: name of the model
         """
-        ast_query = DropPredictor(name=Identifier(name))
-        self.project.query(ast_query.to_string()).fetch()
+        ast_query = DropPredictor(name=Identifier(parts=[self.project.name, name]))
+        sql = ast_query.to_string()
+        if is_saving():
+            return Query(self, sql)
+
+        self.project.api.sql_query(sql)
 
 
     def list(self, with_versions: bool = False,
