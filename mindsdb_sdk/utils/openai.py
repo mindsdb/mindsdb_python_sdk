@@ -1,11 +1,31 @@
 import json
+from logging import getLogger
+from typing import List
+
+import openai
+from openai.types.chat import ChatCompletionToolChoiceOptionParam
 
 from mindsdb_sdk.databases import Database
 from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 
-@retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
-def chat_completion_request(client, model, messages, tools=None, tool_choice=None):
+DEFAULT_RETRY_MULTIPLIER = 1
+DEFAULT_MAX_WAIT = 40
+DEFAULT_STOP_AFTER_ATTEMPT = 3
+
+logger = getLogger(__name__)
+
+
+@retry(wait=wait_random_exponential(multiplier=DEFAULT_RETRY_MULTIPLIER, max=DEFAULT_MAX_WAIT), stop=stop_after_attempt(
+    DEFAULT_RETRY_MULTIPLIER
+))
+def chat_completion_request(
+        client: openai.OpenAI,
+        model: str,
+        messages: List[dict],
+        tools: List = None,
+        tool_choice: ChatCompletionToolChoiceOptionParam = None
+):
     try:
         response = client.chat.completions.create(
             model=model,
@@ -15,8 +35,8 @@ def chat_completion_request(client, model, messages, tools=None, tool_choice=Non
         )
         return response
     except Exception as e:
-        print("Unable to generate ChatCompletion response")
-        print(f"Exception: {e}")
+        logger.warning("Unable to generate ChatCompletion response")
+        logger.warning(f"Exception: {e}")
         return e
 
 
@@ -29,7 +49,6 @@ def make_openai_tool(function: callable, description: str = None) -> dict:
 
     :return: dictionary containing function metadata
     """
-    # You will need to pip install docstring-parser to use this function
 
     import inspect
     import docstring_parser
@@ -77,7 +96,7 @@ def make_openai_tool(function: callable, description: str = None) -> dict:
     return function_dict
 
 
-def make_mindsdb_tool(schema: dict) -> dict:
+def make_query_tool(schema: dict) -> dict:
     """
     Make an OpenAI tool for querying a database connection in MindsDB
 
@@ -109,14 +128,14 @@ def make_mindsdb_tool(schema: dict) -> dict:
     }
 
 
-def litellm_text2sql_callback_tool(
+def make_data_tool(
     model: str,
     data_source: str,
     description: str,
     connection_args: dict
 ):
     """
-    tool passing connection details for datasource to litellm callback
+    tool passing mindsdb database connection details for datasource to litellm callback
 
     :param model: model name for text to sql completion
     :param data_source: data source name
@@ -153,7 +172,7 @@ Queries the provided data source about user data. When calling this function, AL
                         "description":"Data source name",
                     },
                     "connection_args":{
-                        "type":"object",
+                        "type":"string",
                         "description":"Connection arguments for the data source",
                     },
                     "description":{
@@ -246,12 +265,12 @@ def pretty_print_conversation(messages):
 
     for message in messages:
         if message["role"] == "system":
-            print(colored(f"system: {message['content']}\n", role_to_color[message["role"]]))
+            logger.info(colored(f"system: {message['content']}\n", role_to_color[message["role"]]))
         elif message["role"] == "user":
-            print(colored(f"user: {message['content']}\n", role_to_color[message["role"]]))
+            logger.info(colored(f"user: {message['content']}\n", role_to_color[message["role"]]))
         elif message["role"] == "assistant" and message.get("function_call"):
-            print(colored(f"assistant: {message['function_call']}\n", role_to_color[message["role"]]))
+            logger.info(colored(f"assistant: {message['function_call']}\n", role_to_color[message["role"]]))
         elif message["role"] == "assistant" and not message.get("function_call"):
-            print(colored(f"assistant: {message['content']}\n", role_to_color[message["role"]]))
+            logger.info(colored(f"assistant: {message['content']}\n", role_to_color[message["role"]]))
         elif message["role"] == "function":
-            print(colored(f"function ({message['name']}): {message['content']}\n", role_to_color[message["role"]]))
+            logger.info(colored(f"function ({message['name']}): {message['content']}\n", role_to_color[message["role"]]))
