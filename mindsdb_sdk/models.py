@@ -609,24 +609,22 @@ class Models(CollectionBase):
         :return: list of Model or ModelVersion objects
         """
 
-        table = 'models'
         model_class = Model
-        if with_versions:
-            table = 'models_versions'
-            model_class = ModelVersion
 
-        filters = { }
+        filters = {}
         if name is not None:
             filters['NAME'] = name
-
         if version is not None:
             filters['VERSION'] = version
+
+        if with_versions:
+            model_class = ModelVersion
         else:
-            filters['ACTIVE'] = True
+            filters['ACTIVE'] = '1'
 
         ast_query = Select(
             targets=[Star()],
-            from_table=Identifier(table),
+            from_table=Identifier('models'),
             where=dict_to_binary_op(filters)
         )
         df = self.project.query(ast_query.to_string()).fetch()

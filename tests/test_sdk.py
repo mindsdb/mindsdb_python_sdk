@@ -183,7 +183,7 @@ class BaseFlow:
 
         # list all versions
         models = model.list_versions()
-        check_sql_call(mock_post, f"SELECT * FROM models_versions WHERE NAME = '{model.name}'",
+        check_sql_call(mock_post, f"SELECT * FROM models WHERE NAME = '{model.name}'",
                        database=model.project.name)
         model2 = models[0]  # Model object
 
