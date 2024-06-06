@@ -364,7 +364,7 @@ class Agents(CollectionBase):
             'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
             # Use GPT-4 by default.
             'provider': 'openai',
-            'model_name': 'gpt-3.5-turbo'
+            'model_name': 'gpt-4'
         }
         if model is None:
             return self.models.create(
