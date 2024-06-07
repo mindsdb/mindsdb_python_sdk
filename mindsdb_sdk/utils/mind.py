@@ -12,13 +12,15 @@ class Mind:
 
 
 # Create mind entity util function
-def create(
+def create_mind(
         base_url: str,
         api_key: str,
-        model: str,
-        connection_args: dict,
-        data_source: str,
+
+        name: str,
         description: str,
+        model: str,
+        data_source_type: str,
+        data_source_connection_args: dict,
 ) -> Mind:
     """
     Create a mind entity in LiteLLM proxy.
@@ -26,10 +28,11 @@ def create(
     Args:
         base_url: MindsDB base URL
         api_key: MindsDB API key
-        model: Model name
-        connection_args: Connection arguments
-        data_source: Data source
-        description: Description
+        name: Mind name
+        description: Mind description
+        model: Model orchestrating the AI reasoning loop
+        data_source_type: Data source type
+        data_source_connection_args: Data source connection arguments
 
     Returns:
         Mind: Mind entity
@@ -37,10 +40,11 @@ def create(
     url = f"{base_url}/minds"
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {
+        "name": name,
+        "description": description,
         "model": model,
-        "connection_args": connection_args,
-        "data_source": data_source,
-        "description": description
+        "data_source_type": data_source_type,
+        "data_source_connection_args": data_source_connection_args
     }
     response = requests.post(url, json=payload, headers=headers)
     response.raise_for_status()
