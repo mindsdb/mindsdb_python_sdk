@@ -1,4 +1,7 @@
 import requests
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 # Define the Mind entity
@@ -46,8 +49,12 @@ def create_mind(
         "data_source_type": data_source_type,
         "data_source_connection_args": data_source_connection_args
     }
-    response = requests.post(url, json=payload, headers=headers)
-    response.raise_for_status()
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Failed to create mind: {e.response.json()}")
+        raise e
 
     name = response.json()['name']
 
