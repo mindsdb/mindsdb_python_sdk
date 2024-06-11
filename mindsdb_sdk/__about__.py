@@ -1,6 +1,6 @@
 __title__ = 'mindsdb_sdk'
 __package_name__ = 'mindsdb_sdk'
-__version__ = '2.3.0'
+__version__ = '2.4.2'
 __description__ = "MindsDB Python SDK, provides an SDK to use a remote mindsdb instance"
 __email__ = "jorge@mindsdb.com"
 __author__ = 'MindsDB Inc'
