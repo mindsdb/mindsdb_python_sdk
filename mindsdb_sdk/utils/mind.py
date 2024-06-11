@@ -40,7 +40,8 @@ def create_mind(
     Returns:
         Mind: Mind entity
     """
-    url = f"{base_url}/minds"
+
+    url = f"{base_url.rstrip('/')}/minds"
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {
         "name": name,
