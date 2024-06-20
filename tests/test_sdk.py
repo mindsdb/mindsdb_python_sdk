@@ -238,11 +238,11 @@ class Test(BaseFlow):
         assert call_args[0][0] == 'https://cloud.mindsdb.com/api/status'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1','ENGINE': 'postgres'}]))
 
         databases = server.list_databases()
 
-        check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         str(database)
@@ -284,7 +284,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
         database = server.get_database('files')
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -609,11 +609,11 @@ class TestSimplify(BaseFlow):
         assert call_args[1]['json']['email'] == 'a@b.com'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres'}]))
 
         databases = con.databases.list()
 
-        check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         assert database.name == 'db1'
@@ -660,7 +660,7 @@ class TestSimplify(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
         database = con.databases.files
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -1614,7 +1614,7 @@ class TestAgents():
         responses_mock(mock_post, [
             # DB get (POST /sql).
             pd.DataFrame([
-                {'NAME': 'existing_db'}
+                {'NAME': 'existing_db', 'ENGINE': 'postgres'}
             ]),
             # DB tables get (POST /sql).
             pd.DataFrame([
