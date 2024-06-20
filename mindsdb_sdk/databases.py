@@ -27,9 +27,10 @@ class Database:
 
     """
 
-    def __init__(self, server, name):
+    def __init__(self, server, name, engine=None):
         self.server = server
         self.name = name
+        self.engine = engine
         self.api = server.api
 
         self.tables = Tables(self, self.api)
@@ -82,9 +83,9 @@ class Databases(CollectionBase):
 
     def _list_databases(self):
         data = self.api.sql_query(
-            "select NAME from information_schema.databases where TYPE='data'"
+            "select NAME, ENGINE from information_schema.databases where TYPE='data'"
         )
-        return list(data.NAME)
+        return dict(zip(data.NAME, data.ENGINE))
 
     def list(self) -> List[Database]:
         """
@@ -92,7 +93,8 @@ class Databases(CollectionBase):
 
         :return: list of Database objects
         """
-        return [Database(self, name) for name in self._list_databases()]
+        databases = self._list_databases()
+        return [Database(self, name, engine=engine) for name, engine in databases.items()]
 
     def create(self, name: str, engine: Union[str, Handler], connection_args: dict) -> Database:
         """
@@ -112,7 +114,7 @@ class Databases(CollectionBase):
             parameters=connection_args,
         )
         self.api.sql_query(ast_query.to_string())
-        return Database(self, name)
+        return Database(self, name, engine=engine)
 
     def drop(self, name: str):
         """
@@ -130,8 +132,7 @@ class Databases(CollectionBase):
         :param name: name of integration
         :return: Database object
         """
-        if name not in self._list_databases():
+        databases = self._list_databases()
+        if name not in databases:
             raise AttributeError("Database doesn't exist")
-        return Database(self, name)
-
-
+        return Database(self, name, engine=databases[name])
