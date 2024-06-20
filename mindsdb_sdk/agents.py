@@ -58,7 +58,7 @@ class Agent:
 
     Delete an agent by name:
 
-    >>> agents.delete('my_agent')
+    >>> agents.drop('my_agent')
     """
     def __init__(
             self,
