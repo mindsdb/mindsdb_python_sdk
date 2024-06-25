@@ -54,7 +54,14 @@ def create_mind(
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        logger.error(f"Failed to create mind: {e.response.json()}")
+        try:
+            error_message = e.response.json()
+        except Exception:
+            error_message = str(e)
+        logger.error(f"Failed to create mind: {error_message}")
+        raise e
+    except Exception as e:
+        logger.error(f"Failed to create mind: {e}")
         raise e
 
     name = response.json()['name']
