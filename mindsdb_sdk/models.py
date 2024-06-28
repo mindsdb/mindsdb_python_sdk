@@ -7,7 +7,7 @@ import pandas as pd
 
 from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
 from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
-from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant, Set
+from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Describe, Set
 from mindsdb_sql import parse_sql
 from mindsdb_sql.exceptions import ParsingException
 

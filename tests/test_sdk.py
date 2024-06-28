@@ -493,7 +493,7 @@ class Test(BaseFlow):
         self.check_model(model, database)
 
         project.drop_model_version('m1', 1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
 
     @patch('requests.Session.post')
@@ -960,7 +960,7 @@ class CustomPredictor():
         self.check_model(model, database)
 
         project.models.m1.drop_version(1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
     @patch('requests.Session.post')
     def check_database(self, database, mock_post):

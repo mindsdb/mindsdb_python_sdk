@@ -1,10 +1,8 @@
 from typing import  List
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
+from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase, DropPredictor
 from mindsdb_sql.parser.ast import DropDatabase
-from mindsdb_sql.parser.ast import Identifier, Delete
-
-from mindsdb_sdk.utils.sql import dict_to_binary_op
+from mindsdb_sql.parser.ast import Identifier
 
 from mindsdb_sdk.agents import Agents
 from mindsdb_sdk.databases import Databases
@@ -96,7 +94,6 @@ class Project:
         """
         return Query(self.api, sql, database=self.name)
 
-
     def drop_model_version(self, name: str, version: int):
         """
         Drop version of the model
@@ -104,13 +101,8 @@ class Project:
         :param name: name of the model
         :param version: version to drop
         """
-        ast_query = Delete(
-            table=Identifier('models_versions'),
-            where=dict_to_binary_op({
-                'name': name,
-                'version': version
-            })
-        )
+        ast_query = DropPredictor(Identifier(parts=[name, str(version)]))
+
         self.query(ast_query.to_string()).fetch()
 
 
