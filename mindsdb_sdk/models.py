@@ -7,7 +7,7 @@ import pandas as pd
 
 from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
 from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
-from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Update, Describe, Constant
+from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Describe, Set
 from mindsdb_sql import parse_sql
 from mindsdb_sql.exceptions import ParsingException
 
@@ -388,15 +388,9 @@ class Model:
 
         :param version: version to set active
         """
-        ast_query = Update(
-            table=Identifier(parts=[self.project.name, 'models_versions']),
-            update_columns={
-                'active': Constant(1)
-            },
-            where=dict_to_binary_op({
-                'name': self.name,
-                'version': version
-            })
+        ast_query = Set(
+            category='active',
+            value=Identifier(parts=[self.project.name, self.name, str(version)])
         )
         sql = ast_query.to_string()
         if is_saving():
@@ -609,21 +603,22 @@ class Models(CollectionBase):
         :return: list of Model or ModelVersion objects
         """
 
-        table = 'models'
         model_class = Model
-        if with_versions:
-            table = 'models_versions'
-            model_class = ModelVersion
 
-        filters = { }
+        filters = {}
         if name is not None:
             filters['NAME'] = name
         if version is not None:
             filters['VERSION'] = version
 
+        if with_versions:
+            model_class = ModelVersion
+        else:
+            filters['ACTIVE'] = '1'
+
         ast_query = Select(
             targets=[Star()],
-            from_table=Identifier(table),
+            from_table=Identifier('models'),
             where=dict_to_binary_op(filters)
         )
         df = self.project.query(ast_query.to_string()).fetch()
