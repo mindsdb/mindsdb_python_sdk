@@ -194,8 +194,7 @@ class BaseFlow:
 
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
-        assert mock_call[1]['json'][
-                   'query'] == f"update {model2.project.name}.models_versions set active=1 where name = '{model2.name}' AND version = 3"
+        assert mock_call[1]['json']['query'] == f"SET active {model2.project.name}.{model2.name}.`3`"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
