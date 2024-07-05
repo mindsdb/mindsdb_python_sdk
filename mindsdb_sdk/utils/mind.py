@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 from logging import getLogger
 
@@ -18,12 +20,11 @@ class Mind:
 def create_mind(
         base_url: str,
         api_key: str,
-
         name: str,
         description: str,
-        model: str,
         data_source_type: str,
         data_source_connection_args: dict,
+        model: Optional[str] = None,
 ) -> Mind:
     """
     Create a mind entity in LiteLLM proxy.
@@ -54,7 +55,14 @@ def create_mind(
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        logger.error(f"Failed to create mind: {e.response.json()}")
+        try:
+            error_message = e.response.json()
+        except Exception:
+            error_message = str(e)
+        logger.error(f"Failed to create mind: {error_message}")
+        raise e
+    except Exception as e:
+        logger.error(f"Failed to create mind: {e}")
         raise e
 
     name = response.json()['name']

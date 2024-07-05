@@ -183,7 +183,7 @@ class BaseFlow:
 
         # list all versions
         models = model.list_versions()
-        check_sql_call(mock_post, f"SELECT * FROM models_versions WHERE NAME = '{model.name}'",
+        check_sql_call(mock_post, f"SELECT * FROM models WHERE NAME = '{model.name}'",
                        database=model.project.name)
         model2 = models[0]  # Model object
 
@@ -194,8 +194,7 @@ class BaseFlow:
 
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
-        assert mock_call[1]['json'][
-                   'query'] == f"update {model2.project.name}.models_versions set active=1 where name = '{model2.name}' AND version = 3"
+        assert mock_call[1]['json']['query'] == f"SET active {model2.project.name}.{model2.name}.`3`"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -238,11 +237,11 @@ class Test(BaseFlow):
         assert call_args[0][0] == 'https://cloud.mindsdb.com/api/status'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1','ENGINE': 'postgres'}]))
 
         databases = server.list_databases()
 
-        check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         str(database)
@@ -284,7 +283,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
         database = server.get_database('files')
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -494,7 +493,7 @@ class Test(BaseFlow):
         self.check_model(model, database)
 
         project.drop_model_version('m1', 1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
 
     @patch('requests.Session.post')
@@ -609,11 +608,11 @@ class TestSimplify(BaseFlow):
         assert call_args[1]['json']['email'] == 'a@b.com'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres'}]))
 
         databases = con.databases.list()
 
-        check_sql_call(mock_post, "select NAME from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         assert database.name == 'db1'
@@ -660,7 +659,7 @@ class TestSimplify(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
         database = con.databases.files
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -961,7 +960,7 @@ class CustomPredictor():
         self.check_model(model, database)
 
         project.models.m1.drop_version(1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
     @patch('requests.Session.post')
     def check_database(self, database, mock_post):
@@ -1614,7 +1613,7 @@ class TestAgents():
         responses_mock(mock_post, [
             # DB get (POST /sql).
             pd.DataFrame([
-                {'NAME': 'existing_db'}
+                {'NAME': 'existing_db', 'ENGINE': 'postgres'}
             ]),
             # DB tables get (POST /sql).
             pd.DataFrame([
