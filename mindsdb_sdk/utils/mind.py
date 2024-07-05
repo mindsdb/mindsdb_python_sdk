@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 from logging import getLogger
 
@@ -18,12 +20,11 @@ class Mind:
 def create_mind(
         base_url: str,
         api_key: str,
-
         name: str,
         description: str,
-        model: str,
         data_source_type: str,
         data_source_connection_args: dict,
+        model: Optional[str] = None,
 ) -> Mind:
     """
     Create a mind entity in LiteLLM proxy.
