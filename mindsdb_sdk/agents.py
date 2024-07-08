@@ -360,7 +360,6 @@ class Agents(CollectionBase):
         # Create a default model if it doesn't exist.
         default_model_params = {
             'predict': 'answer',
-            'mode': 'retrieval',
             'engine': 'langchain',
             'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
             # Use GPT-4 by default.
