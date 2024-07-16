@@ -4,3 +4,4 @@ mindsdb-sql >= 0.17.0, < 1.0.0
 docstring-parser >= 0.7.3
 tenacity >= 8.0.1
 openai >= 1.15.0
+sseclient-py >= 1.8.0
