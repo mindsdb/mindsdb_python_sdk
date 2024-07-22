@@ -43,6 +43,17 @@ class DatabaseConfig(DataSourceConfig):
     tables: List[str] = []
 
 
+class FileConfig(DataSourceConfig):
+    """
+    Represents a colection of files that can be made available to a Mind.
+    """
+
+    # Local file paths and/or URLs.
+    paths: List[str] = []
+
+    # TODO: Configure Vector storage. Use defaults for now.
+
+
 # Create mind entity util function
 def create_mind(
         base_url: str,

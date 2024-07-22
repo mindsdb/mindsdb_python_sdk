@@ -5,6 +5,7 @@ import json
 
 import requests
 import pandas as pd
+import validators
 
 from mindsdb_sdk import __about__
 from sseclient import SSEClient
@@ -149,6 +150,7 @@ class RestAPI:
             raise Exception(f'Permission denied when reading file {file_path}.')
         except Exception as e:
             raise Exception(f'Unknown error occurred when reading file {file_path} - {str(e)}')
+
     @staticmethod
     def read_dataframe_as_csv(data: pd.DataFrame):
         """
@@ -160,6 +162,16 @@ class RestAPI:
         data.to_csv(fd, index=False)
         fd.seek(0)
         return fd.read()
+
+    @staticmethod
+    def read_file_as_webpage(url: str):
+        """
+        Read and return content of a file in bytes, given its URL.
+        :param file_path: URL of the file to read.
+        :return: File content in bytes.
+        """
+        data = requests.get(url)
+        return data.content
 
     def upload_data(self, file_name: str, data: bytes):
         """
@@ -194,6 +206,8 @@ class RestAPI:
         """
         if isinstance(data, pd.DataFrame):
             data_in_bytes = self.read_dataframe_as_csv(data)
+        elif validators.url(data):
+            data_in_bytes = self.read_file_as_webpage(data)
         else:
             data_in_bytes = self.read_file_as_bytes(data)
 
