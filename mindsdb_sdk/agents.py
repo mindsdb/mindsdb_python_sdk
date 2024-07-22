@@ -353,6 +353,13 @@ class Agents(CollectionBase):
         }
         database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
         agent = self.get(name)
+
+        if not agent.params:
+            agent.params = {}
+        if 'prompt_template' not in agent.params:
+            # Set default prompt template. This is for langchain agent check.
+            agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
+
         agent.skills.append(database_sql_skill)
         self.update(agent.name, agent)
 
