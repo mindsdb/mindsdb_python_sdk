@@ -1251,7 +1251,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': created_at,
-                'updated_at': updated_at
+                'updated_at': updated_at,
+                'provider': 'mindsdb'
             }
         ])
         all_agents = server.agents.list()
@@ -1265,7 +1266,8 @@ class TestAgents():
             [],
             {},
             created_at,
-            updated_at
+            updated_at,
+            'mindsdb'
         )
         assert all_agents[0] == expected_agent
 
@@ -1283,7 +1285,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': created_at,
-                'updated_at': updated_at
+                'updated_at': updated_at,
+                'provider': 'mindsdb'
             }
         )
         agent = server.agents.get('test_agent')
@@ -1295,7 +1298,8 @@ class TestAgents():
             [],
             {},
             created_at,
-            updated_at
+            updated_at,
+            'mindsdb'
         )
         assert agent == expected_agent
 
@@ -1318,7 +1322,8 @@ class TestAgents():
             }],
             'params': {'k1': 'v1'},
             'created_at': created_at,
-            'updated_at': updated_at
+            'updated_at': updated_at,
+            'provider': 'mindsdb',
         }
         responses_mock(mock_post, [
             # ML Engine get (SQL post for SHOW ML_ENGINES)
@@ -1344,9 +1349,10 @@ class TestAgents():
         assert mock_post.call_args_list[-1][1]['json'] == {
             'agent': {
                 'name': 'test_agent',
-                'model_name':'m1',
+                'model_name': 'm1',
                 'skills': ['test_skill'],
-                'params': {'k1': 'v1'}
+                'params': {'k1': 'v1'},
+                'provider': None
             }
         }
         expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
@@ -1356,7 +1362,8 @@ class TestAgents():
             [expected_skill],
             {'k1': 'v1'},
             created_at,
-            updated_at
+            updated_at,
+            'mindsdb'
         )
 
         assert new_agent == expected_agent
@@ -1383,7 +1390,8 @@ class TestAgents():
             }],
             'params': {'k2': 'v2'},
             'created_at': created_at,
-            'updated_at': updated_at
+            'updated_at': updated_at,
+            'provider': 'mindsdb',
         }
         response_mock(mock_put, data)
 
@@ -1395,6 +1403,7 @@ class TestAgents():
             'model_name': 'test_model',
             'skills': [],
             'params': {'k1': 'v1'},
+            'provider': 'mindsdb',
         })
 
         server = mindsdb_sdk.connect()
@@ -1404,7 +1413,8 @@ class TestAgents():
             [SQLSkill('updated_skill', ['updated_table'], 'updated_database', 'test_description')],
             {'k2': 'v2'},
             created_at,
-            updated_at
+            updated_at,
+            'mindsdb'
         )
 
         updated_agent = server.agents.update('test_agent', expected_agent)
@@ -1467,7 +1477,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
             # Skills get in Agent update to check if it exists.
             {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
@@ -1478,7 +1489,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
         ])
         responses_mock(mock_post, [
@@ -1499,7 +1511,8 @@ class TestAgents():
                 'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
         ])
         server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido', 'existing_kb')
@@ -1518,7 +1531,6 @@ class TestAgents():
         }
         assert agent_update_json == expected_agent_json
 
-
     @patch('requests.Session.get')
     @patch('requests.Session.put')
     @patch('requests.Session.post')
@@ -1527,44 +1539,47 @@ class TestAgents():
         responses_mock(mock_get, [
             # Existing agent get.
             {
-                'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
-                'created_at': None,
-                'updated_at': None
+                'name':'test_agent',
+                'model_name':'test_model',
+                'skills':[],
+                'params':{},
+                'created_at':None,
+                'updated_at':None,
+                'provider':'mindsdb'
             },
             # Skills get in Agent update to check if it exists.
-            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}},
+            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}},
             # Existing agent get in Agent update.
             {
-                'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
-                'created_at': None,
-                'updated_at': None
+                'name':'test_agent',
+                'model_name':'test_model',
+                'skills':[],
+                'params':{},
+                'created_at':None,
+                'updated_at':None,
+                'provider':'mindsdb'  # Added provider field
             },
         ])
         responses_mock(mock_post, [
             # KB get (POST /sql).
             pd.DataFrame([
-                {'name': 'test_agent_docs_mdb_ai_kb', 'storage': None, 'model': None},
+                {'name':'test_agent_docs_mdb_ai_kb', 'storage':None, 'model':None},
             ]),
             # Skill creation.
-            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}
+            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}
         ])
         responses_mock(mock_put, [
             # KB update.
-            {'name': 'test_agent_docs_mdb_ai_kb'},
+            {'name':'test_agent_docs_mdb_ai_kb'},
             # Agent update with new skill.
             {
-                'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_docs_mdb_ai_kb'}}],
-                'params': {},
-                'created_at': None,
-                'updated_at': None
+                'name':'test_agent',
+                'model_name':'test_model',
+                'skills':[{'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}],
+                'params':{},
+                'created_at':None,
+                'updated_at':None,
+                'provider':'mindsdb'  # Added provider field
             },
         ])
         server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB', 'existing_kb')
@@ -1572,13 +1587,13 @@ class TestAgents():
         # Check Agent was updated with a new skill.
         agent_update_json = mock_put.call_args[-1]['json']
         expected_agent_json = {
-            'agent': {
-                'name': 'test_agent',
-                'model_name': 'test_model',
+            'agent':{
+                'name':'test_agent',
+                'model_name':'test_model',
                 # Skill name is a generated UUID.
-                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
-                'skills_to_remove': [],
-                'params': {},
+                'skills_to_add':[agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove':[],
+                'params':{},
             }
         }
         assert agent_update_json == expected_agent_json
@@ -1596,7 +1611,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
             # Skills get in Agent update to check if it exists.
             {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}},
@@ -1607,7 +1623,8 @@ class TestAgents():
                 'skills': [],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
         ])
         responses_mock(mock_post, [
@@ -1630,7 +1647,8 @@ class TestAgents():
                 'skills': [{'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}],
                 'params': {},
                 'created_at': None,
-                'updated_at': None
+                'updated_at': None,
+                'provider': 'mindsdb'
             },
         ])
         server.agents.add_database('test_agent', 'existing_db', ['existing_table'], 'My data')
@@ -1644,7 +1662,7 @@ class TestAgents():
                 # Skill name is a generated UUID.
                 'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
                 'skills_to_remove': [],
-                'params': {},
+                'params': {'prompt_template': 'using mindsdb sqltoolbox'},
             }
         }
         assert agent_update_json == expected_agent_json
