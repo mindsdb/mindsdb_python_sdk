@@ -1,4 +1,6 @@
-from typing import Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from uuid import uuid4
 
 import requests
 from logging import getLogger
@@ -16,27 +18,48 @@ class Mind:
         self.name = name
 
 
+class DataSourceConfig(BaseModel):
+    """
+    Represents a data source that can be made available to a Mind.
+    """
+    id: str = Field(default_factory=lambda: uuid4().hex)
+
+    # Description for underlying agent to know, based on context, whether to access this data source.
+    description: str
+
+
+class DatabaseConfig(DataSourceConfig):
+    """
+    Represents a database that can be made available to a Mind.
+    """
+
+    # Integration name (e.g. postgres)
+    type: str
+
+    # Args for connecting to database.
+    connection_args: dict
+
+    # Tables to make available to the Mind (defaults to ALL).
+    tables: List[str] = []
+
+
 # Create mind entity util function
 def create_mind(
         base_url: str,
         api_key: str,
         name: str,
-        description: str,
-        data_source_type: str,
-        data_source_connection_args: dict,
+        data_source_configs: List[DataSourceConfig] = None,
         model: Optional[str] = None,
 ) -> Mind:
     """
     Create a mind entity in LiteLLM proxy.
 
     Args:
-        base_url: MindsDB base URL
-        api_key: MindsDB API key
-        name: Mind name
-        description: Mind description
+        base_url (str): MindsDB base URL
+        api_key (str): MindsDB API key
+        name (str): Mind name
+        data_source_configs (List[DataSourceConfig]): Data sources to make available to the mind
         model: Model orchestrating the AI reasoning loop
-        data_source_type: Data source type
-        data_source_connection_args: Data source connection arguments
 
     Returns:
         Mind: Mind entity
@@ -46,10 +69,8 @@ def create_mind(
     headers = {"Authorization": f"Bearer {api_key}"}
     payload = {
         "name": name,
-        "description": description,
-        "model": model,
-        "data_source_type": data_source_type,
-        "data_source_connection_args": data_source_connection_args
+        "data_source_configs": [d.model_dump() for d in data_source_configs],
+        "model": model
     }
     try:
         response = requests.post(url, json=payload, headers=headers)
