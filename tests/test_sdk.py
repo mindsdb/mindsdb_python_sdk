@@ -183,7 +183,7 @@ class BaseFlow:
 
         # list all versions
         models = model.list_versions()
-        check_sql_call(mock_post, f"SELECT * FROM models_versions WHERE NAME = '{model.name}'",
+        check_sql_call(mock_post, f"SELECT * FROM models WHERE NAME = '{model.name}'",
                        database=model.project.name)
         model2 = models[0]  # Model object
 
@@ -194,8 +194,7 @@ class BaseFlow:
 
         # get call before last call
         mock_call = mock_post.call_args_list[-2]
-        assert mock_call[1]['json'][
-                   'query'] == f"update {model2.project.name}.models_versions set active=1 where name = '{model2.name}' AND version = 3"
+        assert mock_call[1]['json']['query'] == f"SET active {model2.project.name}.{model2.name}.`3`"
 
     @patch('requests.Session.post')
     def check_table(self, table, mock_post):
@@ -494,7 +493,7 @@ class Test(BaseFlow):
         self.check_model(model, database)
 
         project.drop_model_version('m1', 1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
 
     @patch('requests.Session.post')
@@ -961,7 +960,7 @@ class CustomPredictor():
         self.check_model(model, database)
 
         project.models.m1.drop_version(1)
-        check_sql_call(mock_post, f"delete from models_versions where name='m1' and version=1")
+        check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
 
     @patch('requests.Session.post')
     def check_database(self, database, mock_post):

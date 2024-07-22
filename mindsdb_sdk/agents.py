@@ -1,5 +1,5 @@
 from requests.exceptions import HTTPError
-from typing import List, Union
+from typing import Iterable, List, Union
 from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
@@ -37,6 +37,12 @@ class Agent:
 
     >>> completion = agent.completion([{'question': 'What is your name?', 'answer': None}])
     >>> print(completion.content)
+
+    Query an agent with streaming:
+
+    >>> completion = agent.completion_stream([{'question': 'What is your name?', 'answer': None}])
+    >>> for chunk in completion:
+            print(chunk.choices[0].delta.content)
 
     List all agents:
 
@@ -83,6 +89,9 @@ class Agent:
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
+
+    def completion_stream(self, messages: List[dict]) -> Iterable[object]:
+        return self.collection.completion_stream(self.name, messages)
 
     def add_files(self, file_paths: List[str], description: str, knowledge_base: str = None):
         """
@@ -200,6 +209,17 @@ class Agents(CollectionBase):
         """
         data = self.api.agent_completion(self.project, name, messages)
         return AgentCompletion(data['message']['content'])
+
+    def completion_stream(self, name, messages: List[dict]) -> Iterable[object]:
+        """
+        Queries the agent for a completion and streams the response as an iterable object.
+
+        :param name: Name of the agent
+        :param messageS: List of messages to be sent to the agent
+
+        :return: iterable of completion chunks from querying the agent.
+        """
+        return self.api.agent_completion_stream(self.project, name, messages)
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
         # Make sure default ML engine for embeddings exists.
@@ -376,7 +396,6 @@ class Agents(CollectionBase):
         # Create a default model if it doesn't exist.
         default_model_params = {
             'predict': 'answer',
-            'mode': 'retrieval',
             'engine': 'langchain',
             'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
             # Use GPT-4 by default.
