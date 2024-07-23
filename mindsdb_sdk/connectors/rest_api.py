@@ -272,7 +272,7 @@ class RestAPI:
             yield json.loads(chunk.data)
 
     @_try_relogin
-    def create_agent(self, project: str, name: str, model: str, skills: List[str] = None, params: dict = None):
+    def create_agent(self, project: str, name: str, model: str = None, provider: str = None, skills: List[str] = None, params: dict = None):
         url = self.url + f'/api/projects/{project}/agents'
         r = self.session.post(
             url,
@@ -280,6 +280,7 @@ class RestAPI:
                 'agent': {
                     'name': name,
                     'model_name': model,
+                    'provider': provider,
                     'skills': skills,
                     'params': params
                 }
