@@ -1,5 +1,5 @@
 from requests.exceptions import HTTPError
-from typing import List, Union
+from typing import Iterable, List, Union
 from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
@@ -13,6 +13,7 @@ from mindsdb_sdk.models import Model, Models
 from mindsdb_sdk.skills import Skill, Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
+_DEFAULT_LLM_MODEL = 'gpt-4o'
 
 class AgentCompletion:
     """Represents a full MindsDB agent completion"""
@@ -36,6 +37,12 @@ class Agent:
 
     >>> completion = agent.completion([{'question': 'What is your name?', 'answer': None}])
     >>> print(completion.content)
+
+    Query an agent with streaming:
+
+    >>> completion = agent.completion_stream([{'question': 'What is your name?', 'answer': None}])
+    >>> for chunk in completion:
+            print(chunk.choices[0].delta.content)
 
     List all agents:
 
@@ -68,10 +75,12 @@ class Agent:
             params: dict,
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
+            provider: str= None,
             collection: CollectionBase = None
             ):
         self.name = name
         self.model_name = model_name
+        self.provider = provider
         self.skills = skills
         self.params = params
         self.created_at = created_at
@@ -80,6 +89,9 @@ class Agent:
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
+
+    def completion_stream(self, messages: List[dict]) -> Iterable[object]:
+        return self.collection.completion_stream(self.name, messages)
 
     def add_files(self, file_paths: List[str], description: str, knowledge_base: str = None):
         """
@@ -131,6 +143,8 @@ class Agent:
             return False
         if self.model_name != other.model_name:
             return False
+        if self.provider != other.provider:
+            return False
         if self.skills != other.skills:
             return False
         if self.params != other.params:
@@ -148,6 +162,7 @@ class Agent:
             json['params'],
             json['created_at'],
             json['updated_at'],
+            json['provider'],
             collection
         )
 
@@ -195,6 +210,17 @@ class Agents(CollectionBase):
         data = self.api.agent_completion(self.project, name, messages)
         return AgentCompletion(data['message']['content'])
 
+    def completion_stream(self, name, messages: List[dict]) -> Iterable[object]:
+        """
+        Queries the agent for a completion and streams the response as an iterable object.
+
+        :param name: Name of the agent
+        :param messageS: List of messages to be sent to the agent
+
+        :return: iterable of completion chunks from querying the agent.
+        """
+        return self.api.agent_completion_stream(self.project, name, messages)
+
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
         # Make sure default ML engine for embeddings exists.
         try:
@@ -202,11 +228,14 @@ class Agents(CollectionBase):
         except AttributeError:
             _ = self.ml_engines.create('langchain_embedding', 'langchain_embedding')
         # Include API keys in embeddings.
-        agent_model = self.models.get(agent.model_name)
-        training_options = json.loads(agent_model.data.get('training_options', '{}'))
-        training_options_using = training_options.get('using', {})
-        api_key_params = {k:v for k, v in training_options_using.items() if 'api_key' in k}
-        kb = self.knowledge_bases.create(name, params=api_key_params)
+        if agent.provider == "mindsdb":
+            agent_model = self.models.get(agent.model_name)
+            training_options = json.loads(agent_model.data.get('training_options', '{}'))
+            training_options_using = training_options.get('using', {})
+            api_key_params = {k:v for k, v in training_options_using.items() if 'api_key' in k}
+            kb = self.knowledge_bases.create(name, params=api_key_params)
+        else:
+            kb = self.knowledge_bases.create(name)
         # Wait for underlying embedding model to finish training.
         kb.model.wait_complete()
         return kb
@@ -344,6 +373,13 @@ class Agents(CollectionBase):
         }
         database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
         agent = self.get(name)
+
+        if not agent.params:
+            agent.params = {}
+        if 'prompt_template' not in agent.params:
+            # Set default prompt template. This is for langchain agent check.
+            agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
+
         agent.skills.append(database_sql_skill)
         self.update(agent.name, agent)
 
@@ -354,37 +390,41 @@ class Agents(CollectionBase):
             # Create the engine if it doesn't exist.
             _ = self.ml_engines.create('langchain', handler='langchain')
 
-    def _create_model_if_not_exists(self, name: str, model: Union[Model, dict]) -> Model:
+    def _create_model_if_not_exists(self, name: str, model: Union[Model, dict, str]) -> str:
         # Create langchain engine if it doesn't exist.
         self._create_ml_engine_if_not_exists()
         # Create a default model if it doesn't exist.
         default_model_params = {
             'predict': 'answer',
-            'mode': 'retrieval',
             'engine': 'langchain',
             'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
             # Use GPT-4 by default.
             'provider': 'openai',
             'model_name': 'gpt-4'
         }
-        if model is None:
-            return self.models.create(
-                f'{name}_default_model',
-                **default_model_params
-            )
+
         if isinstance(model, dict):
             default_model_params.update(model)
             # Create model with passed in params.
             return self.models.create(
                 f'{name}_default_model',
                 **default_model_params
-            )
+            ).name
+
+        if model is None:
+            # Create model with default params.
+            return _DEFAULT_LLM_MODEL
+
+        if isinstance(model, Model):
+            return model.name
+
         return model
 
     def create(
             self,
             name: str,
-            model: Union[Model, dict] = None,
+            model: Union[Model, dict, str] = None,
+            provider: str = None,
             skills: List[Union[Skill, str]] = None,
             params: dict = None) -> Agent:
         """
@@ -409,9 +449,9 @@ class Agents(CollectionBase):
             _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
-        # Create a default model if it doesn't exist.
         model = self._create_model_if_not_exists(name, model)
-        data = self.api.create_agent(self.project, name, model.name, skill_names, params)
+
+        data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
 
     def update(self, name: str, updated_agent: Agent):

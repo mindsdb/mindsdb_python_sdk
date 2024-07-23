@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from openai import OpenAI
-from mindsdb_sdk.utils.mind import create_mind
+from mindsdb_sdk.utils.mind import create_mind, DatabaseConfig
 import os
 
 
@@ -21,22 +21,28 @@ client = OpenAI(
     base_url=base_url
 )
 
-# create a database mind
-mind = create_mind(
-    name = f'my_house_data_mind_{uuid4().hex}',
-    description= 'House Sales',
-    base_url= base_url,
-    api_key= MINDSDB_API_KEY,
-    model= model_name,
-    data_source_type='postgres',
-    data_source_connection_args={
+# Create a Database Config.
+pg_config = DatabaseConfig(
+    description='House Sales',
+    type='postgres',
+    connection_args={
         'user': 'demo_user',
         'password': 'demo_password',
         'host': 'samples.mindsdb.com',
         'port': '5432',
         'database': 'demo',
         'schema': 'demo_data'
-    }
+    },
+    tables=['house_sales']
+)
+
+# create a database mind
+mind = create_mind(
+    base_url= base_url,
+    api_key= MINDSDB_API_KEY,
+    name = f'my_house_data_mind_{uuid4().hex}',
+    data_source_configs=[pg_config],
+    model= model_name
 )
 
 # Actually pass in our tool to get a SQL completion.

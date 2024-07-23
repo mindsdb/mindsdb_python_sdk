@@ -1,11 +1,13 @@
 from functools import wraps
 from typing import List, Union
 import io
+import json
 
 import requests
 import pandas as pd
 
 from mindsdb_sdk import __about__
+from sseclient import SSEClient
 
 
 def _try_relogin(fnc):
@@ -261,7 +263,16 @@ class RestAPI:
         return r.json()
 
     @_try_relogin
-    def create_agent(self, project: str, name: str, model: str, skills: List[str] = None, params: dict = None):
+    def agent_completion_stream(self, project: str, name: str, messages: List[dict]):
+        url = self.url + f'/api/projects/{project}/agents/{name}/completions/stream'
+        stream = requests.post(url, json={'messages': messages}, stream=True)
+        client = SSEClient(stream)
+        for chunk in client.events():
+            # Stream objects loaded from SSE events 'data' param.
+            yield json.loads(chunk.data)
+
+    @_try_relogin
+    def create_agent(self, project: str, name: str, model: str = None, provider: str = None, skills: List[str] = None, params: dict = None):
         url = self.url + f'/api/projects/{project}/agents'
         r = self.session.post(
             url,
@@ -269,6 +280,7 @@ class RestAPI:
                 'agent': {
                     'name': name,
                     'model_name': model,
+                    'provider': provider,
                     'skills': skills,
                     'params': params
                 }
