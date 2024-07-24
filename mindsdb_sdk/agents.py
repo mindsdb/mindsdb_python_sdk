@@ -245,7 +245,7 @@ class Agents(CollectionBase):
         Add a list of files to the agent for retrieval.
 
         :param name: Name of the agent
-        :param file_paths: List of paths to the files to be added.
+        :param file_paths: List of paths or URLs to the files to be added.
         :param description: Description of the file. Used by agent to know when to do retrieval
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
