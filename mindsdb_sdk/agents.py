@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
 import json
-import pandas as pd
 
 from mindsdb_sdk.databases import Databases
 from mindsdb_sdk.knowledge_bases import KnowledgeBase, KnowledgeBases
