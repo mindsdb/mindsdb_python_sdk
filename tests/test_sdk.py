@@ -1327,7 +1327,6 @@ class TestAgents():
         }
         responses_mock(mock_post, [
             # ML Engine get (SQL post for SHOW ML_ENGINES)
-            pd.DataFrame([{'name': 'langchain', 'handler': 'langchain', 'connection_data': {}}]),
             data
         ])
         responses_mock(mock_get, [
@@ -1344,15 +1343,18 @@ class TestAgents():
             params={'k1': 'v1'}
         )
         # Check API call.
-        assert len(mock_post.call_args_list) == 2
+        assert len(mock_post.call_args_list) == 1
         assert mock_post.call_args_list[-1][0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents'
         assert mock_post.call_args_list[-1][1]['json'] == {
             'agent': {
                 'name': 'test_agent',
                 'model_name': 'm1',
                 'skills': ['test_skill'],
-                'params': {'k1': 'v1'},
-                'provider': None
+                'params': {
+                    'k1': 'v1',
+                    'prompt_template': 'Answer the user"s question in a helpful way: {{question}}'
+                },
+                'provider': 'mindsdb'
             }
         }
         expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')

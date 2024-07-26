@@ -412,15 +412,18 @@ class Agents(CollectionBase):
             _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
-        if model is None:
-            model = _DEFAULT_LLM_MODEL
-
         if params is None:
             params = {}
         params.update(kwargs)
 
         if 'prompt_template' not in params:
             params['prompt_template'] = 'Answer the user"s question in a helpful way: {{question}}'
+
+        if model is None:
+            model = _DEFAULT_LLM_MODEL
+        elif isinstance(model, Model):
+            model = model.name
+            provider = 'mindsdb'
 
         data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
