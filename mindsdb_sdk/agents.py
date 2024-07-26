@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
 import json
+import pandas as pd
 
 from mindsdb_sdk.databases import Databases
 from mindsdb_sdk.knowledge_bases import KnowledgeBase, KnowledgeBases
@@ -382,14 +383,50 @@ class Agents(CollectionBase):
         agent.skills.append(database_sql_skill)
         self.update(agent.name, agent)
 
+    def _create_ml_engine_if_not_exists(self, name: str = 'langchain'):
+        try:
+            _ = self.ml_engines.get('langchain')
+        except Exception:
+            # Create the engine if it doesn't exist.
+            _ = self.ml_engines.create('langchain', handler='langchain')
+
+    def _create_model_if_not_exists(self, name: str, model: Union[Model, dict, str]) -> str:
+        # Create langchain engine if it doesn't exist.
+        self._create_ml_engine_if_not_exists()
+        # Create a default model if it doesn't exist.
+        default_model_params = {
+            'predict': 'answer',
+            'engine': 'langchain',
+            'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
+            # Use GPT-4 by default.
+            'provider': 'openai',
+            'model_name': 'gpt-4'
+        }
+
+        if isinstance(model, dict):
+            default_model_params.update(model)
+            # Create model with passed in params.
+            return self.models.create(
+                f'{name}_default_model',
+                **default_model_params
+            ).name
+
+        if model is None:
+            # Create model with default params.
+            return _DEFAULT_LLM_MODEL
+
+        if isinstance(model, Model):
+            return model.name
+
+        return model
+
     def create(
             self,
             name: str,
             model: Union[Model, dict, str] = None,
             provider: str = None,
             skills: List[Union[Skill, str]] = None,
-            params: dict = None,
-            **kwargs) -> Agent:
+            params: dict = None) -> Agent:
         """
         Create new agent and return it
 
@@ -412,14 +449,7 @@ class Agents(CollectionBase):
             _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
-        if model is None:
-            model = _DEFAULT_LLM_MODEL
-
-        if params is None:
-            params = {}
-        params.update(kwargs)
-        if 'prompt_template' not in params:
-            params['prompt_template'] = 'Answer the user"s question in a helpful way: {{question}}'
+        model = self._create_model_if_not_exists(name, model)
 
         data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
