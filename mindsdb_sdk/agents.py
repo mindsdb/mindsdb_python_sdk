@@ -382,13 +382,6 @@ class Agents(CollectionBase):
         agent.skills.append(database_sql_skill)
         self.update(agent.name, agent)
 
-    def _create_ml_engine_if_not_exists(self, name: str = 'langchain'):
-        try:
-            _ = self.ml_engines.get('langchain')
-        except Exception:
-            # Create the engine if it doesn't exist.
-            _ = self.ml_engines.create('langchain', handler='langchain')
-
     def create(
             self,
             name: str,
@@ -425,6 +418,8 @@ class Agents(CollectionBase):
         if params is None:
             params = {}
         params.update(kwargs)
+        if 'prompt_template' not in params:
+            params['prompt_template'] = 'Answer the user"s question in a helpful way: {{question}}'
 
         data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
