@@ -390,43 +390,14 @@ class Agents(CollectionBase):
             # Create the engine if it doesn't exist.
             _ = self.ml_engines.create('langchain', handler='langchain')
 
-    def _create_model_if_not_exists(self, name: str, model: Union[Model, dict, str]) -> str:
-        # Create langchain engine if it doesn't exist.
-        self._create_ml_engine_if_not_exists()
-        # Create a default model if it doesn't exist.
-        default_model_params = {
-            'predict': 'answer',
-            'engine': 'langchain',
-            'prompt_template': 'Answer the user"s question in a helpful way: {{question}}',
-            # Use GPT-4 by default.
-            'provider': 'openai',
-            'model_name': 'gpt-4'
-        }
-
-        if isinstance(model, dict):
-            default_model_params.update(model)
-            # Create model with passed in params.
-            return self.models.create(
-                f'{name}_default_model',
-                **default_model_params
-            ).name
-
-        if model is None:
-            # Create model with default params.
-            return _DEFAULT_LLM_MODEL
-
-        if isinstance(model, Model):
-            return model.name
-
-        return model
-
     def create(
             self,
             name: str,
             model: Union[Model, dict, str] = None,
             provider: str = None,
             skills: List[Union[Skill, str]] = None,
-            params: dict = None) -> Agent:
+            params: dict = None,
+            **kwargs) -> Agent:
         """
         Create new agent and return it
 
@@ -449,7 +420,12 @@ class Agents(CollectionBase):
             _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
-        model = self._create_model_if_not_exists(name, model)
+        if model is None:
+            model = _DEFAULT_LLM_MODEL
+
+        if params is None:
+            params = {}
+        params.update(kwargs)
 
         data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
