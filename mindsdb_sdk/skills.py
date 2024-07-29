@@ -82,7 +82,7 @@ class RetrievalSkill(Skill):
 
 class Skills(CollectionBase):
     """Collection for skills"""
-    def __init__(self, api, project: str):
+    def __init__(self, project, api):
         self.api = api
         self.project = project
 
@@ -92,7 +92,7 @@ class Skills(CollectionBase):
 
         :return: list of skills
         """
-        data = self.api.skills(self.project)
+        data = self.api.skills(self.project.name)
         return [Skill.from_json(skill) for skill in data]
 
     def get(self, name: str) -> Skill:
@@ -103,7 +103,7 @@ class Skills(CollectionBase):
 
         :return: skill with the given name
         """
-        data = self.api.skill(self.project, name)
+        data = self.api.skill(self.project.name, name)
         return Skill.from_json(data)
 
     def create(self, name: str, type: str, params: dict = None) -> Skill:
@@ -116,7 +116,7 @@ class Skills(CollectionBase):
 
         :return: created skill object
         """
-        _ = self.api.create_skill(self.project, name, type, params)
+        _ = self.api.create_skill(self.project.name, name, type, params)
         if type == 'sql':
             return SQLSkill(name, params['tables'], params['database'], params['description'])
         return Skill(name, type, params)
@@ -130,7 +130,7 @@ class Skills(CollectionBase):
 
         :return: updated skillobject
         """
-        data = self.api.update_skill(self.project, name, updated_skill.name, updated_skill.type, updated_skill.params)
+        data = self.api.update_skill(self.project.name, name, updated_skill.name, updated_skill.type, updated_skill.params)
         return Skill.from_json(data)
 
     def drop(self, name: str):
@@ -139,4 +139,4 @@ class Skills(CollectionBase):
 
         :param name: Name of the skill to be dropped
         """
-        _ = self.api.delete_skill(self.project, name)
+        _ = self.api.delete_skill(self.project.name, name)
