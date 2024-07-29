@@ -13,6 +13,7 @@ from mindsdb_sdk.skills import Skill, Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 _DEFAULT_LLM_MODEL = 'gpt-4o'
+_DEFAULT_LLM_PROMPT = 'Answer the user"s question in a helpful way: {{question}}'
 
 class AgentCompletion:
     """Represents a full MindsDB agent completion"""
@@ -417,7 +418,7 @@ class Agents(CollectionBase):
         params.update(kwargs)
 
         if 'prompt_template' not in params:
-            params['prompt_template'] = 'Answer the user"s question in a helpful way: {{question}}'
+            params['prompt_template'] = _DEFAULT_LLM_PROMPT
 
         if model is None:
             model = _DEFAULT_LLM_MODEL
