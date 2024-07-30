@@ -185,6 +185,7 @@ class Agents(CollectionBase):
 
         self.knowledge_bases = project.knowledge_bases
         self.models = project.models
+        self.skills = project.skills
 
         self.databases = project.server.databases
         self.ml_engines = project.server.ml_engines
@@ -296,7 +297,7 @@ class Agents(CollectionBase):
             'source': kb.name,
             'description': description,
         }
-        file_retrieval_skill = self.project.skills.create(skill_name, 'retrieval', retrieval_params)
+        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
 
@@ -345,7 +346,7 @@ class Agents(CollectionBase):
             'source': kb.name,
             'description': description,
         }
-        webpage_retrieval_skill = self.project.skills.create(skill_name, 'retrieval', retrieval_params)
+        webpage_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
         agent.skills.append(webpage_retrieval_skill)
         self.update(agent.name, agent)
 
@@ -384,7 +385,7 @@ class Agents(CollectionBase):
             'tables': tables,
             'description': description,
         }
-        database_sql_skill = self.project.skills.create(skill_name, 'sql', sql_params)
+        database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
         agent = self.get(name)
 
         if not agent.params:
@@ -456,11 +457,11 @@ class Agents(CollectionBase):
             if isinstance(skill, str):
                 # Check if skill exists.
                 # TODO what this line does?
-                _ = self.project.skills.get(skill)
+                _ = self.skills.get(skill)
                 skill_names.append(skill)
                 continue
             # Create the skill if it doesn't exist.
-            _ = self.project.skills.create(skill.name, skill.type, skill.params)
+            _ = self.skills.create(skill.name, skill.type, skill.params)
             skill_names.append(skill.name)
 
         model = self._create_model_if_not_exists(name, model)
@@ -481,17 +482,17 @@ class Agents(CollectionBase):
         for skill in updated_agent.skills:
             if isinstance(skill, str):
                 # Skill must exist.
-                _ = self.project.skills.get(skill)
+                _ = self.skills.get(skill)
                 updated_skills.add(skill)
                 continue
             try:
                 # Create the skill if it doesn't exist.
-                _ = self.project.skills.get(skill.name)
+                _ = self.skills.get(skill.name)
             except HTTPError as e:
                 if e.response.status_code != 404:
                     raise e
                 # Doesn't exist
-                _ = self.project.skills.create(skill.name, skill.type, skill.params)
+                _ = self.skills.create(skill.name, skill.type, skill.params)
             updated_skills.add(skill.name)
 
         existing_agent = self.api.agent(self.project.name, name)
