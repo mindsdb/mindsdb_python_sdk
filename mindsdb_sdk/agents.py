@@ -246,8 +246,8 @@ class Agents(CollectionBase):
         if agent.provider == "mindsdb":
             agent_model = self.models.get(agent.model_name)
             training_options = json.loads(agent_model.data.get('training_options', '{}'))
-            training_options_using = training_options.get('using', { })
-            api_key_params = { k: v for k, v in training_options_using.items() if 'api_key' in k }
+            training_options_using = training_options.get('using', {})
+            api_key_params = {k: v for k, v in training_options_using.items() if 'api_key' in k}
             kb = self.knowledge_bases.create(name, params=api_key_params)
         else:
             kb = self.knowledge_bases.create(name)
@@ -389,7 +389,7 @@ class Agents(CollectionBase):
         agent = self.get(name)
 
         if not agent.params:
-            agent.params = { }
+            agent.params = {}
         if 'prompt_template' not in agent.params:
             # Set default prompt template. This is for langchain agent check.
             agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
