@@ -16,12 +16,21 @@ from mindsdb_sdk.utils.objects_collection import CollectionBase
 _DEFAULT_LLM_MODEL = 'gpt-4o'
 
 class AgentCompletion:
-    """Represents a full MindsDB agent completion"""
-    def __init__(self, content: str):
+    """
+    Represents a full MindsDB agent completion response.
+
+    Attributes:
+    content: The completion content.
+    context: Only relevant for retrieval agents. Contains the context retrieved from the knowledge base.
+
+
+    """
+    def __init__(self, content: str, context: List[dict] = None):
         self.content = content
+        self.context = context
 
     def __repr__(self):
-        return self.content
+        return f'{self.__class__.__name__}(content: {self.content}, context: {self.context})'
 
 
 class Agent:
@@ -208,6 +217,9 @@ class Agents(CollectionBase):
         :return: completion from querying the agent
         """
         data = self.api.agent_completion(self.project, name, messages)
+        if 'context' in data['message']:
+            return AgentCompletion(data['message']['content'], data['message'].get('context'))
+
         return AgentCompletion(data['message']['content'])
 
     def completion_stream(self, name, messages: List[dict]) -> Iterable[object]:
