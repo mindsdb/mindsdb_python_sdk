@@ -12,13 +12,24 @@ from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 _DEFAULT_LLM_MODEL = 'gpt-4o'
 
+
 class AgentCompletion:
-    """Represents a full MindsDB agent completion"""
-    def __init__(self, content: str):
+    """
+    Represents a full MindsDB agent completion response.
+
+    Attributes:
+    content: The completion content.
+    context: Only relevant for retrieval agents. Contains the context retrieved from the knowledge base.
+
+
+    """
+
+    def __init__(self, content: str, context: List[dict] = None):
         self.content = content
+        self.context = context
 
     def __repr__(self):
-        return self.content
+        return f'{self.__class__.__name__}(content: {self.content}, context: {self.context})'
 
 
 class Agent:
@@ -64,6 +75,7 @@ class Agent:
 
     >>> agents.drop('my_agent')
     """
+
     def __init__(
             self,
             name: str,
@@ -74,7 +86,7 @@ class Agent:
             updated_at: datetime.datetime,
             provider: str = None,
             collection: CollectionBase = None
-            ):
+    ):
         self.name = name
         self.model_name = model_name
         self.provider = provider
@@ -166,6 +178,7 @@ class Agent:
 
 class Agents(CollectionBase):
     """Collection for agents"""
+
     def __init__(self, project, api):
         self.api = api
         self.project = project
@@ -206,6 +219,9 @@ class Agents(CollectionBase):
         :return: completion from querying the agent
         """
         data = self.api.agent_completion(self.project.name, name, messages)
+        if 'context' in data['message']:
+            return AgentCompletion(data['message']['content'], data['message'].get('context'))
+
         return AgentCompletion(data['message']['content'])
 
     def completion_stream(self, name, messages: List[dict]) -> Iterable[object]:
@@ -229,8 +245,8 @@ class Agents(CollectionBase):
         if agent.provider == "mindsdb":
             agent_model = self.models.get(agent.model_name)
             training_options = json.loads(agent_model.data.get('training_options', '{}'))
-            training_options_using = training_options.get('using', {})
-            api_key_params = {k:v for k, v in training_options_using.items() if 'api_key' in k}
+            training_options_using = training_options.get('using', { })
+            api_key_params = { k: v for k, v in training_options_using.items() if 'api_key' in k }
             kb = self.knowledge_bases.create(name, params=api_key_params)
         else:
             kb = self.knowledge_bases.create(name)
@@ -283,7 +299,6 @@ class Agents(CollectionBase):
         file_retrieval_skill = self.project.skills.create(skill_name, 'retrieval', retrieval_params)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
-
 
     def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
         """
@@ -373,7 +388,7 @@ class Agents(CollectionBase):
         agent = self.get(name)
 
         if not agent.params:
-            agent.params = {}
+            agent.params = { }
         if 'prompt_template' not in agent.params:
             # Set default prompt template. This is for langchain agent check.
             agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
