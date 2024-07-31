@@ -48,9 +48,10 @@ class Project:
 
     """
 
-    def __init__(self, api, name, agents: Agents = None, skills: Skills = None, knowledge_bases: KnowledgeBases = None, databases: Databases = None, ml_engines: MLEngines = None):
+    def __init__(self, server, api, name):
         self.name = name
         self.api = api
+        self.server = server
 
         self.models = Models(self, api)
 
@@ -76,11 +77,10 @@ class Project:
         self.create_job = self.jobs.create
         self.drop_job = self.jobs.drop
 
-        self.databases = databases or Databases(api)
-        self.knowledge_bases = knowledge_bases or KnowledgeBases(self, api)
+        self.knowledge_bases = KnowledgeBases(self, api)
 
-        self.skills = skills or Skills(api, name)
-        self.agents = agents or Agents(api, name, self.knowledge_bases, self.databases, self.models, ml_engines, self.skills)
+        self.skills = Skills(self, api)
+        self.agents = Agents(self, api)
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.name})'
@@ -104,7 +104,6 @@ class Project:
         ast_query = DropPredictor(Identifier(parts=[name, str(version)]))
 
         self.query(ast_query.to_string()).fetch()
-
 
 
 class Projects(CollectionBase):
@@ -133,8 +132,9 @@ class Projects(CollectionBase):
 
     """
 
-    def __init__(self, api):
+    def __init__(self, server, api):
         self.api = api
+        self.server = server
 
     def _list_projects(self):
         data = self.api.sql_query("select NAME from information_schema.databases where TYPE='project'")
@@ -147,7 +147,7 @@ class Projects(CollectionBase):
         :return: list of Project objects
         """
         # select * from information_schema.databases where TYPE='project'
-        return [Project(self.api, name) for name in self._list_projects()]
+        return [Project(self.server, self.api, name) for name in self._list_projects()]
 
     def get(self, name: str = 'mindsdb') -> Project:
         """
@@ -158,7 +158,7 @@ class Projects(CollectionBase):
         """
         if name not in self._list_projects():
             raise AttributeError("Project doesn't exist")
-        return Project(self.api, name)
+        return Project(self.server, self.api, name)
 
     def create(self, name: str) -> Project:
         """
@@ -175,7 +175,7 @@ class Projects(CollectionBase):
         )
 
         self.api.sql_query(ast_query.to_string())
-        return Project(self.api, name)
+        return Project(self.server, self.api, name)
 
     def drop(self, name: str):
         """

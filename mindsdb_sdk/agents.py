@@ -5,15 +5,14 @@ from uuid import uuid4
 import datetime
 import json
 
-from mindsdb_sdk.databases import Databases
-from mindsdb_sdk.knowledge_bases import KnowledgeBase, KnowledgeBases
-from mindsdb_sdk.ml_engines import MLEngines
-from mindsdb_sdk.models import Model, Models
-from mindsdb_sdk.skills import Skill, Skills
+from mindsdb_sdk.knowledge_bases import KnowledgeBase
+from mindsdb_sdk.models import Model
+from mindsdb_sdk.skills import Skill
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 _DEFAULT_LLM_MODEL = 'gpt-4o'
 _DEFAULT_LLM_PROMPT = 'Answer the user"s question in a helpful way: {{question}}'
+
 
 class AgentCompletion:
     """
@@ -25,6 +24,7 @@ class AgentCompletion:
 
 
     """
+
     def __init__(self, content: str, context: List[dict] = None):
         self.content = content
         self.context = context
@@ -76,6 +76,7 @@ class Agent:
 
     >>> agents.drop('my_agent')
     """
+
     def __init__(
             self,
             name: str,
@@ -84,9 +85,9 @@ class Agent:
             params: dict,
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
-            provider: str= None,
+            provider: str = None,
             collection: CollectionBase = None
-            ):
+    ):
         self.name = name
         self.model_name = model_name
         self.provider = provider
@@ -178,14 +179,17 @@ class Agent:
 
 class Agents(CollectionBase):
     """Collection for agents"""
-    def __init__(self, api, project: str, knowledge_bases: KnowledgeBases, databases: Databases, models: Models, ml_engines: MLEngines, skills: Skills = None):
+
+    def __init__(self, project, api):
         self.api = api
         self.project = project
-        self.skills = skills or Skills(self.api, project)
-        self.databases = databases
-        self.knowledge_bases = knowledge_bases
-        self.ml_engines = ml_engines
-        self.models = models
+
+        self.knowledge_bases = project.knowledge_bases
+        self.models = project.models
+        self.skills = project.skills
+
+        self.databases = project.server.databases
+        self.ml_engines = project.server.ml_engines
 
     def list(self) -> List[Agent]:
         """
@@ -193,7 +197,7 @@ class Agents(CollectionBase):
 
         :return: list of agents
         """
-        data = self.api.agents(self.project)
+        data = self.api.agents(self.project.name)
         return [Agent.from_json(agent, self) for agent in data]
 
     def get(self, name: str) -> Agent:
@@ -204,7 +208,7 @@ class Agents(CollectionBase):
 
         :return: agent with given name
         """
-        data = self.api.agent(self.project, name)
+        data = self.api.agent(self.project.name, name)
         return Agent.from_json(data, self)
 
     def completion(self, name: str, messages: List[dict]) -> AgentCompletion:
@@ -216,7 +220,7 @@ class Agents(CollectionBase):
 
         :return: completion from querying the agent
         """
-        data = self.api.agent_completion(self.project, name, messages)
+        data = self.api.agent_completion(self.project.name, name, messages)
         if 'context' in data['message']:
             return AgentCompletion(data['message']['content'], data['message'].get('context'))
 
@@ -231,7 +235,7 @@ class Agents(CollectionBase):
 
         :return: iterable of completion chunks from querying the agent.
         """
-        return self.api.agent_completion_stream(self.project, name, messages)
+        return self.api.agent_completion_stream(self.project.name, name, messages)
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
         # Make sure default ML engine for embeddings exists.
@@ -244,7 +248,7 @@ class Agents(CollectionBase):
             agent_model = self.models.get(agent.model_name)
             training_options = json.loads(agent_model.data.get('training_options', '{}'))
             training_options_using = training_options.get('using', {})
-            api_key_params = {k:v for k, v in training_options_using.items() if 'api_key' in k}
+            api_key_params = {k: v for k, v in training_options_using.items() if 'api_key' in k}
             kb = self.knowledge_bases.create(name, params=api_key_params)
         else:
             kb = self.knowledge_bases.create(name)
@@ -297,7 +301,6 @@ class Agents(CollectionBase):
         file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
         agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
-
 
     def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
         """
@@ -418,6 +421,7 @@ class Agents(CollectionBase):
         for skill in skills:
             if isinstance(skill, str):
                 # Check if skill exists.
+                # TODO what this line does?
                 _ = self.skills.get(skill)
                 skill_names.append(skill)
                 continue
@@ -438,7 +442,7 @@ class Agents(CollectionBase):
             model = model.name
             provider = 'mindsdb'
 
-        data = self.api.create_agent(self.project, name, model, provider, skill_names, params)
+        data = self.api.create_agent(self.project.name, name, model, provider, skill_names, params)
         return Agent.from_json(data, self)
 
     def update(self, name: str, updated_agent: Agent):
@@ -467,12 +471,12 @@ class Agents(CollectionBase):
                 _ = self.skills.create(skill.name, skill.type, skill.params)
             updated_skills.add(skill.name)
 
-        existing_agent = self.api.agent(self.project, name)
+        existing_agent = self.api.agent(self.project.name, name)
         existing_skills = set([s['name'] for s in existing_agent['skills']])
         skills_to_add = updated_skills.difference(existing_skills)
         skills_to_remove = existing_skills.difference(updated_skills)
         data = self.api.update_agent(
-            self.project,
+            self.project.name,
             name,
             updated_agent.name,
             updated_agent.model_name,
@@ -488,4 +492,4 @@ class Agents(CollectionBase):
 
         :param name: Name of the agent to be dropped
         """
-        _ = self.api.delete_agent(self.project, name)
+        _ = self.api.delete_agent(self.project.name, name)
