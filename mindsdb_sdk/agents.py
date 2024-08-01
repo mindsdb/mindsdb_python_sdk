@@ -492,6 +492,10 @@ class Agents(CollectionBase):
                 _ = self.skills.create(skill.name, skill.type, skill.params)
             updated_skills.add(skill.name)
 
+            # Set mode to retrieval if any retrieval skill is added.
+            if skill.type == 'retrieval' and 'mode' not in updated_agent.params:
+                updated_agent.params['mode'] = 'retrieval'
+
         existing_agent = self.api.agent(self.project, name)
         existing_skills = set([s['name'] for s in existing_agent['skills']])
         skills_to_add = updated_skills.difference(existing_skills)
