@@ -15,7 +15,19 @@ agent = con.agents.create(name=f'mindsdb_retrieval_agent_{model_name}_{uuid4().h
 agent.add_file('./data/tokaido-rulebook.pdf', 'rule book for the board game Tokaido')
 
 question = "what are the rules for the game takaido?"
-answer = agent.completion([{'question': question, 'answer': None}])
-print(answer.context)
-print(answer)
 
+# Stream the completion
+completion_stream = agent.completion_stream([{'question': question, 'answer': None}])
+
+# Process the streaming response
+full_response = ""
+for chunk in completion_stream:
+    print(chunk)  # Print the entire chunk for debugging
+    if isinstance(chunk, dict):
+        if 'output' in chunk:
+            full_response += chunk['output']
+    elif isinstance(chunk, str):
+        full_response += chunk
+
+print("\n\nFull response:")
+print(full_response)
