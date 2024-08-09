@@ -8,11 +8,8 @@ import os
 # Load MindsDB API key from environment variable. or set it here.
 MINDSDB_API_KEY = os.getenv('MINDSDB_API_KEY')
 
-# Set the model name for mind to use
-model_name = 'gpt-4'
-
 # Set the base URL for the MindsDB LiteLLM proxy.
-base_url = 'https://ai.dev.mindsdb.com'
+base_url = 'https://llm.mdb.ai'
 
 
 # Connect to MindsDB LiteLLM proxy.
@@ -42,7 +39,6 @@ mind = create_mind(
     api_key= MINDSDB_API_KEY,
     name = f'my_house_data_mind_{uuid4().hex}',
     data_source_configs=[pg_config],
-    model= model_name
 )
 
 # Actually pass in our tool to get a SQL completion.
