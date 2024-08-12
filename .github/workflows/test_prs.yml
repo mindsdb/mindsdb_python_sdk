@@ -3,8 +3,7 @@ name: PR workflow
 on:
   pull_request:
     branches:
-      - stable
-      - staging
+      - main
 
 jobs:
   test:
