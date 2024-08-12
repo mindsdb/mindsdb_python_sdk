@@ -2,6 +2,7 @@
 
 The Python MindsDB SDK allows you to connect to a MindsDB server from Python using the HTTP API.
 
+
 ## Installation
 
 ```
