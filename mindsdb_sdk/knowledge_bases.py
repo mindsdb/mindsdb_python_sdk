@@ -124,11 +124,15 @@ class KnowledgeBase(Query):
         """
         self.api.insert_files_into_knowledge_base(self.project.name, self.name, file_paths)
 
-    def insert_webpages(self, urls: List[str]):
+    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
         """
-        Insert data from crawled URLs to knowledge base
+        Insert data from crawled URLs to knowledge base.
+
+        :param urls: URLs to be crawled and inserted.
+        :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
+        :param filters: Include only URLs that match these regex patterns
         """
-        self.api.insert_webpages_into_knowledge_base(self.project.name, self.name, urls)
+        self.api.insert_webpages_into_knowledge_base(self.project.name, self.name, urls, crawl_depth=crawl_depth, filters=filters)
 
     def insert(self, data: Union[pd.DataFrame, Query, dict]):
         """

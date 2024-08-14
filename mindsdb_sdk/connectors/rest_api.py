@@ -413,13 +413,16 @@ class RestAPI:
         return r.json()
 
     @_try_relogin
-    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str]):
+    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
+        data = {
+            'urls': urls,
+            'crawl_depth': crawl_depth,
+            'filters': [] if filters is None else filters
+        }
         r = self.session.put(
             self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
             json={
-                'knowledge_base': {
-                    'urls': urls
-                }
+                'knowledge_base': data
             }
         )
         _raise_for_status(r)

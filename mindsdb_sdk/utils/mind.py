@@ -45,13 +45,30 @@ class DatabaseConfig(DataSourceConfig):
 
 class FileConfig(DataSourceConfig):
     """
-    Represents a colection of files that can be made available to a Mind.
+    Represents a collection of files that can be made available to a Mind.
     """
 
     # Local file paths and/or URLs.
-    paths: List[str] = []
+    paths: List[str]
 
     # TODO: Configure Vector storage. Use defaults for now.
+
+
+class WebConfig(DataSourceConfig):
+    """
+    Represents a collection of URLs that can be crawled and made available to a Mind.
+    """
+
+    # Base URLs to crawl from.
+    urls: List[str]
+
+    # Scrapes all URLs found in the starting page (default).
+    # 0 = scrape provided URLs only
+    # -1 = no limit (we should set our own sensible limit)
+    crawl_depth: int = 1
+
+    # Include only URLs that match regex patterns.
+    filters: List[str] = [ ]
 
 
 # Create mind entity util function

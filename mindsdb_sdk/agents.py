@@ -119,21 +119,41 @@ class Agent:
         """
         self.collection.add_file(self.name, file_path, description, knowledge_base)
 
-    def add_webpages(self, urls: List[str], description: str, knowledge_base: str = None):
+    def add_webpages(
+            self,
+            urls: List[str],
+            description: str,
+            knowledge_base: str = None,
+            crawl_depth: int = 1,
+            filters: List[str] = None):
         """
-        Add a list of crawled URLs to the agent for retrieval.
+        Add a crawled URL to the agent for retrieval.
 
-        :param urls: List of URLs to be crawled and added.
+        :param urls: URLs of pages to be crawled and added.
+        :param description: Description of the webpages. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only, -1 = default max
+        :param filters: Include only URLs that match these regex patterns
         """
-        self.collection.add_webpages(self.name, urls, description, knowledge_base)
+        self.collection.add_webpages(self.name, urls, description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
 
-    def add_webpage(self, url: str, description: str, knowledge_base: str = None):
+    def add_webpage(
+            self,
+            url: str,
+            description: str,
+            knowledge_base: str = None,
+            crawl_depth: int = 1,
+            filters: List[str] = None):
         """
         Add a crawled URL to the agent for retrieval.
 
         :param url: URL of the page to be crawled and added.
+        :param description: Description of the webpages. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only, -1 = default max
+        :param filters: Include only URLs that match these regex patterns
         """
-        self.collection.add_webpage(self.name, url, description, knowledge_base)
+        self.collection.add_webpage(self.name, url, description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
 
     def add_database(self, database: str, tables: List[str], description: str):
         """
@@ -313,7 +333,15 @@ class Agents(CollectionBase):
         """
         self.add_files(name, [file_path], description, knowledge_base)
 
-    def add_webpages(self, name: str, urls: List[str], description: str, knowledge_base: str = None):
+    def add_webpages(
+            self,
+            name: str,
+            urls: List[str],
+            description: str,
+            knowledge_base: str = None,
+            crawl_depth: int = 1,
+            filters: List[str] = None
+            ):
         """
         Add a list of webpages to the agent for retrieval.
 
@@ -321,6 +349,8 @@ class Agents(CollectionBase):
         :param urls: List of URLs of the webpages to be added.
         :param description: Description of the webpages. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
+        :param filters: Include only URLs that match these regex patterns
         """
         if not urls:
             return
@@ -339,7 +369,7 @@ class Agents(CollectionBase):
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
-        kb.insert_webpages(urls)
+        kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters)
 
         # Make sure skill name is unique.
         skill_name = f'{domain}{path}_retrieval_skill_{uuid4()}'
@@ -351,7 +381,14 @@ class Agents(CollectionBase):
         agent.skills.append(webpage_retrieval_skill)
         self.update(agent.name, agent)
 
-    def add_webpage(self, name: str, url: str, description: str, knowledge_base: str = None):
+    def add_webpage(
+            self,
+            name: str,
+            url: str,
+            description: str,
+            knowledge_base: str = None,
+            crawl_depth: int = 1,
+            filters: List[str] = None):
         """
         Add a webpage to the agent for retrieval.
 
@@ -359,8 +396,10 @@ class Agents(CollectionBase):
         :param file_path: URL of the webpage to be added, or name of existing webpage.
         :param description: Description of the webpage. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
+        :param filters: Include only URLs that match these regex patterns
         """
-        self.add_webpages(name, [url], description, knowledge_base)
+        self.add_webpages(name, [url], description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
 
     def add_database(self, name: str, database: str, tables: List[str], description: str):
         """
