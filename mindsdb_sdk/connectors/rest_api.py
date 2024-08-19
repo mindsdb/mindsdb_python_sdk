@@ -279,7 +279,7 @@ class RestAPI:
     @_try_relogin
     def agent_completion_stream(self, project: str, name: str, messages: List[dict]):
         url = self.url + f'/api/projects/{project}/agents/{name}/completions/stream'
-        stream = requests.post(url, json={'messages': messages}, stream=True)
+        stream = self.session.post(url, json={'messages': messages}, stream=True)
         client = SSEClient(stream)
         for chunk in client.events():
             # Stream objects loaded from SSE events 'data' param.
