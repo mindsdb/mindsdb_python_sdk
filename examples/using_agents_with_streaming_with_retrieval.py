@@ -14,7 +14,7 @@ agent = con.agents.create(name=f'mindsdb_retrieval_agent_{model_name}_{uuid4().h
 
 agent.add_file('./data/tokaido-rulebook.pdf', 'rule book for the board game Tokaido')
 
-question = "what are the rules for the game takaido?"
+question = "what are the rules for the game tokaido?"
 
 # Stream the completion
 completion_stream = agent.completion_stream([{'question': question, 'answer': None}])
