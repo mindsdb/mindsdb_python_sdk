@@ -354,25 +354,21 @@ class Agents(CollectionBase):
         """
         if not urls:
             return
-        domain = ''
-        path = ''
         agent = self.get(name)
         for url in urls:
             # Validate URLs.
-            parsed_url = urlparse(url)
-            domain = parsed_url.netloc.replace('.', '_')
-            path = parsed_url.path.replace('/', '_')
+            _ = urlparse(url)
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_{domain}{path}_{uuid4()}_kb'
+            kb_name = f'{name}_web_{uuid4()}_kb'
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
         kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters)
 
         # Make sure skill name is unique.
-        skill_name = f'{domain}{path}_retrieval_skill_{uuid4()}'
+        skill_name = f'web_retrieval_skill_{uuid4()}'
         retrieval_params = {
             'source': kb.name,
             'description': description,
