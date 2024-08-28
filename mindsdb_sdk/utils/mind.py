@@ -95,6 +95,8 @@ def create_mind(
 
     url = f"{base_url.rstrip('/')}/minds"
     headers = {"Authorization": f"Bearer {api_key}"}
+    if data_source_configs is None:
+        data_source_configs = []
     payload = {
         "name": name,
         "data_source_configs": [d.model_dump() for d in data_source_configs],
