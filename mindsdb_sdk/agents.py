@@ -306,14 +306,14 @@ class Agents(CollectionBase):
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_{filename_no_extension}_{uuid4().hex}_kb'
+            kb_name = f'{name.lower()}_{filename_no_extension.lower()}_{uuid4().hex}_kb'
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert the entire file.
         kb.insert_files(all_filenames)
 
         # Make sure skill name is unique.
-        skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4().hex}'
+        skill_name = f'{filename_no_extension.lower()}_retrieval_skill_{uuid4().hex}'
         retrieval_params = {
             'source': kb.name,
             'description': description,
@@ -361,7 +361,7 @@ class Agents(CollectionBase):
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_web_{uuid4().hex}_kb'
+            kb_name = f'{name.lower()}_web_{uuid4().hex}_kb'
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
