@@ -290,8 +290,8 @@ class Agents(CollectionBase):
         filename_no_extension = ''
         all_filenames = []
         for file_path in file_paths:
-            filename = file_path.split('/')[-1]
-            filename_no_extension = filename.split('.')[0].lower()
+            filename = file_path.split('/')[-1].lower()
+            filename_no_extension = filename.split('.')[0]
             all_filenames.append(filename_no_extension)
             try:
                 _ = self.api.get_file_metadata(filename_no_extension)
