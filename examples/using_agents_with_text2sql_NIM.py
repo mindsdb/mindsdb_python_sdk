@@ -5,11 +5,12 @@ import os
 con = mindsdb_sdk.connect('http://127.0.0.1:47334')
 
 nim_api_key = os.getenv('NIM_API_KEY')
-model_name = 'meta/llama-3_1-8b-instruct'
+#model_name = 'meta/llama-3_1-8b-instruct'
+model_name = 'mistralai/mistral-7b-instruct-v0.3'
 provider = 'nvidia_nim'
 
 # Now create an agent that will use the model we just created.
-agent = con.agents.create(name=f'mindsdb_sql_agent_llama-3.1-8b-instruct_{uuid4().hex}',
+agent = con.agents.create(name=f'nim_test_{uuid4().hex}',
                           model=model_name,
                           provider=provider,
                           api_keys={provider: nim_api_key}
