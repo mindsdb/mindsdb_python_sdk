@@ -116,7 +116,3 @@ class MindsDBSQLStreamParser:
         self.logger.info(f"Final SQL Query: {sql_query}")
 
         return full_response, sql_query
-
-# Example usage:
-# parser = MindsDBSQLStreamParser(log_level=logging.DEBUG)
-# full_response, sql_query = parser.process_stream(agent.completion_stream([{'question': question, 'answer': None}]))
