@@ -6,7 +6,6 @@ import os
 
 from mindsdb_sdk.utils.agents import MindsDBSQLStreamParser
 
-
 con = mindsdb_sdk.connect()
 
 open_ai_key = os.getenv('OPENAI_API_KEY')
@@ -40,7 +39,8 @@ question = 'How many three-bedroom houses were sold in 2008?'
 
 completion_stream = agent.completion_stream([{'question': question, 'answer': None}])
 
-mdb_parser = MindsDBSQLStreamParser(log_level=logging.DEBUG)
+#default logging level is set to INFO, we can change it to DEBUG to see more detailed logs and get full agent steps
+mdb_parser = MindsDBSQLStreamParser()
 full_response, sql_query = mdb_parser.process_stream(completion_stream)
 
 con.databases.drop(database.name)

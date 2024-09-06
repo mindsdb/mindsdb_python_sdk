@@ -63,20 +63,36 @@ class MindsDBSQLStreamParser:
             output = ""
             sql_query = None
 
+            # Log full chunk at DEBUG level
             self.logger.debug(f"Processing chunk: {json.dumps(chunk, indent=2)}")
 
+            # Log important info at INFO level
             if isinstance(chunk, dict):
+                if 'quick_response' in chunk:
+                    self.logger.info(f"Quick response received: {json.dumps(chunk)}")
+
                 output = chunk.get('output', '')
+                if output:
+                    self.logger.info(f"Chunk output: {output}")
+
+                if 'messages' in chunk:
+                    for message in chunk['messages']:
+                        if message.get('role') == 'assistant':
+                            self.logger.info(f"Assistant message: {message.get('content', '')}")
+
                 if 'actions' in chunk and chunk['actions']:
+                    self.logger.info(f"Chunk contains {len(chunk['actions'])} actions")
                     for action in chunk['actions']:
                         if 'tool' in action and 'sql_db_query' in action['tool']:
                             match = re.search(r'tool_input="(.*?)"', action['tool'])
                             if match and not sql_query_found:
                                 sql_query = match.group(1).replace("\\'", "'")
                                 sql_query_found = True
+                                self.logger.info(f"SQL query found: {sql_query}")
                                 break
             elif isinstance(chunk, str):
                 output = chunk
+                self.logger.info(f"String chunk received: {chunk}")
 
             yield {
                 'output':output,
