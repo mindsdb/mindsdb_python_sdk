@@ -290,7 +290,7 @@ class Agents(CollectionBase):
         filename_no_extension = ''
         all_filenames = []
         for file_path in file_paths:
-            filename = file_path.split('/')[-1]
+            filename = file_path.split('/')[-1].lower()
             filename_no_extension = filename.split('.')[0]
             all_filenames.append(filename_no_extension)
             try:
@@ -306,7 +306,7 @@ class Agents(CollectionBase):
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_{filename_no_extension}_{uuid4().hex}_kb'
+            kb_name = f'{name.lower()}_{filename_no_extension}_{uuid4().hex}_kb'
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert the entire file.
@@ -361,7 +361,7 @@ class Agents(CollectionBase):
         if knowledge_base is not None:
             kb = self.knowledge_bases.get(knowledge_base)
         else:
-            kb_name = f'{name}_web_{uuid4().hex}_kb'
+            kb_name = f'{name.lower()}_web_{uuid4().hex}_kb'
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
