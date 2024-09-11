@@ -5,11 +5,11 @@ import os
 con = mindsdb_sdk.connect()
 
 open_ai_key = os.getenv('OPENAI_API_KEY')
-model_name = 'gpt-4'
+model_name = 'gpt-4o'
 
 # Now create an agent that will use the model we just created.
 agent = con.agents.create(name=f'mindsdb_sql_agent_{model_name}_{uuid4().hex}',
-                          model='gpt-4')
+                          model=model_name)
 
 
 # Set up a Postgres data source with our new agent.
