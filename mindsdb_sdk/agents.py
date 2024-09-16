@@ -8,6 +8,7 @@ import json
 from mindsdb_sdk.knowledge_bases import KnowledgeBase
 from mindsdb_sdk.models import Model
 from mindsdb_sdk.skills import Skill
+from mindsdb_sdk.utils.mind import S3Config
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 _DEFAULT_LLM_MODEL = 'gpt-4o'
@@ -332,6 +333,17 @@ class Agents(CollectionBase):
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
         self.add_files(name, [file_path], description, knowledge_base)
+
+    def add_s3_config(self, name: str, s3_config: S3Config, knowledge_base: str = None ):
+        #TODO: Validate s3 Config
+        agent = self.get(name)
+        if knowledge_base is not None:
+            kb = self.knowledge_bases.get(knowledge_base)
+        else:
+            kb_name = f'{name.lower()}_web_{uuid4().hex}_kb'
+            kb = self._create_default_knowledge_base(agent, kb_name)
+
+        kb.insert_s3_config(s3_config)
 
     def add_webpages(
             self,

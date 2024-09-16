@@ -10,6 +10,8 @@ import validators
 from mindsdb_sdk import __about__
 from sseclient import SSEClient
 
+from mindsdb_sdk.utils.mind import S3Config
+
 
 def _try_relogin(fnc):
     @wraps(fnc)
@@ -427,4 +429,18 @@ class RestAPI:
         )
         _raise_for_status(r)
 
+        return r.json()
+
+    @_try_relogin
+    def insert_s3_config_into_knowledge_base(self, project: str, knowledge_base_name: str, s3_config: S3Config):
+        data = {
+            's3': [dict(s3_config)]
+        }
+        r = self.session.put(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
+            json={
+                'knowledge_base': data
+            }
+        )
+        _raise_for_status(r)
         return r.json()

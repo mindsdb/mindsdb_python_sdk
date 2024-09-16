@@ -15,6 +15,7 @@ from .models import Model
 from .tables import Table
 from .query import Query
 from .databases import Database
+from .utils.mind import S3Config
 
 
 class KnowledgeBase(Query):
@@ -133,6 +134,9 @@ class KnowledgeBase(Query):
         :param filters: Include only URLs that match these regex patterns
         """
         self.api.insert_webpages_into_knowledge_base(self.project.name, self.name, urls, crawl_depth=crawl_depth, filters=filters)
+
+    def insert_s3_config(self, s3_config: S3Config):
+        self.api.insert_s3_config_into_knowledge_base(self.project.name, self.name, s3_config)
 
     def insert(self, data: Union[pd.DataFrame, Query, dict]):
         """
