@@ -1,3 +1,4 @@
+import warnings
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from uuid import uuid4
@@ -92,6 +93,12 @@ def create_mind(
     Returns:
         Mind: Mind entity
     """
+    warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+    warnings.warn(
+        'Minds in python SDK are deprecated. Use minds SDK instead (`pip install minds-sdk`)',
+        category=DeprecationWarning
+    )
+    warnings.simplefilter('default', DeprecationWarning)
 
     url = f"{base_url.rstrip('/')}/minds"
     headers = {"Authorization": f"Bearer {api_key}"}
