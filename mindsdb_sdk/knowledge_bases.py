@@ -159,7 +159,7 @@ class KnowledgeBase(Query):
             data_split = data.to_dict('split')
 
             ast_query = Insert(
-                table=Identifier(self.table_name),
+                table=self.table_name,
                 columns=data_split['columns'],
                 values=data_split['data']
             )
@@ -169,7 +169,7 @@ class KnowledgeBase(Query):
             # insert from select
             if data.database is not None:
                 ast_query = Insert(
-                    table=Identifier(self.table_name),
+                    table=self.table_name,
                     from_select=query_to_native_query(data)
                 )
                 sql = ast_query.to_string()

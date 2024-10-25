@@ -1173,6 +1173,23 @@ class CustomPredictor():
                select * from {database.name}.tbl2 where a=1
             )'''
         )
+        kb.insert(
+            database.query('select * from tbl2 limit 1')
+        )
+        check_sql_call(
+            mock_post,
+            f''' insert into {project.name}.{kb.name} (
+               select * from {database.name} (select * from tbl2 limit 1)
+            )'''
+        )
+
+        kb.insert(
+            pd.DataFrame([[1, 'Alice'], [2, 'Bob']], columns=['id', 'name'])
+        )
+        check_sql_call(
+            mock_post,
+            f'''INSERT INTO {project.name}.{kb.name}(id, name) VALUES (1, 'Alice'), (2, 'Bob')'''
+        )
 
         # query
         df = kb.find(query='dog', limit=5).fetch()
