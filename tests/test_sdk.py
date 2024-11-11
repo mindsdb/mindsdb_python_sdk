@@ -12,7 +12,7 @@ from mindsdb_sdk.tables import Table
 import mindsdb_sdk
 
 from mindsdb_sdk.agents import Agent
-from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL
+from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL, DEFAULT_CLOUD_API_URL
 from mindsdb_sdk.skills import SQLSkill
 from mindsdb_sdk.connectors import rest_api
 
@@ -1128,8 +1128,9 @@ class CustomPredictor():
             call_stack_num=-2
         )
 
+    @patch('requests.Session.put')
     @patch('requests.Session.post')
-    def check_project_kb(self, project, model, database, mock_post):
+    def check_project_kb(self, project, model, database, mock_post, mock_put):
 
         response_mock(mock_post, pd.DataFrame([{
             'NAME': 'my_kb',
@@ -1162,34 +1163,35 @@ class CustomPredictor():
         assert kb.storage.db.name == 'pvec'
         assert kb.model.name == 'openai_emb'
 
-        # insert
+        # --- insert ---
 
+        # table
         kb.insert(
             database.tables.tbl2.filter(a=1)
         )
-        check_sql_call(
-            mock_post,
-            f''' insert into {project.name}.{kb.name} (
-               select * from {database.name}.tbl2 where a=1
-            )'''
-        )
+
+        args, kwargs = mock_put.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases/my_kb'
+        assert kwargs == {'json': {'knowledge_base': {'query': 'SELECT * FROM pg1.tbl2 WHERE a = 1'}}}
+
+        # query
         kb.insert(
             database.query('select * from tbl2 limit 1')
         )
-        check_sql_call(
-            mock_post,
-            f''' insert into {project.name}.{kb.name} (
-               select * from {database.name} (select * from tbl2 limit 1)
-            )'''
-        )
+        args, kwargs = mock_put.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases/my_kb'
+        assert kwargs == {'json': {'knowledge_base': {'query': 'select * from tbl2 limit 1'}}}
 
+        # dataframe
         kb.insert(
             pd.DataFrame([[1, 'Alice'], [2, 'Bob']], columns=['id', 'name'])
         )
-        check_sql_call(
-            mock_post,
-            f'''INSERT INTO {project.name}.{kb.name}(id, name) VALUES (1, 'Alice'), (2, 'Bob')'''
-        )
+
+        args, kwargs = mock_put.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases/my_kb'
+        assert kwargs == {'json': {
+            'knowledge_base': {'rows': [{'id': 1, 'name': 'Alice'}, {'id': 2, 'name': 'Bob'}]}
+        }}
 
         # query
         df = kb.find(query='dog', limit=5).fetch()

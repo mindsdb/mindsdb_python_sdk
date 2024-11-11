@@ -150,35 +150,48 @@ class KnowledgeBase(Query):
         """
         Insert data to knowledge base
 
-        >>> # insert using query
-        >>> my_kb.insert(server.databases.example_db.tables.houses_sales.filter(type='house'))
         >>> # using dataframe
         >>> my_kb.insert(pd.read_csv('house_sales.csv'))
         >>> # using dict
         >>> my_kb.insert({'type': 'house', 'date': '2020-02-02'})
+
+        If id is already exists in knowledge base:
+        - it will be replaced
+        - `id` column can be defined by id_column param, see create knowledge base
+
+        :param data: Dataframe or Query object or dict.
+        """
+
+        if isinstance(data, Query):
+            # for back compatibility
+            return self.insert_query(data)
+
+        if isinstance(data, dict):
+            data = [data]
+        elif isinstance(data, pd.DataFrame):
+            data = data.to_dict('records')
+        else:
+             raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict")
+
+        return self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data={'rows': data}
+        )
+
+    def insert_query(self, data: Query):
+        """
+        Insert data to knowledge base using query
+
+        >>> my_kb.insert(server.databases.example_db.tables.houses_sales.filter(type='house'))
 
         Data will be if id (defined by id_column param, see create knowledge base) is already exists in knowledge base
         it will be replaced
 
         :param data: Dataframe or Query object or dict.
         """
-
-        if isinstance(data, dict):
-            data = pd.DataFrame([data])
-
-        if isinstance(data, pd.DataFrame):
-            # insert data
-            data_split = data.to_dict('split')
-
-            ast_query = Insert(
-                table=self.table_name,
-                columns=data_split['columns'],
-                values=data_split['data']
-            )
-            sql = ast_query.to_string()
-
-        else:
-            # insert from select
+        if is_saving():
+            # generate insert from select query
             if data.database is not None:
                 ast_query = Insert(
                     table=self.table_name,
@@ -188,11 +201,15 @@ class KnowledgeBase(Query):
             else:
                 sql = f'INSERT INTO {self.table_name.to_string()} ({data.sql})'
 
-        if is_saving():
             # don't execute it right now, return query object
             return Query(self, sql, self.database)
 
-        self.api.sql_query(sql, self.database)
+        # query have to be in context of mindsdb project
+        self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data={'query': data.sql}
+        )
 
 
 class KnowledgeBases(CollectionBase):
