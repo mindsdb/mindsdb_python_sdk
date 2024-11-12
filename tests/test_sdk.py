@@ -1130,7 +1130,9 @@ class CustomPredictor():
 
     @patch('requests.Session.put')
     @patch('requests.Session.post')
-    def check_project_kb(self, project, model, database, mock_post, mock_put):
+    @patch('requests.Session.delete')
+    @patch('requests.Session.get')
+    def check_project_kb(self, project, model, database, mock_get, mock_del, mock_post, mock_put):
 
         response_mock(mock_post, pd.DataFrame([{
             'NAME': 'my_kb',
@@ -1140,10 +1142,24 @@ class CustomPredictor():
             'PARAMS': {"id_column": "num"},
         }]))
 
+        example_kb = {
+            'id': 1,
+            'name': 'my_kb',
+            'project_id': 1,
+            'embedding_model': 'openai_emb',
+            'vector_database': 'pvec',
+            'vector_database_table': 'tbl1',
+            'updated_at': '2024-10-04 10:55:25.350799',
+            'created_at': '2024-10-04 10:55:25.350790',
+            'params': {}
+        }
+
+        mock_get().json.return_value = [example_kb]
+
         kbs = project.knowledge_bases.list()
 
-        # TODO add filter by project
-        check_sql_call(mock_post, "select * from information_schema.knowledge_bases")
+        args, kwargs = mock_get.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
 
         kb = kbs[0]
 
@@ -1156,6 +1172,7 @@ class CustomPredictor():
         assert kb.storage.name == 'tbl1'
         assert kb.storage.db.name == 'pvec'
 
+        mock_get().json.return_value = example_kb
         kb = project.knowledge_bases.my_kb
 
         str(kb)
@@ -1208,18 +1225,16 @@ class CustomPredictor():
             metadata_columns=['date', 'author'],
             params={'k': 'v'}
         )
-
-        model_name = f'{model.project.name}.{model.name}'
-        check_sql_call(
-            mock_post,
-            f'''
-            CREATE KNOWLEDGE_BASE {project.name}.kb2
-              USING model={model_name}, 
-              metadata_columns=['date', 'author'],
-              k='v'
-            ''',
-            call_stack_num=-2
-        )
+        args, kwargs = mock_post.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
+        assert kwargs == {'json': {'knowledge_base': {
+            'name': 'kb2',
+            'model': model.name,
+            'params': {
+                'k': 'v',
+                'metadata_columns': ['date', 'author']
+            }
+        }}}
 
         # create 2
         kb = project.knowledge_bases.create(
@@ -1229,25 +1244,26 @@ class CustomPredictor():
             id_column='num'
         )
 
-        table_name = f'{database.name}.tbl1'
-        check_sql_call(
-            mock_post,
-            f'''
-            CREATE KNOWLEDGE_BASE {project.name}.kb2
-              USING storage={table_name}, 
-              content_columns=['review'],
-              id_column='num'
-            ''',
-            call_stack_num=-2
-        )
+        args, kwargs = mock_post.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
+        assert kwargs == {'json': {'knowledge_base': {
+            'name': 'kb2',
+            'model': None,
+            'params': {
+                'content_columns': ['review'],
+                'id_column': 'num'
+            },
+            'storage': {
+                'database': database.name,
+                'table': 'tbl1'
+            },
+        }}}
 
         # drop
         project.knowledge_bases.drop('kb2')
 
-        check_sql_call(
-            mock_post,
-            f"DROP KNOWLEDGE_BASE {project.name}.kb2"
-        )
+        args, kwargs = mock_del.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases/kb2'
 
         return kb
 
@@ -1501,6 +1517,18 @@ class TestAgents():
                 'updated_at': None,
                 'provider': 'mindsdb'
             },
+            # get KB
+            {
+                'id': 1,
+                'name': 'my_kb',
+                'project_id': 1,
+                'embedding_model': 'openai_emb',
+                'vector_database': 'pvec',
+                'vector_database_table': 'tbl1',
+                'updated_at': '2024-10-04 10:55:25.350799',
+                'created_at': '2024-10-04 10:55:25.350790',
+                'params': {}
+            },
             # Skills get in Agent update to check if it exists.
             {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
             # Existing agent get in Agent update.
@@ -1515,10 +1543,6 @@ class TestAgents():
             },
         ])
         responses_mock(mock_post, [
-            # KB get (POST /sql).
-            pd.DataFrame([
-                {'name': 'test_agent_tokaido_rules_kb', 'storage': None, 'model': None},
-            ]),
             # Skill creation.
             {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}
         ])
@@ -1568,6 +1592,18 @@ class TestAgents():
                 'updated_at':None,
                 'provider':'mindsdb'
             },
+            # get KB
+            {
+                'id': 1,
+                'name': 'my_kb',
+                'project_id': 1,
+                'embedding_model': 'openai_emb',
+                'vector_database': 'pvec',
+                'vector_database_table': 'tbl1',
+                'updated_at': '2024-10-04 10:55:25.350799',
+                'created_at': '2024-10-04 10:55:25.350790',
+                'params': {}
+            },
             # Skills get in Agent update to check if it exists.
             {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}},
             # Existing agent get in Agent update.
@@ -1582,10 +1618,6 @@ class TestAgents():
             },
         ])
         responses_mock(mock_post, [
-            # KB get (POST /sql).
-            pd.DataFrame([
-                {'name':'test_agent_docs_mdb_ai_kb', 'storage':None, 'model':None},
-            ]),
             # Skill creation.
             {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}
         ])

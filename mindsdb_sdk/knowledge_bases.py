@@ -39,19 +39,14 @@ class KnowledgeBase(Query):
         self.table_name = Identifier(parts=[self.project.name, self.name])
 
         self.storage = None
-        if data['storage'] is not None:
-            # if name contents '.' there could be errors
-
-            parts = data['storage'].split('.')
-            if len(parts) == 2:
-                database_name, table_name = parts
-                database = Database(project, database_name)
-                table = Table(database, table_name)
-                self.storage = table
+        if data.get('vector_database_table') is not None:
+            database = Database(project, data['vector_database'])
+            table = Table(database, data['vector_database_table'])
+            self.storage = table
 
         self.model = None
-        if data['model'] is not None:
-            self.model = Model(self.project, {'name': data['model']})
+        if data['embedding_model'] is not None:
+            self.model = Model(self.project, {'name': data['embedding_model']})
 
         params = data.get('params', {})
         if isinstance(params, str):
@@ -241,24 +236,6 @@ class KnowledgeBases(CollectionBase):
         self.project = project
         self.api = api
 
-    def _list(self, name: str = None) -> List[KnowledgeBase]:
-
-        # TODO add filter by project. for now 'project' is empty
-        ast_query = Select(targets=[Star()], from_table=Identifier(parts=['information_schema', 'knowledge_bases']))
-        if name is not None:
-            ast_query.where = dict_to_binary_op({'name': name})
-
-        df = self.api.sql_query(ast_query.to_string(), database=self.project.name)
-
-        # columns to lower case
-        cols_map = {i: i.lower() for i in df.columns}
-        df = df.rename(columns=cols_map)
-
-        return [
-            KnowledgeBase(self.api, self.project, item)
-            for item in df.to_dict('records')
-        ]
-
     def list(self) -> List[KnowledgeBase]:
         """
 
@@ -268,7 +245,11 @@ class KnowledgeBases(CollectionBase):
 
         :return: list of knowledge bases
         """
-        return self._list()
+
+        return [
+            KnowledgeBase(self.api, self.project, item)
+            for item in self.api.list_knowledge_bases(self.project.name)
+        ]
 
     def get(self, name: str) -> KnowledgeBase:
         """
@@ -277,13 +258,9 @@ class KnowledgeBases(CollectionBase):
         :param name: name of the knowledge base
         :return: KnowledgeBase object
         """
-        item = self._list(name)
-        if len(item) == 1:
-            return item[0]
-        elif len(item) == 0:
-            raise AttributeError("KnowledgeBase doesn't exist")
-        else:
-            raise RuntimeError("Several knowledgeBases with the same name")
+
+        data = self.api.get_knowledge_base(self.project.name, name)
+        return KnowledgeBase(self.api, self.project, data)
 
     def create(
         self,
@@ -334,27 +311,21 @@ class KnowledgeBases(CollectionBase):
             params_out.update(params)
 
         if model is not None:
-            model_name = Identifier(parts=[model.project.name, model.name])
-        else:
-            model_name = None
+            model = model.name
+
+        payload = {
+            'name': name,
+            'model': model,
+            'params': params_out
+        }
 
         if storage is not None:
-            storage_name = Identifier(parts=[storage.db.name, storage.name])
-        else:
-            storage_name = None
+            payload['storage'] = {
+                'database': storage.db.name,
+                'table': storage.name
+            }
 
-        ast_query = CreateKnowledgeBase(
-            Identifier(parts=[self.project.name, name]),
-            model=model_name,
-            storage=storage_name,
-            params=params_out
-        )
-        sql = ast_query.to_string()
-
-        if is_saving():
-            return Query(self, sql)
-
-        self.api.sql_query(sql)
+        self.api.create_knowledge_base(self.project.name, data=payload)
 
         return self.get(name)
 
@@ -365,10 +336,4 @@ class KnowledgeBases(CollectionBase):
         :return:
         """
 
-        ast_query = DropKnowledgeBase(Identifier(parts=[self.project.name, name]))
-        sql = ast_query.to_string()
-
-        if is_saving():
-            return Query(self, sql)
-
-        self.api.sql_query(sql)
+        return self.api.delete_knowledge_base(self.project.name, name)

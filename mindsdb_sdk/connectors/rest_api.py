@@ -409,3 +409,34 @@ class RestAPI:
         _raise_for_status(r)
 
         return r.json()
+
+    @_try_relogin
+    def list_knowledge_bases(self, project: str):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def get_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def delete_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.delete(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+
+    @_try_relogin
+    def create_knowledge_base(self, project: str, data):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases',
+            json={
+                'knowledge_base': data
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
+
+
