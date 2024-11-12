@@ -439,4 +439,11 @@ class RestAPI:
 
         return r.json()
 
+    def knowledge_base_completion(self, project: str, knowledge_base_name, payload):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}/completions',
+            json=payload
+        )
+        _raise_for_status(r)
+        return r.json()
 

@@ -1259,6 +1259,16 @@ class CustomPredictor():
             },
         }}}
 
+        # completion
+        kb.completion('hi', type='chat', llm_model='gpt-4')
+        args, kwargs = mock_post.call_args
+        assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases/{kb.name}/completions'
+        assert kwargs == {'json': {
+            'query': 'hi',
+            'type': 'chat',
+            'llm_model': 'gpt-4',
+        }}
+
         # drop
         project.knowledge_bases.drop('kb2')
 

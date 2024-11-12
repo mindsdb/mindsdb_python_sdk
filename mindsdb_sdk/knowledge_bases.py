@@ -206,6 +206,11 @@ class KnowledgeBase(Query):
             data={'query': data.sql}
         )
 
+    def completion(self, query, **data):
+        data['query'] = query
+
+        return self.api.knowledge_base_completion(self.project.name, self.name, data)
+
 
 class KnowledgeBases(CollectionBase):
     """
