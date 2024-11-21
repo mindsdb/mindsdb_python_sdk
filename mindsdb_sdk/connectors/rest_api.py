@@ -309,6 +309,7 @@ class RestAPI:
             project: str,
             name: str,
             updated_name: str,
+            updated_provider: str,
             updated_model: str,
             skills_to_add: List[str],
             skills_to_remove: List[str],
@@ -321,6 +322,7 @@ class RestAPI:
                 'agent': {
                     'name': updated_name,
                     'model_name': updated_model,
+                    'provider': updated_provider,
                     'skills_to_add': skills_to_add,
                     'skills_to_remove': skills_to_remove,
                     'params': updated_params
