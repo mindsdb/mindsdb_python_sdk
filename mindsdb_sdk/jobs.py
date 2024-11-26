@@ -1,11 +1,10 @@
 import datetime as dt
 from typing import Union, List
 
-
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateJob, DropJob
-from mindsdb_sql.parser.ast import Identifier, Star, Select
+from mindsdb_sql_parser.ast.mindsdb import CreateJob, DropJob
+from mindsdb_sql_parser.ast import Identifier, Star, Select
 
 from mindsdb_sdk.query import Query
 from mindsdb_sdk.utils.sql import dict_to_binary_op

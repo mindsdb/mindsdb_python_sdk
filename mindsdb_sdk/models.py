@@ -5,11 +5,11 @@ from typing import List, Union
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import CreatePredictor, DropPredictor
-from mindsdb_sql.parser.dialects.mindsdb import RetrainPredictor, FinetunePredictor
-from mindsdb_sql.parser.ast import Identifier, Select, Star, Join, Describe, Set
-from mindsdb_sql import parse_sql
-from mindsdb_sql.exceptions import ParsingException
+from mindsdb_sql_parser.ast.mindsdb import CreatePredictor, DropPredictor
+from mindsdb_sql_parser.ast.mindsdb import RetrainPredictor, FinetunePredictor
+from mindsdb_sql_parser.ast import Identifier, Select, Star, Join, Describe, Set
+from mindsdb_sql_parser import parse_sql
+from mindsdb_sql_parser.exceptions import ParsingException
 
 from .ml_engines import MLEngine
 
