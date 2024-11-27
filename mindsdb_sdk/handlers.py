@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import dataclasses
 from typing import List
 
-from mindsdb_sql.parser.ast import Show, Identifier, BinaryOperation, Constant
+from mindsdb_sql_parser.ast import Show, Identifier, BinaryOperation, Constant
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 

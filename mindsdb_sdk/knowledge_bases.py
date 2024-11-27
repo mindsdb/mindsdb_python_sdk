@@ -4,8 +4,8 @@ from typing import Union, List
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
-from mindsdb_sql.parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
+from mindsdb_sql_parser.ast.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
+from mindsdb_sql_parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase

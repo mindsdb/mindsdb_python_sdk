@@ -1,7 +1,7 @@
 from typing import List, Union
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
-from mindsdb_sql.parser.ast import DropDatabase, Identifier
+from mindsdb_sql_parser.ast.mindsdb import CreateDatabase
+from mindsdb_sql_parser.ast import DropDatabase, Identifier
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 

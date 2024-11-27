@@ -1,5 +1,6 @@
-from mindsdb_sql.parser.ast import BinaryOperation, Identifier, Constant, Select, Star, NativeQuery
+from mindsdb_sql_parser.ast import BinaryOperation, Identifier, Constant, Select, Star, NativeQuery
 from mindsdb_sdk.query import Query
+
 
 def dict_to_binary_op(filters):
     where = None

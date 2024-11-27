@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pandas as pd
-from mindsdb_sql import parse_sql
+from mindsdb_sql_parser import parse_sql
 
 from mindsdb_sdk.models import ModelVersion, Model
 from mindsdb_sdk.tables import Table
