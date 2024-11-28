@@ -405,26 +405,7 @@ class RestAPI:
 
     # Knowledge Base operations.
     @_try_relogin
-    def insert_files_into_knowledge_base(self, project: str, knowledge_base_name: str, file_names: List[str]):
-        r = self.session.put(
-            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
-            json={
-                'knowledge_base': {
-                    'files': file_names
-                }
-            }
-        )
-        _raise_for_status(r)
-
-        return r.json()
-
-    @_try_relogin
-    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
-        data = {
-            'urls': urls,
-            'crawl_depth': crawl_depth,
-            'filters': [] if filters is None else filters
-        }
+    def insert_into_knowledge_base(self, project: str, knowledge_base_name: str, data):
         r = self.session.put(
             self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
             json={
@@ -434,3 +415,41 @@ class RestAPI:
         _raise_for_status(r)
 
         return r.json()
+
+    @_try_relogin
+    def list_knowledge_bases(self, project: str):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def get_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def delete_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.delete(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+
+    @_try_relogin
+    def create_knowledge_base(self, project: str, data):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases',
+            json={
+                'knowledge_base': data
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
+
+    def knowledge_base_completion(self, project: str, knowledge_base_name, payload):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}/completions',
+            json=payload
+        )
+        _raise_for_status(r)
+        return r.json()
+
