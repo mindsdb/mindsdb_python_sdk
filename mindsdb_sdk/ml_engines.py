@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Union
 
-from mindsdb_sql.parser.ast import Show, Identifier
-from mindsdb_sql.parser.dialects.mindsdb import CreateMLEngine, DropMLEngine
+from mindsdb_sql_parser.ast import Show, Identifier
+from mindsdb_sql_parser.ast.mindsdb import CreateMLEngine, DropMLEngine
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 

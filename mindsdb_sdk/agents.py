@@ -514,6 +514,7 @@ class Agents(CollectionBase):
             self.project.name,
             name,
             updated_agent.name,
+            updated_agent.provider,
             updated_agent.model_name,
             list(skills_to_add),
             list(skills_to_remove),

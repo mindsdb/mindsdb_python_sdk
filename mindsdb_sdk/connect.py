@@ -12,6 +12,7 @@ def connect(
         password: str = None,
         api_key: str = None,
         is_managed: bool = False,
+        cookies=None,
         headers=None) -> Server:
     """
     Create connection to mindsdb server
@@ -21,6 +22,7 @@ def connect(
     :param password: user password to login (for cloud version)
     :param api_key: API key to authenticate (for cloud version)
     :param is_managed: whether or not the URL points to a managed instance
+    :param cookies: addtional cookies to send with the connection, optional
     :param headers: addtional headers to send with the connection, optional
     :return: Server object
 
@@ -51,6 +53,7 @@ def connect(
             # is local
             url = DEFAULT_LOCAL_API_URL
 
-    api = RestAPI(url, login, password, api_key, is_managed, headers=headers)
+    api = RestAPI(url, login, password, api_key, is_managed, 
+                  cookies=cookies, headers=headers)
 
     return Server(api)

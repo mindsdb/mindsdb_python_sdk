@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from unittest.mock import patch
 
 import pandas as pd
-from mindsdb_sql import parse_sql
+from mindsdb_sql_parser import parse_sql
 
 from mindsdb_sdk.models import ModelVersion, Model
 from mindsdb_sdk.tables import Table
@@ -1473,7 +1473,8 @@ class TestAgents():
                 'model_name': 'updated_model',
                 'skills_to_add': ['updated_skill'],
                 'skills_to_remove': [],
-                'params': {'k2': 'v2'}
+                'params': {'k2': 'v2'},
+                'provider': 'mindsdb'
             }
         }
 
@@ -1582,6 +1583,7 @@ class TestAgents():
                 'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
                 'skills_to_remove': [],
                 'params': {},
+                'provider': 'mindsdb'
             }
         }
         assert agent_update_json == expected_agent_json
@@ -1657,6 +1659,7 @@ class TestAgents():
                 'skills_to_add':[agent_update_json['agent']['skills_to_add'][0]],
                 'skills_to_remove':[],
                 'params':{},
+                'provider': 'mindsdb'
             }
         }
         assert agent_update_json == expected_agent_json
@@ -1726,6 +1729,7 @@ class TestAgents():
                 'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
                 'skills_to_remove': [],
                 'params': {'prompt_template': 'using mindsdb sqltoolbox'},
+                'provider': 'mindsdb'
             }
         }
         assert agent_update_json == expected_agent_json

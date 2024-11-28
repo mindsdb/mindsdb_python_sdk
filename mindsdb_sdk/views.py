@@ -1,8 +1,8 @@
 from typing import List, Union
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateView
-from mindsdb_sql.parser.ast import DropView
-from mindsdb_sql.parser.ast import Identifier
+from mindsdb_sql_parser.ast.mindsdb import CreateView
+from mindsdb_sql_parser.ast import DropView
+from mindsdb_sql_parser.ast import Identifier
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 

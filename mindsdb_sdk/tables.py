@@ -4,8 +4,8 @@ from typing import List
 
 import pandas as pd
 
-from mindsdb_sql.parser.ast import DropTables, CreateTable
-from mindsdb_sql.parser.ast import Select, Star, Identifier, Constant, Delete, Insert, Update, Last, BinaryOperation
+from mindsdb_sql_parser.ast import DropTables, CreateTable
+from mindsdb_sql_parser.ast import Select, Star, Identifier, Constant, Delete, Insert, Update, Last, BinaryOperation
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, add_condition, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase

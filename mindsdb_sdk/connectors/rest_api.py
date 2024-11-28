@@ -37,7 +37,8 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, headers=None):
+    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, 
+                 cookies=None, headers=None):
 
         self.url = url
         self.username = login
@@ -45,6 +46,9 @@ class RestAPI:
         self.api_key = api_key
         self.is_managed = is_managed
         self.session = requests.Session()
+
+        if cookies is not None:
+            self.session.cookies.update(cookies)
 
         self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
         if headers is not None:
@@ -309,6 +313,7 @@ class RestAPI:
             project: str,
             name: str,
             updated_name: str,
+            updated_provider: str,
             updated_model: str,
             skills_to_add: List[str],
             skills_to_remove: List[str],
@@ -321,6 +326,7 @@ class RestAPI:
                 'agent': {
                     'name': updated_name,
                     'model_name': updated_model,
+                    'provider': updated_provider,
                     'skills_to_add': skills_to_add,
                     'skills_to_remove': skills_to_remove,
                     'params': updated_params

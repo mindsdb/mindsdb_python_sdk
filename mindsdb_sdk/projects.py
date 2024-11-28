@@ -1,12 +1,10 @@
 from typing import  List
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase, DropPredictor
-from mindsdb_sql.parser.ast import DropDatabase
-from mindsdb_sql.parser.ast import Identifier
+from mindsdb_sql_parser.ast.mindsdb import CreateDatabase, DropPredictor
+from mindsdb_sql_parser.ast import DropDatabase
+from mindsdb_sql_parser.ast import Identifier
 
 from mindsdb_sdk.agents import Agents
-from mindsdb_sdk.databases import Databases
-from mindsdb_sdk.ml_engines import MLEngines
 from mindsdb_sdk.skills import Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
