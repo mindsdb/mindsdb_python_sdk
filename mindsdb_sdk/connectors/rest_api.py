@@ -453,3 +453,119 @@ class RestAPI:
         _raise_for_status(r)
         return r.json()
 
+    @_try_relogin
+    def list_chatbots(self, project: str):
+        """
+        Retrieve the list of chatbots in a project.
+        :param project: Name of the project.
+        :return: List of chatbots as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def get_chatbot(self, project: str, chatbot_name: str):
+        """
+        Retrieve details of a specific chatbot.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot.
+        :return: Chatbot details as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def create_chatbot(self, project: str, chatbot_name: str, params: dict):
+        """
+        Create a new chatbot.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot to create.
+        :param params: Configuration parameters for the chatbot.
+        :return: Details of the created chatbot as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots'
+        r = self.session.post(url, json={
+            'chatbot': {
+                'name': chatbot_name,
+                'params': params
+            }
+        })
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def update_chatbot(self, project: str, chatbot_name: str, params: dict):
+        """
+        Update an existing chatbot's configuration.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot to update.
+        :param params: Updated configuration parameters.
+        :return: Details of the updated chatbot as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.put(url, json={
+            'chatbot': {
+                'params': params
+            }
+        })
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def delete_chatbot(self, project: str, chatbot_name: str):
+        """
+        Delete a chatbot.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot to delete.
+        :return: None
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.delete(url)
+        _raise_for_status(r)
+
+    @_try_relogin
+    def send_message(self, project: str, chatbot_name: str, message: str, context: dict = None):
+        """
+        Send a message to a chatbot and retrieve the response.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot.
+        :param message: User message to send.
+        :param context: Optional context for the chatbot.
+        :return: Chatbot's response as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}/messages'
+        payload = {
+            'message': message
+        }
+        if context:
+            payload['context'] = context
+
+        r = self.session.post(url, json=payload)
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def stream_chatbot_response(self, project: str, chatbot_name: str, message: str, context: dict = None):
+        """
+        Send a message to a chatbot and stream its response.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot.
+        :param message: User message to send.
+        :param context: Optional context for the chatbot.
+        :return: A generator yielding streamed chatbot responses.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}/messages/stream'
+        payload = {
+            'message': message
+        }
+        if context:
+            payload['context'] = context
+
+        stream = self.session.post(url, json=payload, stream=True)
+        client = SSEClient(stream)
+        for chunk in client.events():
+            yield json.loads(chunk.data)
