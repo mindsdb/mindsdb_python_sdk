@@ -4,13 +4,7 @@ from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 class Chatbot:
     """
-    Chatbot object, used to manage or query chatbots.
-
-    Create and interact with chatbots:
-
-    >>> chatbot = project.chatbots.create('my_chatbot', model_name='gpt-4')
-    >>> response = chatbot.ask('Hello! How are you?')
-
+    Represents a chatbot that can be managed within a project.
     """
 
     def __init__(self, api, project, data: dict):
@@ -27,15 +21,17 @@ class Chatbot:
 
     def update(self, name: str = None, agent_name: str = None, model_name: str = None, database_name: str = None, inplace: bool = False):
         """
-        Update chatbot properties.
+        Updates the chatbot's properties.
 
-        >>> chatbot.update(model_name='gpt-4', database_name='slack_db')
+        Example usage:
+            >>> chatbot.update(model_name='gpt-4', database_name='slack_db')
 
-        :param name: New name for the chatbot.
-        :param model_name: New model to use for the chatbot.
-        :param database_name: New database connection name.
-        :param inplace: If True, updates the current object in-place.
-        :return: Updated Chatbot object or None if inplace is True.
+        :param name: (Optional) New name for the chatbot.
+        :param agent_name: (Optional) New agent name to associate with the chatbot.
+        :param model_name: (Optional) New model to use for the chatbot.
+        :param database_name: (Optional) New database connection name.
+        :param inplace: If True, updates the current object in-place; otherwise, returns a new Chatbot object.
+        :return: Updated Chatbot object, or None if inplace is True.
         """
         payload = {}
 
@@ -68,36 +64,37 @@ class Chatbot:
 
     def delete(self):
         """
-        Delete the chatbot.
+        Deletes the chatbot from the project.
 
-        >>> chatbot.delete()
-
+        Example usage:
+            >>> chatbot.delete()
         """
         self.api.delete_chatbot(self.project.name, self.name)
 
 
 class Chatbots(CollectionBase):
     """
-    Chatbots
+    Manages chatbots within a project.
 
-    Manage chatbots within a project.
+    Provides methods to list, retrieve, create, and delete chatbots.
 
-    List chatbots:
+    Example usage:
 
-    >>> chatbots = project.chatbots.list()
+        List chatbots in a project:
+            >>> chatbots = project.chatbots.list()
 
-    Get chatbot by name:
+        Retrieve a chatbot by name:
+            >>> chatbot = project.chatbots.get('my_chatbot')
 
-    >>> chatbot = project.chatbots.get('my_chatbot')
+        Create a new chatbot:
+            >>> chatbot = project.chatbots.create(
+            ...     'my_chatbot',
+            ...     model_name='gpt-4',
+            ...     database_name='slack_db'
+            ... )
 
-    Create a chatbot:
-
-    >>> chatbot = project.chatbots.create('my_chatbot', model_name='gpt-4')
-
-    Delete a chatbot:
-
-    >>> project.chatbots.drop('my_chatbot')
-
+        Delete a chatbot by name:
+            >>> project.chatbots.drop('my_chatbot')
     """
 
     def __init__(self, project, api):
@@ -106,11 +103,12 @@ class Chatbots(CollectionBase):
 
     def list(self) -> List[Chatbot]:
         """
-        Get the list of chatbots in the project.
+        Retrieves a list of all chatbots within the project.
 
-        >>> chatbots = project.chatbots.list()
+        Example usage:
+            >>> chatbots = project.chatbots.list()
 
-        :return: List of chatbot objects.
+        :return: List of Chatbot objects.
         """
         return [
             Chatbot(self.api, self.project, item)
@@ -119,11 +117,12 @@ class Chatbots(CollectionBase):
 
     def get(self, name: str) -> Chatbot:
         """
-        Get a chatbot by name.
+        Retrieves a chatbot by its name.
 
-        >>> chatbot = project.chatbots.get('my_chatbot')
+        Example usage:
+            >>> chatbot = project.chatbots.get('my_chatbot')
 
-        :param name: Name of the chatbot.
+        :param name: The name of the chatbot to retrieve.
         :return: Chatbot object.
         """
         data = self.api.get_chatbot(self.project.name, name)
@@ -131,24 +130,26 @@ class Chatbots(CollectionBase):
 
     def create(self, name: str, agent_name: str = None, model_name: str = None, database_name: str = None, is_running: bool = False) -> Chatbot:
         """
-        Create a new chatbot.
+        Creates a new chatbot within the project.
 
-        >>> chatbot = project.chatbots.create(
-        ...     'my_chatbot',
-        ...     model_name='gpt-4',
-        ...     database_name='slack_db'
-        
-        ... )
+        Example usage:
+            >>> chatbot = project.chatbots.create(
+            ...     'my_chatbot',
+            ...     model_name='gpt-4',
+            ...     database_name='slack_db'
+            ... )
 
-        :param name: Name of the chatbot.
-        :param model_name: Name of the model or agent.
-        :param database_name: Connection name for chat applications (e.g., Slack, Teams).
-        :return: Created Chatbot object.
+        :param name: The name of the new chatbot.
+        :param agent_name:  The agent name to associate with the chatbot.
+        :param model_name:  The model to use for the chatbot.
+        :param database_name: The database connection name for chat applications.
+        :param is_running: (Optional) Indicates whether the chatbot should start in a running state. Default is False.
+        :return: The created Chatbot object.
         """
         payload = {
             'name': name,
             'database_name': database_name,
-            'is_running':is_running
+            'is_running': is_running
         }
 
         if agent_name:
@@ -163,10 +164,11 @@ class Chatbots(CollectionBase):
 
     def drop(self, name: str):
         """
-        Delete a chatbot by name.
+        Deletes a chatbot by its name.
 
-        >>> project.chatbots.drop('my_chatbot')
+        Example usage:
+            >>> project.chatbots.drop('my_chatbot')
 
-        :param name: Name of the chatbot to delete.
+        :param name: The name of the chatbot to delete.
         """
         self.api.delete_chatbot(self.project.name, name)
