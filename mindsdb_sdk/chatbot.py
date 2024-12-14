@@ -20,25 +20,10 @@ class Chatbot:
         self.database_name = data.get('database')
         self.agent_name = data.get('agent')
         self.model_name = data.get('model_name')
+        self.is_running = data.get('is_running')
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.project.name}.{self.name})"
-
-    def ask(self, query: str, **options):
-        """
-        Ask the chatbot a question or send a message.
-
-        >>> response = chatbot.ask('What is the weather today?')
-
-        :param query: The input query or message for the chatbot.
-        :param options: Additional options to customize the query.
-        :return: Chatbot response.
-        """
-        payload = {
-            'query': query,
-            **options
-        }
-        return self.api.chatbot_interaction(self.project.name, self.name, payload)
 
     def update(self, name: str = None, agent_name: str = None, model_name: str = None, database_name: str = None, inplace: bool = False):
         """
@@ -144,7 +129,7 @@ class Chatbots(CollectionBase):
         data = self.api.get_chatbot(self.project.name, name)
         return Chatbot(self.api, self.project, data)
 
-    def create(self, name: str, agent_name: str = None, model_name: str = None, database_name: str = None) -> Chatbot:
+    def create(self, name: str, agent_name: str = None, model_name: str = None, database_name: str = None, is_running: bool = False) -> Chatbot:
         """
         Create a new chatbot.
 
@@ -152,6 +137,7 @@ class Chatbots(CollectionBase):
         ...     'my_chatbot',
         ...     model_name='gpt-4',
         ...     database_name='slack_db'
+        
         ... )
 
         :param name: Name of the chatbot.
@@ -161,7 +147,8 @@ class Chatbots(CollectionBase):
         """
         payload = {
             'name': name,
-            'database_name': database_name
+            'database_name': database_name,
+            'is_running':is_running
         }
 
         if agent_name:
