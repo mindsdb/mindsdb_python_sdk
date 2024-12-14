@@ -1,4 +1,4 @@
-from typing import  List
+from typing import List
 
 from mindsdb_sql_parser.ast.mindsdb import CreateDatabase, DropPredictor
 from mindsdb_sql_parser.ast import DropDatabase
@@ -13,7 +13,7 @@ from .query import Query
 from .views import Views
 from .jobs import Jobs
 from .knowledge_bases import KnowledgeBases
-from .chatbot import Chatbots
+from .chatbots import Chatbots
 
 
 class Project:
