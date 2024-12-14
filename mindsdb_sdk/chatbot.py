@@ -1,10 +1,6 @@
-import json
-from typing import Union, List
-
-from mindsdb_sdk.utils.context import is_saving
+from typing import List
 from mindsdb_sdk.utils.objects_collection import CollectionBase
-from .query import Query
-from .databases import Database
+
 
 class Chatbot:
     """
@@ -20,11 +16,10 @@ class Chatbot:
     def __init__(self, api, project, data: dict):
         self.api = api
         self.project = project
-        self.name = data['name']
-        self.database_name = data.get('database_name')
-        self.agent_name = data.get('agent_name')
-
-        
+        self.name = data.get('name')
+        self.database_name = data.get('database')
+        self.agent_name = data.get('agent')
+        self.model_name = data.get('model_name')
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.project.name}.{self.name})"
@@ -45,26 +40,46 @@ class Chatbot:
         }
         return self.api.chatbot_interaction(self.project.name, self.name, payload)
 
-    def update(self, model_name: str = None, database_name: str = None):
+    def update(self, name: str = None, agent_name: str = None, model_name: str = None, database_name: str = None, inplace: bool = False):
         """
         Update chatbot properties.
 
         >>> chatbot.update(model_name='gpt-4', database_name='slack_db')
 
+        :param name: New name for the chatbot.
         :param model_name: New model to use for the chatbot.
         :param database_name: New database connection name.
+        :param inplace: If True, updates the current object in-place.
+        :return: Updated Chatbot object or None if inplace is True.
         """
         payload = {}
-        if model_name:
-            payload['agent_name'] = model_name
+
+        if name:
+            payload['name'] = name
+
         if database_name:
             payload['database_name'] = database_name
 
-        self.api.update_chatbot(
-            self.project.name,
-            self.name,
+        if agent_name:
+            payload['agent_name'] = agent_name
+
+        if model_name:
+            payload['model_name'] = model_name
+
+        updated_chatbot = self.api.update_chatbot(
+            project=self.project.name,
+            chatbot_name=self.name,
             data=payload
         )
+
+        if inplace:
+            self.name = updated_chatbot.get('name', self.name)
+            self.database_name = updated_chatbot.get('database', self.database_name)
+            self.agent_name = updated_chatbot.get('agent', self.agent_name)
+            self.model_name = updated_chatbot.get('model_name', self.model_name)
+            return None
+
+        return Chatbot(self.api, self.project, updated_chatbot)
 
     def delete(self):
         """
@@ -129,7 +144,7 @@ class Chatbots(CollectionBase):
         data = self.api.get_chatbot(self.project.name, name)
         return Chatbot(self.api, self.project, data)
 
-    def create(self, name: str, model_name: str, database_name: str = None) -> Chatbot:
+    def create(self, name: str, agent_name: str = None, model_name: str = None, database_name: str = None) -> Chatbot:
         """
         Create a new chatbot.
 
@@ -146,11 +161,14 @@ class Chatbots(CollectionBase):
         """
         payload = {
             'name': name,
-            'agent_name': model_name
+            'database_name': database_name
         }
 
-        if database_name:
-            payload['database_name'] = database_name
+        if agent_name:
+            payload['agent_name'] = agent_name
+
+        if model_name:
+            payload['model_name'] = model_name
 
         self.api.create_chatbot(self.project.name, data=payload)
 
