@@ -479,26 +479,23 @@ class RestAPI:
         return r.json()
 
     @_try_relogin
-    def create_chatbot(self, project: str, chatbot_name: str, params: dict):
+    def create_chatbot(self, project: str, data: dict):
         """
         Create a new chatbot.
         :param project: Name of the project.
-        :param chatbot_name: Name of the chatbot to create.
-        :param params: Configuration parameters for the chatbot.
+        :param data: Configuration parameters for the chatbot.
         :return: Details of the created chatbot as a JSON response.
         """
         url = f'{self.url}/api/projects/{project}/chatbots'
         r = self.session.post(url, json={
-            'chatbot': {
-                'name': chatbot_name,
-                'params': params
-            }
+            'chatbot': data
+            
         })
         _raise_for_status(r)
         return r.json()
 
     @_try_relogin
-    def update_chatbot(self, project: str, chatbot_name: str, params: dict):
+    def update_chatbot(self, project: str, chatbot_name: str, data: dict):
         """
         Update an existing chatbot's configuration.
         :param project: Name of the project.
@@ -508,9 +505,7 @@ class RestAPI:
         """
         url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
         r = self.session.put(url, json={
-            'chatbot': {
-                'params': params
-            }
+            'chatbot': data
         })
         _raise_for_status(r)
         return r.json()
