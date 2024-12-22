@@ -30,8 +30,7 @@ class Chatbot:
         :param agent_name: (Optional) New agent name to associate with the chatbot.
         :param model_name: (Optional) New model to use for the chatbot.
         :param database_name: (Optional) New database connection name.
-        :param inplace: If True, updates the current object in-place; otherwise, returns a new Chatbot object.
-        :return: Updated Chatbot object, or None if inplace is True.
+        :return: Updated Chatbot object.
         """
         payload = {}
 
@@ -53,14 +52,12 @@ class Chatbot:
             data=payload
         )
 
-        if inplace:
-            self.name = updated_chatbot.get('name', self.name)
-            self.database_name = updated_chatbot.get('database', self.database_name)
-            self.agent_name = updated_chatbot.get('agent', self.agent_name)
-            self.model_name = updated_chatbot.get('model_name', self.model_name)
-            return None
+        self.name = updated_chatbot.get('name', self.name)
+        self.database_name = updated_chatbot.get('database', self.database_name)
+        self.agent_name = updated_chatbot.get('agent', self.agent_name)
+        self.model_name = updated_chatbot.get('model_name', self.model_name)
 
-        return Chatbot(self.api, self.project, updated_chatbot)
+        return self
 
     def delete(self):
         """
