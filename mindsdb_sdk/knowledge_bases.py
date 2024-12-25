@@ -117,10 +117,12 @@ class KnowledgeBase(Query):
         """
         Insert data from file to knowledge base
         """
+        data = {'files': file_paths}
+
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'files': file_paths, 'params': params}
+            data=data
         )
 
     def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None, params: dict = None):
@@ -132,15 +134,17 @@ class KnowledgeBase(Query):
         :param filters: Include only URLs that match these regex patterns
         :param params: Runtime parameters for KB
         """
+        data={
+            'urls': urls,
+            'crawl_depth': crawl_depth,
+            'filters': [] if filters is None else filters,
+        }
+        if params:
+            data['params'] = params
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={
-                'urls': urls,
-                'crawl_depth': crawl_depth,
-                'filters': [] if filters is None else filters,
-                'params': params
-            }
+            data=data
         )
 
     def insert(self, data: Union[pd.DataFrame, Query, dict], params: dict = None):
@@ -171,10 +175,13 @@ class KnowledgeBase(Query):
         else:
              raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict")
 
+        data = {'rows': data}
+        if params:
+            data['params'] = params
         return self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'rows': data, 'params': params},
+            data=data,
         )
 
     def insert_query(self, data: Query, params: dict = None):
@@ -204,10 +211,13 @@ class KnowledgeBase(Query):
             return Query(self, sql, self.database)
 
         # query have to be in context of mindsdb project
+        data = {'query': data.sql}
+        if params:
+            data['params'] = params
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'query': data.sql, 'params': params}
+            data=data
         )
 
     def completion(self, query, **data):
