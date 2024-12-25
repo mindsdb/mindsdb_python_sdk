@@ -113,23 +113,24 @@ class KnowledgeBase(Query):
             ast_query.limit = Constant(self._limit)
         self.sql = ast_query.to_string()
 
-    def insert_files(self, file_paths: List[str]):
+    def insert_files(self, file_paths: List[str], params: dict = None):
         """
         Insert data from file to knowledge base
         """
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'files': file_paths}
+            data={'files': file_paths, 'params': params}
         )
 
-    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
+    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None, params: dict = None):
         """
         Insert data from crawled URLs to knowledge base.
 
         :param urls: URLs to be crawled and inserted.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
         :param filters: Include only URLs that match these regex patterns
+        :param params: Runtime parameters for KB
         """
         self.api.insert_into_knowledge_base(
             self.project.name,
@@ -137,11 +138,12 @@ class KnowledgeBase(Query):
             data={
                 'urls': urls,
                 'crawl_depth': crawl_depth,
-                'filters': [] if filters is None else filters
+                'filters': [] if filters is None else filters,
+                'params': params
             }
         )
 
-    def insert(self, data: Union[pd.DataFrame, Query, dict]):
+    def insert(self, data: Union[pd.DataFrame, Query, dict], params: dict = None):
         """
         Insert data to knowledge base
 
@@ -155,6 +157,7 @@ class KnowledgeBase(Query):
         - `id` column can be defined by id_column param, see create knowledge base
 
         :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
         """
 
         if isinstance(data, Query):
@@ -171,10 +174,10 @@ class KnowledgeBase(Query):
         return self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'rows': data}
+            data={'rows': data, 'params': params},
         )
 
-    def insert_query(self, data: Query):
+    def insert_query(self, data: Query, params: dict = None):
         """
         Insert data to knowledge base using query
 
@@ -184,6 +187,7 @@ class KnowledgeBase(Query):
         it will be replaced
 
         :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
         """
         if is_saving():
             # generate insert from select query
@@ -203,7 +207,7 @@ class KnowledgeBase(Query):
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'query': data.sql}
+            data={'query': data.sql, 'params': params}
         )
 
     def completion(self, query, **data):
