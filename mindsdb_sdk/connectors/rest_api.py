@@ -453,3 +453,71 @@ class RestAPI:
         _raise_for_status(r)
         return r.json()
 
+    @_try_relogin
+    def list_chatbots(self, project: str):
+        """
+        Retrieve the list of chatbots in a project.
+        :param project: Name of the project.
+        :return: List of chatbots as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def get_chatbot(self, project: str, chatbot_name: str):
+        """
+        Retrieve details of a specific chatbot.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot.
+        :return: Chatbot details as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def create_chatbot(self, project: str, data: dict):
+        """
+        Create a new chatbot.
+        :param project: Name of the project.
+        :param data: Configuration parameters for the chatbot.
+        :return: Details of the created chatbot as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots'
+        r = self.session.post(url, json={
+            'chatbot': data
+            
+        })
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def update_chatbot(self, project: str, chatbot_name: str, data: dict):
+        """
+        Update an existing chatbot's configuration.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot to update.
+        :param params: Updated configuration parameters.
+        :return: Details of the updated chatbot as a JSON response.
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.put(url, json={
+            'chatbot': data
+        })
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def delete_chatbot(self, project: str, chatbot_name: str):
+        """
+        Delete a chatbot.
+        :param project: Name of the project.
+        :param chatbot_name: Name of the chatbot to delete.
+        :return: None
+        """
+        url = f'{self.url}/api/projects/{project}/chatbots/{chatbot_name}'
+        r = self.session.delete(url)
+        _raise_for_status(r)
