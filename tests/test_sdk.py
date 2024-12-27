@@ -1667,6 +1667,82 @@ class TestAgents():
     @patch('requests.Session.get')
     @patch('requests.Session.put')
     @patch('requests.Session.post')
+    def test_add_dataframe(self, mock_post, mock_put, mock_get):
+        server = mindsdb_sdk.connect()
+        responses_mock(mock_get, [
+            # Existing agent get.
+            {
+                'name': 'test_agent',
+                'model_name': 'test_model',
+                'skills': [],
+                'params': {},
+                'created_at': None,
+                'updated_at': None,
+                'provider': 'mindsdb'
+            },
+            # get KB
+            {
+                'id': 1,
+                'name': 'my_kb',
+                'project_id': 1,
+                'embedding_model': 'openai_emb',
+                'vector_database': 'pvec',
+                'vector_database_table': 'tbl1',
+                'updated_at': '2024-10-04 10:55:25.350799',
+                'created_at': '2024-10-04 10:55:25.350790',
+                'params': {}
+            },
+            # Skills get in Agent update to check if it exists.
+            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}},
+            # Existing agent get in Agent update.
+            {
+                'name':'test_agent',
+                'model_name':'test_model',
+                'skills':[],
+                'params':{},
+                'created_at':None,
+                'updated_at':None,
+                'provider':'mindsdb'  # Added provider field
+            },
+        ])
+        responses_mock(mock_post, [
+            # Skill creation.
+            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}
+        ])
+        responses_mock(mock_put, [
+            # KB update.
+            {'name':'test_agent_docs_mdb_ai_kb'},
+            # Agent update with new skill.
+            {
+                'name':'test_agent',
+                'model_name':'test_model',
+                'skills':[{'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}],
+                'params':{},
+                'created_at':None,
+                'updated_at':None,
+                'provider':'mindsdb'  # Added provider field
+            },
+        ])
+        server.agents.test_agent.add_dataframe(pd.DataFrame([{'content': 'doc'}]), 'Documentation for MindsDB', 'existing_kb')
+
+        # Check Agent was updated with a new skill.
+        agent_update_json = mock_put.call_args[-1]['json']
+        expected_agent_json = {
+            'agent':{
+                'name':'test_agent',
+                'model_name':'test_model',
+                # Skill name is a generated UUID.
+                'skills_to_add':[agent_update_json['agent']['skills_to_add'][0]],
+                'skills_to_remove':[],
+                'params':{},
+                'provider': 'mindsdb'
+            }
+        }
+        assert agent_update_json == expected_agent_json
+
+    @patch('requests.Session.get')
+    @patch('requests.Session.put')
+    @patch('requests.Session.post')
     def test_add_database(self, mock_post, mock_put, mock_get):
         server = mindsdb_sdk.connect()
         responses_mock(mock_get, [
