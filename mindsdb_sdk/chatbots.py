@@ -59,14 +59,6 @@ class Chatbot:
 
         return self
 
-    def delete(self):
-        """
-        Deletes the chatbot from the project.
-
-        Example usage:
-            >>> chatbot.delete()
-        """
-        self.api.delete_chatbot(self.project.name, self.name)
 
 
 class Chatbots(CollectionBase):
