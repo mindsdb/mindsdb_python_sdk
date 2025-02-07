@@ -100,8 +100,14 @@ class Agent:
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
 
+    def completion_v2(self, messages: List[dict]) -> AgentCompletion:
+        return self.collection.completion_v2(self.name, messages)
+
     def completion_stream(self, messages: List[dict]) -> Iterable[object]:
         return self.collection.completion_stream(self.name, messages)
+
+    def completion_stream_v2(self, messages: List[dict]) -> Iterable[object]:
+        return self.collection.completion_stream_v2(self.name, messages)
 
     def add_files(self, file_paths: List[str], description: str, knowledge_base: str = None):
         """
