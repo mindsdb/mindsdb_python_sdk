@@ -37,7 +37,7 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, 
+    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False,
                  cookies=None, headers=None):
 
         self.url = url
@@ -290,6 +290,22 @@ class RestAPI:
             yield json.loads(chunk.data)
 
     @_try_relogin
+    def agent_completion_stream_v2(self, project: str, name: str, messages: List[dict]):
+        url = self.url + f'/api/projects/{project}/agents/{name}/completions/stream'
+        response = self.session.post(url, json={'messages': messages}, stream=True)
+
+        # Check for HTTP errors before processing the stream
+        response.raise_for_status()
+
+        client = SSEClient(response)
+
+        try:
+            for chunk in client.events():
+                yield chunk  # Stream SSE events
+        except Exception as e:
+            yield e
+
+    @_try_relogin
     def create_agent(self, project: str, name: str, model: str = None, provider: str = None, skills: List[str] = None, params: dict = None):
         url = self.url + f'/api/projects/{project}/agents'
         r = self.session.post(
@@ -452,4 +468,3 @@ class RestAPI:
         )
         _raise_for_status(r)
         return r.json()
-
