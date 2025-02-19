@@ -131,6 +131,7 @@ class Agent:
             description: str,
             knowledge_base: str = None,
             crawl_depth: int = 1,
+            limit: int = None,
             filters: List[str] = None):
         """
         Add a crawled URL to the agent for retrieval.
@@ -139,9 +140,11 @@ class Agent:
         :param description: Description of the webpages. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only, -1 = default max
+        :param limit: max count of pages to crawl
         :param filters: Include only URLs that match these regex patterns
         """
-        self.collection.add_webpages(self.name, urls, description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
+        self.collection.add_webpages(self.name, urls, description, knowledge_base=knowledge_base,
+                                     crawl_depth=crawl_depth, limit=limit, filters=filters)
 
     def add_webpage(
             self,
@@ -149,6 +152,7 @@ class Agent:
             description: str,
             knowledge_base: str = None,
             crawl_depth: int = 1,
+            limit: int = None,
             filters: List[str] = None):
         """
         Add a crawled URL to the agent for retrieval.
@@ -157,9 +161,11 @@ class Agent:
         :param description: Description of the webpages. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only, -1 = default max
+        :param limit: max count of pages to crawl
         :param filters: Include only URLs that match these regex patterns
         """
-        self.collection.add_webpage(self.name, url, description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
+        self.collection.add_webpage(self.name, url, description, knowledge_base=knowledge_base,
+                                    crawl_depth=crawl_depth, limit=limit, filters=filters)
 
     def add_database(self, database: str, tables: List[str], description: str):
         """
@@ -368,6 +374,7 @@ class Agents(CollectionBase):
             description: str,
             knowledge_base: str = None,
             crawl_depth: int = 1,
+            limit: int = None,
             filters: List[str] = None
             ):
         """
@@ -378,6 +385,7 @@ class Agents(CollectionBase):
         :param description: Description of the webpages. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
+        :param limit: max count of pages to crawl
         :param filters: Include only URLs that match these regex patterns
         """
         if not urls:
@@ -393,7 +401,7 @@ class Agents(CollectionBase):
             kb = self._create_default_knowledge_base(agent, kb_name)
 
         # Insert crawled webpage.
-        kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters)
+        kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters, limit=limit)
 
         # Make sure skill name is unique.
         skill_name = f'web_retrieval_skill_{uuid4().hex}'
@@ -412,6 +420,7 @@ class Agents(CollectionBase):
             description: str,
             knowledge_base: str = None,
             crawl_depth: int = 1,
+            limit: int = None,
             filters: List[str] = None):
         """
         Add a webpage to the agent for retrieval.
@@ -421,9 +430,11 @@ class Agents(CollectionBase):
         :param description: Description of the webpage. Used by agent to know when to do retrieval.
         :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
+        :param limit: max count of pages to crawl
         :param filters: Include only URLs that match these regex patterns
         """
-        self.add_webpages(name, [url], description, knowledge_base=knowledge_base, crawl_depth=crawl_depth, filters=filters)
+        self.add_webpages(name, [url], description, knowledge_base=knowledge_base,
+                          crawl_depth=crawl_depth, limit=limit, filters=filters)
 
     def add_database(self, name: str, database: str, tables: List[str], description: str):
         """
