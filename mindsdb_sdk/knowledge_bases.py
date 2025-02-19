@@ -127,18 +127,21 @@ class KnowledgeBase(Query):
             data=data
         )
 
-    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None, params: dict = None):
+    def insert_webpages(self, urls: List[str], crawl_depth: int = 1,
+                        filters: List[str] = None, limit=None, params: dict = None):
         """
         Insert data from crawled URLs to knowledge base.
 
         :param urls: URLs to be crawled and inserted.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
         :param filters: Include only URLs that match these regex patterns
+        :param limit: max count of pages to crawl
         :param params: Runtime parameters for KB
         """
         data={
             'urls': urls,
             'crawl_depth': crawl_depth,
+            'limit': limit,
             'filters': [] if filters is None else filters,
         }
         if params:
