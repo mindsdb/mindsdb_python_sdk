@@ -113,35 +113,43 @@ class KnowledgeBase(Query):
             ast_query.limit = Constant(self._limit)
         self.sql = ast_query.to_string()
 
-    def insert_files(self, file_paths: List[str]):
+    def insert_files(self, file_paths: List[str], params: dict = None):
         """
         Insert data from file to knowledge base
         """
+        data = {'files': file_paths}
+        if params:
+            data['params'] = params
+
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'files': file_paths}
+            data=data
         )
 
-    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
+    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None, params: dict = None):
         """
         Insert data from crawled URLs to knowledge base.
 
         :param urls: URLs to be crawled and inserted.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
         :param filters: Include only URLs that match these regex patterns
+        :param params: Runtime parameters for KB
         """
+        data={
+            'urls': urls,
+            'crawl_depth': crawl_depth,
+            'filters': [] if filters is None else filters,
+        }
+        if params:
+            data['params'] = params
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={
-                'urls': urls,
-                'crawl_depth': crawl_depth,
-                'filters': [] if filters is None else filters
-            }
+            data=data
         )
 
-    def insert(self, data: Union[pd.DataFrame, Query, dict]):
+    def insert(self, data: Union[pd.DataFrame, Query, dict], params: dict = None):
         """
         Insert data to knowledge base
 
@@ -155,6 +163,7 @@ class KnowledgeBase(Query):
         - `id` column can be defined by id_column param, see create knowledge base
 
         :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
         """
 
         if isinstance(data, Query):
@@ -168,13 +177,16 @@ class KnowledgeBase(Query):
         else:
              raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict")
 
+        data = {'rows': data}
+        if params:
+            data['params'] = params
         return self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'rows': data}
+            data=data,
         )
 
-    def insert_query(self, data: Query):
+    def insert_query(self, data: Query, params: dict = None):
         """
         Insert data to knowledge base using query
 
@@ -184,6 +196,7 @@ class KnowledgeBase(Query):
         it will be replaced
 
         :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
         """
         if is_saving():
             # generate insert from select query
@@ -200,10 +213,13 @@ class KnowledgeBase(Query):
             return Query(self, sql, self.database)
 
         # query have to be in context of mindsdb project
+        data = {'query': data.sql}
+        if params:
+            data['params'] = params
         self.api.insert_into_knowledge_base(
             self.project.name,
             self.name,
-            data={'query': data.sql}
+            data=data
         )
 
     def completion(self, query, **data):
