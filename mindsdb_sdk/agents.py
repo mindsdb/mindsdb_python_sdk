@@ -35,7 +35,7 @@ class AgentCompletion:
 
 class Agent:
     """Represents a MindsDB agent.
-    
+
     Working with agents:
 
     Get an agent by name:
@@ -100,8 +100,14 @@ class Agent:
     def completion(self, messages: List[dict]) -> AgentCompletion:
         return self.collection.completion(self.name, messages)
 
+    def completion_v2(self, messages: List[dict]) -> AgentCompletion:
+        return self.collection.completion_v2(self.name, messages)
+
     def completion_stream(self, messages: List[dict]) -> Iterable[object]:
         return self.collection.completion_stream(self.name, messages)
+
+    def completion_stream_v2(self, messages: List[dict]) -> Iterable[object]:
+        return self.collection.completion_stream_v2(self.name, messages)
 
     def add_files(self, file_paths: List[str], description: str, knowledge_base: str = None):
         """
@@ -246,6 +252,17 @@ class Agents(CollectionBase):
 
         return AgentCompletion(data['message']['content'])
 
+    def completion_v2(self, name: str, messages: List[dict]) -> AgentCompletion:
+        """
+        Queries the agent for a completion.
+
+        :param name: Name of the agent
+        :param messages: List of messages to be sent to the agent
+
+        :return: completion from querying the agent
+        """
+        return self.api.agent_completion(self.project.name, name, messages)
+
     def completion_stream(self, name, messages: List[dict]) -> Iterable[object]:
         """
         Queries the agent for a completion and streams the response as an iterable object.
@@ -256,6 +273,17 @@ class Agents(CollectionBase):
         :return: iterable of completion chunks from querying the agent.
         """
         return self.api.agent_completion_stream(self.project.name, name, messages)
+
+    def completion_stream_v2(self, name, messages: List[dict]) -> Iterable[object]:
+        """
+        Queries the agent for a completion and streams the response as an iterable object.
+
+        :param name: Name of the agent
+        :param messages: List of messages to be sent to the agent
+
+        :return: iterable of completion chunks from querying the agent.
+        """
+        return self.api.agent_completion_stream_v2(self.project.name, name, messages)
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
         # Make sure default ML engine for embeddings exists.
