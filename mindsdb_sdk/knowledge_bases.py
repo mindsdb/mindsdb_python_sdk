@@ -118,6 +118,8 @@ class KnowledgeBase(Query):
         Insert data from file to knowledge base
         """
         data = {'files': file_paths}
+        if params:
+            data['params'] = params
 
         self.api.insert_into_knowledge_base(
             self.project.name,
