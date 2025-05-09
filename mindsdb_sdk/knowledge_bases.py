@@ -4,7 +4,6 @@ from typing import Union, List
 
 import pandas as pd
 
-from mindsdb_sql_parser.ast.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
 from mindsdb_sql_parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
@@ -44,9 +43,14 @@ class KnowledgeBase(Query):
             table = Table(database, data['vector_database_table'])
             self.storage = table
 
-        self.model = None
-        if data['embedding_model'] is not None:
-            self.model = Model(self.project, {'name': data['embedding_model']})
+        # models
+        self.embedding_model = data.get('embedding_model', {})
+        self.reranking_model = data.get('reranking_model', {})
+
+        # columns
+        self.metadata_columns = data.get('metadata_columns', [])
+        self.content_columns = data.get('content_columns', [])
+        self.id_column = data.get('id_column', None)
 
         params = data.get('params', {})
         if isinstance(params, str):
@@ -54,11 +58,6 @@ class KnowledgeBase(Query):
                 params = json.loads(params)
             except json.JSONDecodeError:
                 params = {}
-
-        # columns
-        self.metadata_columns = params.pop('metadata_columns', [])
-        self.content_columns = params.pop('content_columns', [])
-        self.id_column = params.pop('id_column', None)
 
         self.params = params
 
