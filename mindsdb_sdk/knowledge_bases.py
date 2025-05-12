@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Union, List
+from typing import Union, List, Iterable
 
 import pandas as pd
 
@@ -15,6 +15,19 @@ from .models import Model
 from .tables import Table
 from .query import Query
 from .databases import Database
+
+MAX_INSERT_SIZE = 1000
+
+
+def split_data(data: Union[pd.DataFrame, list], partition_size: int) -> Iterable:
+    """
+    Split data into chunks with partition_size and yield them out
+    """
+    num = 0
+    while num * partition_size < len(data):
+        # create results with partition
+        yield data[num * partition_size: (num + 1) * partition_size]
+        num += 1
 
 
 class KnowledgeBase(Query):
@@ -152,7 +165,7 @@ class KnowledgeBase(Query):
             data=data
         )
 
-    def insert(self, data: Union[pd.DataFrame, Query, dict], params: dict = None):
+    def insert(self, data: Union[pd.DataFrame, Query, dict, list], params: dict = None):
         """
         Insert data to knowledge base
 
@@ -176,9 +189,18 @@ class KnowledgeBase(Query):
         if isinstance(data, dict):
             data = [data]
         elif isinstance(data, pd.DataFrame):
-            data = data.to_dict('records')
-        else:
-             raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict")
+            for df in split_data(data, MAX_INSERT_SIZE):
+                data = df.to_dict('records')
+                self.insert(data, params=params)
+            return
+        elif not isinstance(data, list):
+            raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict, list")
+
+        # chunking a big input data
+        if len(data) > MAX_INSERT_SIZE:
+            for chunk in split_data(data, MAX_INSERT_SIZE):
+                self.insert(chunk, params=params)
+            return
 
         data = {'rows': data}
         if params:
