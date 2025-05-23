@@ -4,7 +4,6 @@ from typing import Union, List, Iterable
 
 import pandas as pd
 
-from mindsdb_sql_parser.ast.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
 from mindsdb_sql_parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
@@ -57,9 +56,14 @@ class KnowledgeBase(Query):
             table = Table(database, data['vector_database_table'])
             self.storage = table
 
-        self.model = None
-        if data['embedding_model'] is not None:
-            self.model = Model(self.project, {'name': data['embedding_model']})
+        # models
+        self.embedding_model = data.get('embedding_model', {})
+        self.reranking_model = data.get('reranking_model', {})
+
+        # columns
+        self.metadata_columns = data.get('metadata_columns', [])
+        self.content_columns = data.get('content_columns', [])
+        self.id_column = data.get('id_column', None)
 
         params = data.get('params', {})
         if isinstance(params, str):
@@ -67,11 +71,6 @@ class KnowledgeBase(Query):
                 params = json.loads(params)
             except json.JSONDecodeError:
                 params = {}
-
-        # columns
-        self.metadata_columns = params.pop('metadata_columns', [])
-        self.content_columns = params.pop('content_columns', [])
-        self.id_column = params.pop('id_column', None)
 
         self.params = params
 
@@ -311,7 +310,8 @@ class KnowledgeBases(CollectionBase):
     def create(
         self,
         name: str,
-        model: Model = None,
+        embedding_model: dict = None,
+        reranking_model: dict = None,
         storage: Table = None,
         metadata_columns: list = None,
         content_columns: list = None,
@@ -324,7 +324,8 @@ class KnowledgeBases(CollectionBase):
 
         >>> kb = server.knowledge_bases.create(
         ...   'my_kb',
-        ...   model=server.models.emb_model,
+        ...   embedding_model={'provider': 'openai', 'model': 'text-embedding-ada-002', 'api_key': 'sk-...'},
+        ...   reranking_model={'provider': 'openai', 'model': 'gpt-4', 'api_key': 'sk-...'},
         ...   storage=server.databases.pvec.tables.tbl1,
         ...   metadata_columns=['date', 'author'],
         ...   content_columns=['review', 'description'],
@@ -333,7 +334,8 @@ class KnowledgeBases(CollectionBase):
         ...)
 
         :param name: name of the knowledge base
-        :param model: embedding model, optional. Default: 'sentence_transformers' will be used (defined in mindsdb server)
+        :param embedding_model: embedding model, optional. Default: OpenAI will be the default provider
+        :param reranking_model: reranking model, optional. Default: OpenAI will be the default provider
         :param storage: vector storage, optional. Default: chromadb database will be created
         :param metadata_columns: columns to use as metadata, optional. Default: all columns which are not content and id
         :param content_columns: columns to use as content, optional. Default: all columns except id column
@@ -342,30 +344,24 @@ class KnowledgeBases(CollectionBase):
         :return: created KnowledgeBase object
         """
 
-        params_out = {}
-
-        if metadata_columns is not None:
-            params_out['metadata_columns'] = metadata_columns
-
-        if content_columns is not None:
-            params_out['content_columns'] = content_columns
-
-        if id_column is not None:
-            params_out['id_column'] = id_column
-
-        if params is not None:
-            params_out.update(params)
-
-        if model is not None:
-            model = model.name
-
         payload = {
             'name': name,
-            'model': model,
-            'params': params_out
         }
 
-        if storage is not None:
+        if embedding_model:
+            payload['embedding_model'] = embedding_model
+        if reranking_model:
+            payload['reranking_model'] = reranking_model
+        if metadata_columns:
+            payload['metadata_columns'] = metadata_columns
+        if content_columns:
+            payload['content_columns'] = content_columns
+        if id_column:
+            payload['id_column'] = id_column
+        if params:
+            payload['params'] = params
+
+        if storage:
             payload['storage'] = {
                 'database': storage.db.name,
                 'table': storage.name
