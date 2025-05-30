@@ -237,11 +237,25 @@ class Test(BaseFlow):
         assert call_args[0][0] == 'https://cloud.mindsdb.com/api/status'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1','ENGINE': 'postgres'}]))
+        response_mock(
+            mock_post,
+            pd.DataFrame(
+                [
+                    {
+                        "NAME": "db1",
+                        "ENGINE": "postgres",
+                        "CONNECTION_DATA": {"host": "zoop"},
+                    }
+                ]
+            ),
+        )
 
         databases = server.list_databases()
 
-        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
+        check_sql_call(
+            mock_post,
+            "select NAME, ENGINE, CONNECTION_DATA from information_schema.databases where TYPE='data'",
+        )
 
         database = databases[0]
         str(database)
@@ -283,7 +297,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file', 'CONNECTION_DATA': {'host': 'woop'}}]))
         database = server.get_database('files')
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -465,7 +479,6 @@ class Test(BaseFlow):
                 }
             )
 
-
     @patch('requests.Session.post')
     def check_project_models_versions(self, project, database, mock_post):
         # -----------  model version --------------
@@ -494,7 +507,6 @@ class Test(BaseFlow):
 
         project.drop_model_version('m1', 1)
         check_sql_call(mock_post, f"DROP PREDICTOR m1.`1`")
-
 
     @patch('requests.Session.post')
     def check_database(self, database, mock_post):
@@ -544,7 +556,6 @@ class Test(BaseFlow):
         # drop table
         database.drop_table('t3')
         check_sql_call(mock_post, f'drop table {database.name}.t3')
-
 
     @patch('requests.Session.post')
     def check_project_jobs(self, project, mock_post):
@@ -608,11 +619,11 @@ class TestSimplify(BaseFlow):
         assert call_args[1]['json']['email'] == 'a@b.com'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres', 'CONNECTION_DATA': {}}]))
 
         databases = con.databases.list()
 
-        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE, CONNECTION_DATA from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         assert database.name == 'db1'
@@ -659,7 +670,7 @@ class TestSimplify(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file', 'CONNECTION_DATA': {}}]))
         database = con.databases.files
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -1415,7 +1426,6 @@ class TestAgents():
 
         assert new_agent == expected_agent
 
-
     @patch('requests.Session.get')
     @patch('requests.Session.put')
     # Mock creating new skills.
@@ -1479,7 +1489,6 @@ class TestAgents():
         }
 
         assert updated_agent == expected_agent
-
 
     @patch('requests.Session.post')
     def test_completion(self, mock_post):
@@ -1693,18 +1702,29 @@ class TestAgents():
                 'provider': 'mindsdb'
             },
         ])
-        responses_mock(mock_post, [
-            # DB get (POST /sql).
-            pd.DataFrame([
-                {'NAME': 'existing_db', 'ENGINE': 'postgres'}
-            ]),
-            # DB tables get (POST /sql).
-            pd.DataFrame([
-                {'name': 'existing_table'}
-            ]),
-            # Skill creation.
-            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}
-        ])
+        responses_mock(
+            mock_post,
+            [
+                # DB get (POST /sql).
+                pd.DataFrame(
+                    [
+                        {
+                            "NAME": "existing_db",
+                            "ENGINE": "postgres",
+                            "CONNECTION_DATA": {"host": "boop"},
+                        }
+                    ]
+                ),
+                # DB tables get (POST /sql).
+                pd.DataFrame([{"name": "existing_table"}]),
+                # Skill creation.
+                {
+                    "name": "new_skill",
+                    "type": "sql",
+                    "params": {"database": "existing_db", "tables": ["existing_table"]},
+                },
+            ],
+        )
         responses_mock(mock_put, [
             # Agent update with new skill.
             {
