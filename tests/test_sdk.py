@@ -297,7 +297,7 @@ class Test(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file', 'CONNECTION_DATA': {'host': 'woop'}}]))
         database = server.get_database('files')
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
@@ -619,11 +619,11 @@ class TestSimplify(BaseFlow):
         assert call_args[1]['json']['email'] == 'a@b.com'
 
         # --------- databases -------------
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'db1', 'ENGINE': 'postgres', 'CONNECTION_DATA': {}}]))
 
         databases = con.databases.list()
 
-        check_sql_call(mock_post, "select NAME, ENGINE from information_schema.databases where TYPE='data'")
+        check_sql_call(mock_post, "select NAME, ENGINE, CONNECTION_DATA from information_schema.databases where TYPE='data'")
 
         database = databases[0]
         assert database.name == 'db1'
@@ -670,7 +670,7 @@ class TestSimplify(BaseFlow):
         check_sql_call(mock_post, 'DROP DATABASE `proj1-1`')
 
         # test upload file
-        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file'}]))
+        response_mock(mock_post, pd.DataFrame([{'NAME': 'files', 'ENGINE': 'file', 'CONNECTION_DATA': {}}]))
         database = con.databases.files
         # create file
         df = pd.DataFrame([{'s': '1'}, {'s': 'a'}])
