@@ -1267,9 +1267,9 @@ class CustomPredictor():
                 'model_name': 'openai_rerank',
                 'api_key': 'sk-...'
             },
+            'metadata_columns': ['date', 'author'],
             'params': {
                 'k': 'v',
-                'metadata_columns': ['date', 'author']
             }
         }}}
 
@@ -1285,12 +1285,8 @@ class CustomPredictor():
         assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
         assert kwargs == {'json': {'knowledge_base': {
             'name': 'kb2',
-            'embedding_model': None,
-            'reranking_model': None,
-            'params': {
-                'content_columns': ['review'],
-                'id_column': 'num'
-            },
+            'content_columns': ['review'],
+            'id_column': 'num',
             'storage': {
                 'database': database.name,
                 'table': 'tbl1'
