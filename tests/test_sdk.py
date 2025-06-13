@@ -775,7 +775,7 @@ class CustomPredictor():
 
         self.check_project_models_versions(project, database)
 
-        kb = self.check_project_kb(project, model, database)
+        kb = self.check_project_kb(project, database)
 
         self.check_project_jobs(project, model, database, kb)
 
@@ -1143,12 +1143,21 @@ class CustomPredictor():
     @patch('requests.Session.post')
     @patch('requests.Session.delete')
     @patch('requests.Session.get')
-    def check_project_kb(self, project, model, database, mock_get, mock_del, mock_post, mock_put):
+    def check_project_kb(self, project, database, mock_get, mock_del, mock_post, mock_put):
 
         response_mock(mock_post, pd.DataFrame([{
             'NAME': 'my_kb',
             'PROJECT': 'mindsdb',
-            'MODEL': 'openai_emb',
+            'EMBEDDING_MODEL': {
+                'PROVIDER': 'openai',
+                'MODEL_NAME': 'openai_emb',
+                'API_KEY': 'sk-...'
+            },
+            'RERANKING_MODEL': {
+                'PROVIDER': 'openai',
+                'MODEL_NAME': 'openai_rerank',
+                'API_KEY': 'sk-...'
+            },
             'STORAGE': 'pvec.tbl1',
             'PARAMS': {"id_column": "num"},
         }]))
@@ -1157,7 +1166,16 @@ class CustomPredictor():
             'id': 1,
             'name': 'my_kb',
             'project_id': 1,
-            'embedding_model': 'openai_emb',
+            'embedding_model': {
+                'provider': 'openai',
+                'model_name': 'openai_emb',
+                'api_key': 'sk-...'
+            },
+            'reranking_model': {
+                'provider': 'openai',
+                'model_name': 'openai_rerank',
+                'api_key': 'sk-...'
+            },
             'vector_database': 'pvec',
             'vector_database_table': 'tbl1',
             'updated_at': '2024-10-04 10:55:25.350799',
@@ -1176,8 +1194,8 @@ class CustomPredictor():
 
         assert kb.name == 'my_kb'
 
-        assert isinstance(kb.model, Model)
-        assert kb.model.name == 'openai_emb'
+        assert kb.embedding_model['model_name'] == 'openai_emb'
+        assert kb.reranking_model['model_name'] == 'openai_rerank'
 
         assert isinstance(kb.storage, Table)
         assert kb.storage.name == 'tbl1'
@@ -1189,7 +1207,8 @@ class CustomPredictor():
         str(kb)
         assert kb.name == 'my_kb'
         assert kb.storage.db.name == 'pvec'
-        assert kb.model.name == 'openai_emb'
+        assert kb.embedding_model['model_name'] == 'openai_emb'
+        assert kb.reranking_model['model_name'] == 'openai_rerank'
 
         # --- insert ---
 
@@ -1232,7 +1251,16 @@ class CustomPredictor():
         # create 1
         project.knowledge_bases.create(
             name='kb2',
-            model=model,
+            embedding_model={
+                'provider': 'openai',
+                'model_name': 'openai_emb',
+                'api_key': 'sk-...'
+            },
+            reranking_model={
+                'provider': 'openai',
+                'model_name': 'openai_rerank',
+                'api_key': 'sk-...'
+            },
             metadata_columns=['date', 'author'],
             params={'k': 'v'}
         )
@@ -1240,10 +1268,19 @@ class CustomPredictor():
         assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
         assert kwargs == {'json': {'knowledge_base': {
             'name': 'kb2',
-            'model': model.name,
+            'embedding_model': {
+                'provider': 'openai',
+                'model_name': 'openai_emb',
+                'api_key': 'sk-...'
+            },
+            'reranking_model': {
+                'provider': 'openai',
+                'model_name': 'openai_rerank',
+                'api_key': 'sk-...'
+            },
+            'metadata_columns': ['date', 'author'],
             'params': {
                 'k': 'v',
-                'metadata_columns': ['date', 'author']
             }
         }}}
 
@@ -1259,11 +1296,8 @@ class CustomPredictor():
         assert args[0] == f'{DEFAULT_CLOUD_API_URL}/api/projects/{project.name}/knowledge_bases'
         assert kwargs == {'json': {'knowledge_base': {
             'name': 'kb2',
-            'model': None,
-            'params': {
-                'content_columns': ['review'],
-                'id_column': 'num'
-            },
+            'content_columns': ['review'],
+            'id_column': 'num',
             'storage': {
                 'database': database.name,
                 'table': 'tbl1'
