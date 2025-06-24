@@ -86,7 +86,7 @@ class KnowledgeBase(Query):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.project.name}.{self.name})'
 
-    def find(self, query: str, limit: int = 100):
+    def find(self, query: str, limit: int = 10):
         """
 
         Query data from knowledge base.
@@ -98,7 +98,7 @@ class KnowledgeBase(Query):
         >>> print(query.fetch())
 
         :param query: text query
-        :param limit: count of rows in result, default 100
+        :param limit: count of rows in result, default 10
         :return: Query object
         """
 
