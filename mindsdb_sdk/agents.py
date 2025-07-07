@@ -80,21 +80,27 @@ class Agent:
     def __init__(
             self,
             name: str,
-            model_name: str,
-            skills: List[Skill],
-            params: dict,
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
+            model_name: str = None,
+            skills: List[Skill] = [],
             provider: str = None,
+            data: dict = {},
+            model: dict = {},
+            prompt_template: str = None,
+            params: dict = {},
             collection: CollectionBase = None
     ):
         self.name = name
-        self.model_name = model_name
-        self.provider = provider
-        self.skills = skills
-        self.params = params
         self.created_at = created_at
         self.updated_at = updated_at
+        self.model_name = model_name
+        self.skills = skills
+        self.provider = provider
+        self.data = data
+        self.model = model
+        self.prompt_template = prompt_template
+        self.params = params
         self.collection = collection
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
@@ -197,14 +203,21 @@ class Agent:
 
     @classmethod
     def from_json(cls, json: dict, collection: CollectionBase):
+        skills = []
+        if json.get('skills'):
+            skills = [Skill.from_json(skill) for skill in json['skills']]
+
         return cls(
             json['name'],
-            json['model_name'],
-            [Skill.from_json(skill) for skill in json['skills']],
-            json['params'],
             json['created_at'],
             json['updated_at'],
-            json['provider'],
+            json.get('model_name'),
+            skills,
+            json.get('provider'),
+            json.get('data', {}),
+            json.get('model', {}),
+            json.get('prompt_template'),
+            json.get('params', {}),
             collection
         )
 
