@@ -582,6 +582,9 @@ class Agents(CollectionBase):
             updated_agent.model_name,
             list(skills_to_add),
             list(skills_to_remove),
+            updated_agent.data,
+            updated_agent.model,
+            updated_agent.prompt_template,
             updated_agent.params
         )
         return Agent.from_json(data, self)

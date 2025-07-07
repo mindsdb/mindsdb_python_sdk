@@ -339,26 +339,32 @@ class RestAPI:
 
     @_try_relogin
     def update_agent(
-            self,
-            project: str,
-            name: str,
-            updated_name: str,
-            updated_provider: str,
-            updated_model: str,
-            skills_to_add: List[str],
-            skills_to_remove: List[str],
-            updated_params: dict
-            ):
+        self,
+        project: str,
+        name: str,
+        updated_name: str,
+        updated_provider: str,
+        updated_model_name: str,
+        skills_to_add: List[str],
+        skills_to_remove: List[str],
+        updated_data: dict,
+        updated_model: dict,
+        updated_prompt_template: str,
+        updated_params: dict
+    ):
         url = self.url + f'/api/projects/{project}/agents/{name}'
         r = self.session.put(
             url,
             json={
                 'agent': {
                     'name': updated_name,
-                    'model_name': updated_model,
+                    'model_name': updated_model_name,
                     'provider': updated_provider,
                     'skills_to_add': skills_to_add,
                     'skills_to_remove': skills_to_remove,
+                    'data': updated_data,
+                    'model': updated_model,
+                    'prompt_template': updated_prompt_template,
                     'params': updated_params
                 }
             }
