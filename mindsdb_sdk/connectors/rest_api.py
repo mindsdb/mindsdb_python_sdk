@@ -306,16 +306,30 @@ class RestAPI:
             yield e
 
     @_try_relogin
-    def create_agent(self, project: str, name: str, model: str = None, provider: str = None, skills: List[str] = None, params: dict = None):
+    def create_agent(
+        self,
+        project: str,
+        name: str,
+        model_name: str = None,
+        provider: str = None,
+        skills: List[str] = None,
+        data: dict = None,
+        model: dict = None,
+        prompt_template: str = None,
+        params: dict = None
+    ):
         url = self.url + f'/api/projects/{project}/agents'
         r = self.session.post(
             url,
             json={
                 'agent': {
                     'name': name,
-                    'model_name': model,
+                    'model_name': model_name,
                     'provider': provider,
                     'skills': skills,
+                    'data': data,
+                    'model': model,
+                    'prompt_template': prompt_template,
                     'params': params
                 }
             }

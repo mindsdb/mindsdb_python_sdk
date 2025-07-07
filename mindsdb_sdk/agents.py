@@ -486,19 +486,26 @@ class Agents(CollectionBase):
         self.update(agent.name, agent)
 
     def create(
-            self,
-            name: str,
-            model: Union[Model, dict, str] = None,
-            provider: str = None,
-            skills: List[Union[Skill, str]] = None,
-            params: dict = None,
-            **kwargs) -> Agent:
+        self,
+        name: str,
+        model_name: Union[Model, str] = None,
+        provider: str = None,
+        skills: List[Union[Skill, str]] = None,
+        data: dict = None,
+        model: dict = None,
+        prompt_template: str = None,
+        params: dict = None,
+        **kwargs
+    ) -> Agent:
         """
         Create new agent and return it
 
         :param name: Name of the agent to be created
-        :param model: Model to be used by the agent
+        :param model_name: MindsDB model to be used by the agent
         :param skills: List of skills to be used by the agent. Currently only 'sql' is supported.
+        :param provider: Provider of the model, e.g. 'mindsdb', 'openai', etc.
+        :param data: Data to be used by the agent. This is usually a dictionary with 'tables' and/or 'knowledge_base' keys.
+        :param model: Model parameters to be used by the agent. This is usually a dictionary
         :param params: Parameters for the agent
 
         :return: created agent object
@@ -519,18 +526,23 @@ class Agents(CollectionBase):
         if params is None:
             params = {}
         params.update(kwargs)
-
-        if 'prompt_template' not in params:
-            params['prompt_template'] = _DEFAULT_LLM_PROMPT
-
-        if model is None:
-            model = _DEFAULT_LLM_MODEL
-        elif isinstance(model, Model):
-            model = model.name
+        
+        if isinstance(model_name, Model):
+            model_name = model_name.name
             provider = 'mindsdb'
 
-        data = self.api.create_agent(self.project.name, name, model, provider, skill_names, params)
-        return Agent.from_json(data, self)
+        agent = self.api.create_agent(
+            self.project.name,
+            name,
+            model_name,
+            provider,
+            skill_names,
+            data,
+            model,
+            prompt_template,
+            params
+        )
+        return Agent.from_json(agent, self)
 
     def update(self, name: str, updated_agent: Agent):
         """
