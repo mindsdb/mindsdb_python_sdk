@@ -82,11 +82,10 @@ class Agent:
             name: str,
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
-            model_name: str = None,
+            model: Union[Model, str, dict] = None,
             skills: List[Skill] = [],
             provider: str = None,
             data: dict = {},
-            model: dict = {},
             prompt_template: str = None,
             params: dict = {},
             collection: CollectionBase = None
@@ -94,11 +93,10 @@ class Agent:
         self.name = name
         self.created_at = created_at
         self.updated_at = updated_at
-        self.model_name = model_name
+        self.model = model
         self.skills = skills
         self.provider = provider
         self.data = data
-        self.model = model
         self.prompt_template = prompt_template
         self.params = params
         self.collection = collection
@@ -207,15 +205,16 @@ class Agent:
         if json.get('skills'):
             skills = [Skill.from_json(skill) for skill in json['skills']]
 
+        model = json.get('model') or json.get('model_name')
+
         return cls(
             json['name'],
             json['created_at'],
             json['updated_at'],
-            json.get('model_name'),
+            model,
             skills,
             json.get('provider'),
             json.get('data', {}),
-            json.get('model', {}),
             json.get('prompt_template'),
             json.get('params', {}),
             collection
@@ -488,11 +487,10 @@ class Agents(CollectionBase):
     def create(
         self,
         name: str,
-        model_name: Union[Model, str] = None,
+        model: Union[Model, str, dict] = None,
         provider: str = None,
         skills: List[Union[Skill, str]] = None,
         data: dict = None,
-        model: dict = None,
         prompt_template: str = None,
         params: dict = None,
         **kwargs
@@ -501,11 +499,10 @@ class Agents(CollectionBase):
         Create new agent and return it
 
         :param name: Name of the agent to be created
-        :param model_name: MindsDB model to be used by the agent
+        :param model: Model to be used by the agent. This can be a Model object, a string with model name, or a dictionary with model parameters.
         :param skills: List of skills to be used by the agent. Currently only 'sql' is supported.
         :param provider: Provider of the model, e.g. 'mindsdb', 'openai', etc.
         :param data: Data to be used by the agent. This is usually a dictionary with 'tables' and/or 'knowledge_base' keys.
-        :param model: Model parameters to be used by the agent. This is usually a dictionary
         :param params: Parameters for the agent
 
         :return: created agent object
@@ -526,10 +523,15 @@ class Agents(CollectionBase):
         if params is None:
             params = {}
         params.update(kwargs)
-        
+
+        model_name = None
         if isinstance(model_name, Model):
             model_name = model_name.name
             provider = 'mindsdb'
+            model = None
+        elif isinstance(model, str):
+            model_name = model
+            model = None
 
         agent = self.api.create_agent(
             self.project.name,
@@ -574,20 +576,31 @@ class Agents(CollectionBase):
         existing_skills = set([s['name'] for s in existing_agent['skills']])
         skills_to_add = updated_skills.difference(existing_skills)
         skills_to_remove = existing_skills.difference(updated_skills)
-        data = self.api.update_agent(
+        updated_model_name = None
+        updated_provider = updated_agent.provider
+        updated_model = None
+        if isinstance(updated_agent.model, Model):
+            updated_model_name = updated_agent.model.name
+            updated_provider = 'mindsdb'
+        elif isinstance(updated_agent.model, str):
+            updated_model_name = updated_agent.model
+        elif isinstance(updated_agent.model, dict):
+            updated_model = updated_agent.model
+
+        agent = self.api.update_agent(
             self.project.name,
             name,
             updated_agent.name,
-            updated_agent.provider,
-            updated_agent.model_name,
+            updated_provider,
+            updated_model_name,
             list(skills_to_add),
             list(skills_to_remove),
             updated_agent.data,
-            updated_agent.model,
+            updated_model,
             updated_agent.prompt_template,
             updated_agent.params
         )
-        return Agent.from_json(data, self)
+        return Agent.from_json(agent, self)
 
     def drop(self, name: str):
         """
