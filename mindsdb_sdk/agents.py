@@ -186,7 +186,7 @@ class Agent:
     def __eq__(self, other):
         if self.name != other.name:
             return False
-        if self.model_name != other.model_name:
+        if self.model != other.model:
             return False
         if self.provider != other.provider:
             return False
