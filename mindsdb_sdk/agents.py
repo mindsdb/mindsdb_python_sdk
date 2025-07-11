@@ -59,7 +59,7 @@ class Agent:
     >>> agent = agents.create(
         'my_agent',
         model={
-            'name': 'gpt-3.5-turbo',
+            'model_name': 'gpt-3.5-turbo',
             'provider': 'openai',
             'api_key': 'your_openai_api_key_here'
         },
@@ -303,23 +303,16 @@ class Agents(CollectionBase):
         return self.api.agent_completion_stream_v2(self.project.name, name, messages)
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
-        # Make sure default ML engine for embeddings exists.
         try:
-            _ = self.ml_engines.get('langchain_embedding')
-        except AttributeError:
-            _ = self.ml_engines.create('langchain_embedding', 'langchain_embedding')
-        # Include API keys in embeddings.
-        if agent.provider == "mindsdb":
-            agent_model = self.models.get(agent.model_name)
-            training_options = json.loads(agent_model.data.get('training_options', '{}'))
-            training_options_using = training_options.get('using', {})
-            api_key_params = {k: v for k, v in training_options_using.items() if 'api_key' in k}
-            kb = self.knowledge_bases.create(name, params=api_key_params)
-        else:
+            # TODO: Use the agent's model credentials?
+            # The model used will not be an embedding model though.    
             kb = self.knowledge_bases.create(name)
-        # Wait for underlying embedding model to finish training.
-        kb.model.wait_complete()
-        return kb
+            return kb
+        except Exception as e:
+            raise ValueError(
+                f'Failed to automatically create knowledge base for agent {agent.name}. '
+                "Please set your default embedding model in MindsDB settings or provide an existing knowledge base name."
+            )
 
     def add_files(self, name: str, file_paths: List[str], description: str, knowledge_base: str = None):
         """
