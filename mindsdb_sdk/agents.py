@@ -10,9 +10,6 @@ from mindsdb_sdk.models import Model
 from mindsdb_sdk.skills import Skill
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
-_DEFAULT_LLM_MODEL = 'gpt-4o'
-_DEFAULT_LLM_PROMPT = 'Answer the user"s question in a helpful way: {{question}}'
-
 
 class AgentCompletion:
     """
@@ -59,17 +56,19 @@ class Agent:
 
     Create a new agent:
 
-    >>> model = models.get('my_model') # Or use models.create(...)
-    >>> # Connect your agent to a MindsDB table.
-    >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database' })
-    >>> agent = agents.create('my_agent', model, [text_to_sql_skill])
+    >>> agent = agents.create(
+        'my_agent',
+        model={
+            'name': 'gpt-3.5-turbo',
+            'provider': 'openai',
+            'api_key': 'your_openai_api_key_here'
+        },
+        data={'tables': ['my_database.my_table'], 'knowledge_base': 'my_kb'}
+    )
 
     Update an agent:
 
-    >>> new_model = models.get('new_model')
-    >>> agent.model_name = new_model.name
-    >>> new_skill = skills.create('new_skill', 'sql', { 'tables': ['new_table'], 'database': 'new_database' })
-    >>> updated_agent.skills.append(new_skill)
+    >>> agent.data['tables'].append('my_database.my_new_table')
     >>> updated_agent = agents.update('my_agent', agent)
 
     Delete an agent by name:
