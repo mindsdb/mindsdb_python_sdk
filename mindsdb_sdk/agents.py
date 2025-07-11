@@ -565,9 +565,11 @@ class Agents(CollectionBase):
             updated_skills.add(skill.name)
 
         existing_agent = self.api.agent(self.project.name, name)
-        existing_skills = set([s['name'] for s in existing_agent['skills']])
+
+        existing_skills = set([s['name'] for s in existing_agent.get('skills', [])])
         skills_to_add = updated_skills.difference(existing_skills)
         skills_to_remove = existing_skills.difference(updated_skills)
+
         updated_model_name = None
         updated_provider = updated_agent.provider
         updated_model = None
