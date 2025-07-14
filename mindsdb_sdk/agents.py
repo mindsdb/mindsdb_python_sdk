@@ -314,23 +314,22 @@ class Agents(CollectionBase):
                 "Please set your default embedding model in MindsDB settings or provide an existing knowledge base name."
             )
 
-    def add_files(self, name: str, file_paths: List[str], description: str, knowledge_base: str = None):
+    def add_files(self, name: str, file_paths: List[str], description: str = None):
         """
         Add a list of files to the agent for retrieval.
 
         :param name: Name of the agent
         :param file_paths: List of paths or URLs to the files to be added.
         :param description: Description of the file. Used by agent to know when to do retrieval
-        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
         if not file_paths:
             return
+
+        agent = self.get(name)
         filename_no_extension = ''
-        all_filenames = []
         for file_path in file_paths:
             filename = file_path.split('/')[-1].lower()
             filename_no_extension = filename.split('.')[0]
-            all_filenames.append(filename_no_extension)
             try:
                 _ = self.api.get_file_metadata(filename_no_extension)
             except HTTPError as e:
@@ -339,43 +338,31 @@ class Agents(CollectionBase):
                 # upload file to mindsdb
                 self.api.upload_file(filename, file_path)
 
-        # Insert uploaded files into new knowledge base.
-        agent = self.get(name)
-        if knowledge_base is not None:
-            kb = self.knowledge_bases.get(knowledge_base)
-        else:
-            kb_name = f'{name.lower()}_{filename_no_extension}_{uuid4().hex}_kb'
-            kb = self._create_default_knowledge_base(agent, kb_name)
+            # Add file to agent's data if it hasn't been added already.
+            if 'tables' not in agent.data or f'files.{filename_no_extension}' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'files.{filename_no_extension}')
 
-        # Insert the entire file.
-        kb.insert_files(all_filenames)
+        # Add the description provided to the agent's prompt template.
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
 
-        # Make sure skill name is unique.
-        skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4().hex}'
-        retrieval_params = {
-            'source': kb.name,
-            'description': description,
-        }
-        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
 
-    def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
+    def add_file(self, name: str, file_path: str, description: str = None):
         """
         Add a file to the agent for retrieval.
 
         :param name: Name of the agent
         :param file_path: Path to the file to be added, or name of existing file.
         :param description: Description of the file. Used by agent to know when to do retrieval
-        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
-        self.add_files(name, [file_path], description, knowledge_base)
+        self.add_files(name, [file_path], description)
 
     def add_webpages(
         self,
         name: str,
         urls: List[str],
-        description: str,
+        description: str = None,
         knowledge_base: str = None,
         crawl_depth: int = 1,
         limit: int = None,
@@ -407,12 +394,13 @@ class Agents(CollectionBase):
         # Insert crawled webpage.
         kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters, limit=limit)
 
-        # Add knowledge base to agent's data if it hasn't been added yet.
+        # Add knowledge base to agent's data if it hasn't been added already.
         if 'knowledge_bases' not in agent.data or kb.name not in agent.data['knowledge_bases']:
             agent.data.setdefault('knowledge_bases', []).append(kb.name)
 
         # Add the description provided to the agent's prompt template.
-        agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
 
         self.update(agent.name, agent)
 
@@ -420,7 +408,7 @@ class Agents(CollectionBase):
         self,
         name: str,
         url: str,
-        description: str,
+        description: str = None,
         knowledge_base: str = None,
         crawl_depth: int = 1,
         limit: int = None,
@@ -440,40 +428,40 @@ class Agents(CollectionBase):
         self.add_webpages(name, [url], description, knowledge_base=knowledge_base,
                           crawl_depth=crawl_depth, limit=limit, filters=filters)
 
-    def add_database(self, name: str, database: str, tables: List[str], description: str):
+    def add_database(self, name: str, database: str, tables: List[str] = None, description: str = None):
         """
         Add a database to the agent for retrieval.
 
         :param name: Name of the agent
         :param database: Name of the database to be added.
-        :param tables: List of tables to be added.
+        :param tables: List of tables to be added. If not provided, the entire database will be added.
         :param description: Description of the database. Used by agent to know when to do retrieval.
         """
         # Make sure database exists.
         db = self.databases.get(database)
-        # Make sure tables exist.
-        all_table_names = set([t.name for t in db.tables.list()])
-        for t in tables:
-            if t not in all_table_names:
-                raise ValueError(f'Table {t} does not exist in database {database}.')
 
-        # Make sure skill name is unique.
-        skill_name = f'{database}_sql_skill_{uuid4().hex}'
-        sql_params = {
-            'database': database,
-            'tables': tables,
-            'description': description,
-        }
-        database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
         agent = self.get(name)
 
-        if not agent.params:
-            agent.params = {}
-        if 'prompt_template' not in agent.params:
-            # Set default prompt template. This is for langchain agent check.
-            agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
+        if tables:
+            # Ensure the tables exist.
+            all_table_names = set([t.name for t in db.tables.list()])
+            for t in tables:
+                if t not in all_table_names:
+                    raise ValueError(f'Table {t} does not exist in database {database}.')
 
-        agent.skills.append(database_sql_skill)
+            # Add table to agent's data if it hasn't been added already.
+            if 'tables' not in agent.data or f'{database}.{t}' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'{database}.{t}')
+
+        else:
+            # If no tables are provided, add the database itself.
+            if 'tables' not in agent.data or f'{database}.*' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'{database}.*')
+
+        # Add the description provided to the agent's prompt template.
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
+
         self.update(agent.name, agent)
 
     def create(
