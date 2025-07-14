@@ -372,15 +372,15 @@ class Agents(CollectionBase):
         self.add_files(name, [file_path], description, knowledge_base)
 
     def add_webpages(
-            self,
-            name: str,
-            urls: List[str],
-            description: str,
-            knowledge_base: str = None,
-            crawl_depth: int = 1,
-            limit: int = None,
-            filters: List[str] = None
-            ):
+        self,
+        name: str,
+        urls: List[str],
+        description: str,
+        knowledge_base: str = None,
+        crawl_depth: int = 1,
+        limit: int = None,
+        filters: List[str] = None
+    ):
         """
         Add a list of webpages to the agent for retrieval.
 
@@ -407,25 +407,25 @@ class Agents(CollectionBase):
         # Insert crawled webpage.
         kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters, limit=limit)
 
-        # Make sure skill name is unique.
-        skill_name = f'web_retrieval_skill_{uuid4().hex}'
-        retrieval_params = {
-            'source': kb.name,
-            'description': description,
-        }
-        webpage_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent.skills.append(webpage_retrieval_skill)
+        # Add knowledge base to agent's data if it hasn't been added yet.
+        if 'knowledge_bases' not in agent.data or kb.name not in agent.data['knowledge_bases']:
+            agent.data.setdefault('knowledge_bases', []).append(kb.name)
+
+        # Add the description provided to the agent's prompt template.
+        agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
+
         self.update(agent.name, agent)
 
     def add_webpage(
-            self,
-            name: str,
-            url: str,
-            description: str,
-            knowledge_base: str = None,
-            crawl_depth: int = 1,
-            limit: int = None,
-            filters: List[str] = None):
+        self,
+        name: str,
+        url: str,
+        description: str,
+        knowledge_base: str = None,
+        crawl_depth: int = 1,
+        limit: int = None,
+        filters: List[str] = None
+    ):
         """
         Add a webpage to the agent for retrieval.
 
