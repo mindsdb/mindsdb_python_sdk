@@ -468,3 +468,24 @@ class RestAPI:
         )
         _raise_for_status(r)
         return r.json()
+    
+    def get_config(self):
+        """
+        Get MindsDB configuration.
+        
+        :return: Dictionary containing MindsDB configuration.
+        """
+        url = self.url + '/api/config'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+    
+    def update_config(self, config: dict):
+        """
+        Update MindsDB configuration with the provided settings.
+
+        :param config: Dictionary containing configuration settings.
+        """
+        url = self.url + '/api/config'
+        r = self.session.put(url, json=config)
+        _raise_for_status(r)
