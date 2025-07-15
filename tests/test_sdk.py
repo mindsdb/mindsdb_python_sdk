@@ -1337,12 +1337,18 @@ class TestAgents():
                 'id': 1,
                 'name': 'test_agent',
                 'project_id': 1,
-                'model_name': 'test_model',
-                'skills': [],
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'params': {},
                 'created_at': created_at,
                 'updated_at': updated_at,
-                'provider': 'mindsdb'
             }
         ])
         all_agents = server.agents.list()
@@ -1352,12 +1358,17 @@ class TestAgents():
         assert len(all_agents) == 1
         expected_agent = Agent(
             'test_agent',
-            'test_model',
-            [],
-            {},
             created_at,
             updated_at,
-            'mindsdb'
+            model={
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            data={
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            },
         )
         assert all_agents[0] == expected_agent
 
@@ -1371,12 +1382,18 @@ class TestAgents():
                 'id': 1,
                 'name': 'test_agent',
                 'project_id': 1,
-                'model_name': 'test_model',
-                'skills': [],
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'params': {},
                 'created_at': created_at,
                 'updated_at': updated_at,
-                'provider': 'mindsdb'
             }
         )
         agent = server.agents.get('test_agent')
@@ -1384,53 +1401,57 @@ class TestAgents():
         assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/agents/test_agent'
         expected_agent = Agent(
             'test_agent',
-            'test_model',
-            [],
-            {},
             created_at,
             updated_at,
-            'mindsdb'
+            model={
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            data={
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            },
         )
         assert agent == expected_agent
 
     @patch('requests.Session.post')
-    @patch('requests.Session.get')
-    def test_create(self, mock_get, mock_post):
+    def test_create(self, mock_post):
         created_at = dt.datetime(2000, 3, 1, 9, 30)
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
         data = {
             'id': 1,
             'name': 'test_agent',
             'project_id': 1,
-            'model_name': 'test_model',
-            'skills': [{
-                'id': 0,
-                'name': 'test_skill',
-                'project_id': 1,
-                'type': 'sql',
-                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
-            }],
-            'params': {'k1': 'v1'},
+            'model': {
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            'data': {
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            },
             'created_at': created_at,
             'updated_at': updated_at,
-            'provider': 'mindsdb',
         }
         responses_mock(mock_post, [
-            # ML Engine get (SQL post for SHOW ML_ENGINES)
             data
-        ])
-        responses_mock(mock_get, [
-            # Skill get.
-            {'name': 'test_skill', 'type': 'sql', 'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}},
         ])
 
         # Create the agent.
         server = mindsdb_sdk.connect()
         new_agent = server.agents.create(
             name='test_agent',
-            model=Model(None, {'name':'m1'}),
-            skills=['test_skill'],
-            params={'k1': 'v1'}
+            model={
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            data={
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            }
         )
         # Check API call.
         assert len(mock_post.call_args_list) == 1
@@ -1438,51 +1459,59 @@ class TestAgents():
         assert mock_post.call_args_list[-1][1]['json'] == {
             'agent': {
                 'name': 'test_agent',
-                'model_name': 'm1',
-                'skills': ['test_skill'],
-                'params': {
-                    'k1': 'v1',
-                    'prompt_template': 'Answer the user"s question in a helpful way: {{question}}'
+                'model_name': None,
+                'provider': None,
+                'skills': [],
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
                 },
-                'provider': 'mindsdb'
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
+                'prompt_template': None,
+                'params': {}
             }
         }
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
         expected_agent = Agent(
             'test_agent',
-            'test_model',
-            [expected_skill],
-            {'k1': 'v1'},
-            created_at,
-            updated_at,
-            'mindsdb'
+            created_at=created_at,
+            updated_at=updated_at,
+            model={
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            data={
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            }
         )
 
         assert new_agent == expected_agent
 
     @patch('requests.Session.get')
     @patch('requests.Session.put')
-    # Mock creating new skills.
-    @patch('requests.Session.post')
-    def test_update(self, mock_get, mock_put, _):
+    def test_update(self, mock_put, mock_get):
         created_at = dt.datetime(2000, 3, 1, 9, 30)
         updated_at = dt.datetime(2001, 3, 1, 9, 30)
         data = {
             'id': 1,
             'name': 'test_agent',
             'project_id': 1,
-            'model_name': 'updated_model',
-            'skills': [{
-                'id': 1,
-                'name': 'updated_skill',
-                'project_id': 1,
-                'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'test_description'},
-            }],
-            'params': {'k2': 'v2'},
+            'model': {
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            'data': {
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            },
             'created_at': created_at,
             'updated_at': updated_at,
-            'provider': 'mindsdb',
         }
         response_mock(mock_put, data)
 
@@ -1491,21 +1520,33 @@ class TestAgents():
             'id': 1,
             'name': 'test_agent',
             'project_id': 1,
-            'model_name': 'test_model',
-            'skills': [],
-            'params': {'k1': 'v1'},
-            'provider': 'mindsdb',
+            'model': {
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            'data': {
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb'],
+            },
+            'created_at': created_at,
+            'updated_at': updated_at,
         })
 
         server = mindsdb_sdk.connect()
         expected_agent = Agent(
             'test_agent',
-            'updated_model',
-            [SQLSkill('updated_skill', ['updated_table'], 'updated_database', 'test_description')],
-            {'k2': 'v2'},
             created_at,
             updated_at,
-            'mindsdb'
+            model={
+                'model_name': 'gpt-3.5-turbo',
+                'provider': 'openai',
+                'api_key': 'sk-...',
+            },
+            data={
+                'tables': ['test_database.test_table'],
+                'knowledge_bases': ['test_kb', 'test_kb2'],
+            },
         )
 
         updated_agent = server.agents.update('test_agent', expected_agent)
@@ -1514,11 +1555,21 @@ class TestAgents():
         assert mock_put.call_args[1]['json'] == {
             'agent': {
                 'name': 'test_agent',
-                'model_name': 'updated_model',
-                'skills_to_add': ['updated_skill'],
+                'model_name': None,
+                'provider': None,
+                'skills_to_add': [],
                 'skills_to_remove': [],
-                'params': {'k2': 'v2'},
-                'provider': 'mindsdb'
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb', 'test_kb2'],
+                },
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'prompt_template': None,
+                'params': {},
             }
         }
 
@@ -1555,154 +1606,186 @@ class TestAgents():
 
     @patch('requests.Session.get')
     @patch('requests.Session.put')
-    @patch('requests.Session.post')
-    def test_add_file(self, mock_post, mock_put, mock_get):
+    def test_add_file(self, mock_put, mock_get):
         server = mindsdb_sdk.connect()
         responses_mock(mock_get, [
-            # File metadata get.
-            [{'name': 'tokaido_rules'}],
             # Existing agent get.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
-            # get KB
-            {
-                'id': 1,
-                'name': 'my_kb',
-                'project_id': 1,
-                'embedding_model': 'openai_emb',
-                'vector_database': 'pvec',
-                'vector_database_table': 'tbl1',
-                'updated_at': '2024-10-04 10:55:25.350799',
-                'created_at': '2024-10-04 10:55:25.350790',
-                'params': {}
-            },
-            # Skills get in Agent update to check if it exists.
-            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}},
+            # File metadata get.
+            [{'name': 'tokaido_rules'}],
             # Existing agent get in Agent update.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
-        ])
-        responses_mock(mock_post, [
-            # Skill creation.
-            {'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}
         ])
         responses_mock(mock_put, [
-            # KB update.
-            {'name': 'test_agent_tokaido_rules_kb'},
-            # Agent update with new skill.
+            # Agent update with new data.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [{'name': 'new_skill', 'type': 'retrieval', 'params': {'source': 'test_agent_tokaido_rules_kb'}}],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table', 'files.tokaido_rules'],
+                    'knowledge_bases': ['test_kb'],
+                },
+                'prompt_template': '\nRules for the board game Tokaido',
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
         ])
-        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido', 'existing_kb')
+        server.agents.add_file('test_agent', './tokaido_rules.pdf', 'Rules for the board game Tokaido')
 
-        # Check Agent was updated with a new skill.
+        # Check Agent was updated with a new data.
         agent_update_json = mock_put.call_args[-1]['json']
         expected_agent_json = {
             'agent': {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                # Skill name is a generated UUID.
-                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
-                'skills_to_remove': [],
+                'model_name': None,
                 'params': {},
-                'provider': 'mindsdb'
+                'provider': None,
+                'prompt_template': '\nRules for the board game Tokaido',
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'skills_to_add': [],
+                'skills_to_remove': [],
+                'data': {
+                    'tables': ['test_database.test_table', 'files.tokaido_rules'],
+                    'knowledge_bases': ['test_kb'],
+                },
             }
         }
         assert agent_update_json == expected_agent_json
 
     @patch('requests.Session.get')
     @patch('requests.Session.put')
-    @patch('requests.Session.post')
-    def test_add_webpage(self, mock_post, mock_put, mock_get):
+    def test_add_webpage(self, mock_put, mock_get):
         server = mindsdb_sdk.connect()
         responses_mock(mock_get, [
             # Existing agent get.
             {
-                'name':'test_agent',
-                'model_name':'test_model',
-                'skills':[],
-                'params':{},
-                'created_at':None,
-                'updated_at':None,
-                'provider':'mindsdb'
+                'name': 'test_agent',
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
+                'created_at': None,
+                'updated_at': None,
             },
             # get KB
             {
                 'id': 1,
-                'name': 'my_kb',
+                'name': 'existing_kb',
                 'project_id': 1,
-                'embedding_model': 'openai_emb',
+                'embedding_model': {
+                    'provider': 'openai',
+                    'model_name': 'openai_emb',
+                    'api_key': 'sk-...'
+                },
                 'vector_database': 'pvec',
                 'vector_database_table': 'tbl1',
                 'updated_at': '2024-10-04 10:55:25.350799',
                 'created_at': '2024-10-04 10:55:25.350790',
                 'params': {}
             },
-            # Skills get in Agent update to check if it exists.
-            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}},
             # Existing agent get in Agent update.
             {
-                'name':'test_agent',
-                'model_name':'test_model',
-                'skills':[],
-                'params':{},
-                'created_at':None,
-                'updated_at':None,
-                'provider':'mindsdb'  # Added provider field
+                'name': 'test_agent',
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
+                'created_at': None,
+                'updated_at': None,
             },
-        ])
-        responses_mock(mock_post, [
-            # Skill creation.
-            {'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}
         ])
         responses_mock(mock_put, [
             # KB update.
             {'name':'test_agent_docs_mdb_ai_kb'},
-            # Agent update with new skill.
+            # Agent update with new data.
             {
-                'name':'test_agent',
-                'model_name':'test_model',
-                'skills':[{'name':'new_skill', 'type':'retrieval', 'params':{'source':'test_agent_docs_mdb_ai_kb'}}],
-                'params':{},
-                'created_at':None,
-                'updated_at':None,
-                'provider':'mindsdb'  # Added provider field
+                'name': 'test_agent',
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb', 'existing_kb']
+                },
+                'prompt_template': 'Documentation for MindsDB',
+                'created_at': None,
+                'updated_at': None,
             },
         ])
         server.agents.add_webpage('test_agent', 'docs.mdb.ai', 'Documentation for MindsDB', 'existing_kb')
 
-        # Check Agent was updated with a new skill.
+        # Check Agent was updated with a new data.
         agent_update_json = mock_put.call_args[-1]['json']
         expected_agent_json = {
             'agent':{
-                'name':'test_agent',
-                'model_name':'test_model',
-                # Skill name is a generated UUID.
-                'skills_to_add':[agent_update_json['agent']['skills_to_add'][0]],
-                'skills_to_remove':[],
-                'params':{},
-                'provider': 'mindsdb'
+                'name': 'test_agent',
+                'model_name': None,
+                'params': {},
+                'provider': None,
+                'prompt_template': '\nDocumentation for MindsDB',
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'skills_to_add': [],
+                'skills_to_remove': [],
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb', 'existing_kb']
+                },
             }
         }
         assert agent_update_json == expected_agent_json
@@ -1716,24 +1799,34 @@ class TestAgents():
             # Existing agent get.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
-            # Skills get in Agent update to check if it exists.
-            {'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}},
             # Existing agent get in Agent update.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
         ])
         responses_mock(
@@ -1751,39 +1844,48 @@ class TestAgents():
                 ),
                 # DB tables get (POST /sql).
                 pd.DataFrame([{"name": "existing_table"}]),
-                # Skill creation.
-                {
-                    "name": "new_skill",
-                    "type": "sql",
-                    "params": {"database": "existing_db", "tables": ["existing_table"]},
-                },
             ],
         )
         responses_mock(mock_put, [
-            # Agent update with new skill.
+            # Agent update with new data.
             {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                'skills': [{'name': 'new_skill', 'type': 'sql', 'params': {'database': 'existing_db', 'tables': ['existing_table']}}],
-                'params': {},
+                'project_id': 1,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'data': {
+                    'tables': ['test_database.test_table', 'existing_db.existing_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
                 'created_at': None,
                 'updated_at': None,
-                'provider': 'mindsdb'
             },
         ])
-        server.agents.add_database('test_agent', 'existing_db', ['existing_table'], 'My data')
+        server.agents.add_database('test_agent', 'existing_db', ['existing_table'])
 
-        # Check Agent was updated with a new skill.
+        # Check Agent was updated with a new data.
         agent_update_json = mock_put.call_args[-1]['json']
         expected_agent_json = {
             'agent': {
                 'name': 'test_agent',
-                'model_name': 'test_model',
-                # Skill name is a generated UUID.
-                'skills_to_add': [agent_update_json['agent']['skills_to_add'][0]],
+                'model_name': None,
+                'params': {},
+                'provider': None,
+                'prompt_template': None,
+                'model': {
+                    'model_name': 'gpt-3.5-turbo',
+                    'provider': 'openai',
+                    'api_key': 'sk-...',
+                },
+                'skills_to_add': [],
                 'skills_to_remove': [],
-                'params': {'prompt_template': 'using mindsdb sqltoolbox'},
-                'provider': 'mindsdb'
+                'data': {
+                    'tables': ['test_database.test_table', 'existing_db.existing_table'],
+                    'knowledge_bases': ['test_kb'],
+                },
             }
         }
         assert agent_update_json == expected_agent_json
