@@ -304,14 +304,13 @@ class Agents(CollectionBase):
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
         try:
-            # TODO: Use the agent's model credentials?
-            # The model used will not be an embedding model though.    
             kb = self.knowledge_bases.create(name)
             return kb
         except Exception as e:
             raise ValueError(
-                f'Failed to automatically create knowledge base for agent {agent.name}. '
-                "Please set your default embedding model in MindsDB settings or provide an existing knowledge base name."
+                f"Failed to automatically create knowledge base for agent {agent.name}. "
+                "Either provide an existing knowledge base name, "
+                "or set your default embedding model via server.config.set_default_embedding_model(...) or through the MindsDB UI."
             )
 
     def add_files(self, name: str, file_paths: List[str], description: str = None):
