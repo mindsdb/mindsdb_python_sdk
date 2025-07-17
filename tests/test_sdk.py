@@ -1788,6 +1788,7 @@ class TestAgents():
         }
         assert agent_update_json == expected_agent_json
 
+
 class TestSkills():
     @patch('requests.Session.get')
     def test_list(self, mock_get):
@@ -1896,3 +1897,105 @@ class TestSkills():
         server.skills.drop('test_skill')
         # Check API call.
         assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
+
+
+class TestConfig():
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    def test_set_and_get_default_llm(self, mock_get, mock_put):
+        server = mindsdb_sdk.connect()
+        response_mock(mock_put, {})
+        response_mock(mock_get, {
+            'default_llm': {
+                'provider': 'openai',
+                'model_name': 'gpt-4',
+                'api_key': 'sk-test123'
+            }
+        })
+
+        server.config.set_default_llm(
+            provider='openai',
+            model_name='gpt-4',
+            api_key='sk-test123'
+        )
+        assert mock_put.call_args[1]['json'] == {
+            'default_llm': {
+                'provider': 'openai',
+                'model_name': 'gpt-4',
+                'api_key': 'sk-test123'
+            }
+        }
+
+        llm_config = server.config.get_default_llm()
+        assert llm_config == {
+            'provider': 'openai',
+            'model_name': 'gpt-4',
+            'api_key': 'sk-test123'
+        }
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    def test_set_and_get_default_embedding_model(self, mock_get, mock_put):
+        server = mindsdb_sdk.connect()
+        response_mock(mock_put, {})
+        response_mock(mock_get, {
+            'default_embedding_model': {
+                'provider': 'openai',
+                'model_name': 'text-embedding-ada-002',
+                'api_key': 'sk-test456'
+            }
+        })
+
+        server.config.set_default_embedding_model(
+            provider='openai',
+            model_name='text-embedding-ada-002',
+            api_key='sk-test456'
+        )
+        assert mock_put.call_args[1]['json'] == {
+            'default_embedding_model': {
+                'provider': 'openai',
+                'model_name': 'text-embedding-ada-002',
+                'api_key': 'sk-test456'
+            }
+        }
+
+        embedding_config = server.config.get_default_embedding_model()
+        assert embedding_config == {
+            'provider': 'openai',
+            'model_name': 'text-embedding-ada-002',
+            'api_key': 'sk-test456'
+        }
+
+    @patch('requests.Session.put')
+    @patch('requests.Session.get')
+    def test_set_and_get_default_reranking_model(self, mock_get, mock_put):
+        server = mindsdb_sdk.connect()
+        response_mock(mock_put, {})
+        response_mock(mock_get, {
+            'default_reranking_model': {
+                'provider': 'cohere',
+                'model_name': 'rerank-english-v2.0',
+                'api_key': 'cohere-test789'
+            }
+        })
+
+        server.config.set_default_reranking_model(
+            provider='cohere',
+            model_name='rerank-english-v2.0',
+            api_key='cohere-test789'
+        )
+        assert mock_put.call_args[1]['json'] == {
+            'default_reranking_model': {
+                'provider': 'cohere',
+                'model_name': 'rerank-english-v2.0',
+                'api_key': 'cohere-test789'
+            }
+        }
+
+        reranking_config = server.config.get_default_reranking_model()
+        assert reranking_config == {
+            'provider': 'cohere',
+            'model_name': 'rerank-english-v2.0',
+            'api_key': 'cohere-test789'
+        }
+
