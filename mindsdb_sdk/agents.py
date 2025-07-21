@@ -10,9 +10,6 @@ from mindsdb_sdk.models import Model
 from mindsdb_sdk.skills import Skill
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
-_DEFAULT_LLM_MODEL = 'gpt-4o'
-_DEFAULT_LLM_PROMPT = 'Answer the user"s question in a helpful way: {{question}}'
-
 
 class AgentCompletion:
     """
@@ -59,17 +56,19 @@ class Agent:
 
     Create a new agent:
 
-    >>> model = models.get('my_model') # Or use models.create(...)
-    >>> # Connect your agent to a MindsDB table.
-    >>> text_to_sql_skill = skills.create('text_to_sql', 'sql', { 'tables': ['my_table'], 'database': 'my_database' })
-    >>> agent = agents.create('my_agent', model, [text_to_sql_skill])
+    >>> agent = agents.create(
+        'my_agent',
+        model={
+            'model_name': 'gpt-3.5-turbo',
+            'provider': 'openai',
+            'api_key': 'your_openai_api_key_here'
+        },
+        data={'tables': ['my_database.my_table'], 'knowledge_base': 'my_kb'}
+    )
 
     Update an agent:
 
-    >>> new_model = models.get('new_model')
-    >>> agent.model_name = new_model.name
-    >>> new_skill = skills.create('new_skill', 'sql', { 'tables': ['new_table'], 'database': 'new_database' })
-    >>> updated_agent.skills.append(new_skill)
+    >>> agent.data['tables'].append('my_database.my_new_table')
     >>> updated_agent = agents.update('my_agent', agent)
 
     Delete an agent by name:
@@ -80,21 +79,25 @@ class Agent:
     def __init__(
             self,
             name: str,
-            model_name: str,
-            skills: List[Skill],
-            params: dict,
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
+            model: Union[Model, str, dict] = None,
+            skills: List[Skill] = [],
             provider: str = None,
+            data: dict = {},
+            prompt_template: str = None,
+            params: dict = {},
             collection: CollectionBase = None
     ):
         self.name = name
-        self.model_name = model_name
-        self.provider = provider
-        self.skills = skills
-        self.params = params
         self.created_at = created_at
         self.updated_at = updated_at
+        self.model = model
+        self.skills = skills
+        self.provider = provider
+        self.data = data
+        self.prompt_template = prompt_template
+        self.params = params
         self.collection = collection
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
@@ -183,7 +186,7 @@ class Agent:
     def __eq__(self, other):
         if self.name != other.name:
             return False
-        if self.model_name != other.model_name:
+        if self.model != other.model:
             return False
         if self.provider != other.provider:
             return False
@@ -197,14 +200,22 @@ class Agent:
 
     @classmethod
     def from_json(cls, json: dict, collection: CollectionBase):
+        skills = []
+        if json.get('skills'):
+            skills = [Skill.from_json(skill) for skill in json['skills']]
+
+        model = json.get('model') or json.get('model_name')
+
         return cls(
             json['name'],
-            json['model_name'],
-            [Skill.from_json(skill) for skill in json['skills']],
-            json['params'],
             json['created_at'],
             json['updated_at'],
-            json['provider'],
+            model,
+            skills,
+            json.get('provider'),
+            json.get('data', {}),
+            json.get('prompt_template'),
+            json.get('params', {}),
             collection
         )
 
@@ -292,41 +303,32 @@ class Agents(CollectionBase):
         return self.api.agent_completion_stream_v2(self.project.name, name, messages)
 
     def _create_default_knowledge_base(self, agent: Agent, name: str) -> KnowledgeBase:
-        # Make sure default ML engine for embeddings exists.
         try:
-            _ = self.ml_engines.get('langchain_embedding')
-        except AttributeError:
-            _ = self.ml_engines.create('langchain_embedding', 'langchain_embedding')
-        # Include API keys in embeddings.
-        if agent.provider == "mindsdb":
-            agent_model = self.models.get(agent.model_name)
-            training_options = json.loads(agent_model.data.get('training_options', '{}'))
-            training_options_using = training_options.get('using', {})
-            api_key_params = {k: v for k, v in training_options_using.items() if 'api_key' in k}
-            kb = self.knowledge_bases.create(name, params=api_key_params)
-        else:
             kb = self.knowledge_bases.create(name)
-        # Wait for underlying embedding model to finish training.
-        kb.model.wait_complete()
-        return kb
+            return kb
+        except Exception as e:
+            raise ValueError(
+                f"Failed to automatically create knowledge base for agent {agent.name}. "
+                "Either provide an existing knowledge base name, "
+                "or set your default embedding model via server.config.set_default_embedding_model(...) or through the MindsDB UI."
+            )
 
-    def add_files(self, name: str, file_paths: List[str], description: str, knowledge_base: str = None):
+    def add_files(self, name: str, file_paths: List[str], description: str = None):
         """
         Add a list of files to the agent for retrieval.
 
         :param name: Name of the agent
         :param file_paths: List of paths or URLs to the files to be added.
         :param description: Description of the file. Used by agent to know when to do retrieval
-        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
         if not file_paths:
             return
+
+        agent = self.get(name)
         filename_no_extension = ''
-        all_filenames = []
         for file_path in file_paths:
             filename = file_path.split('/')[-1].lower()
             filename_no_extension = filename.split('.')[0]
-            all_filenames.append(filename_no_extension)
             try:
                 _ = self.api.get_file_metadata(filename_no_extension)
             except HTTPError as e:
@@ -335,48 +337,36 @@ class Agents(CollectionBase):
                 # upload file to mindsdb
                 self.api.upload_file(filename, file_path)
 
-        # Insert uploaded files into new knowledge base.
-        agent = self.get(name)
-        if knowledge_base is not None:
-            kb = self.knowledge_bases.get(knowledge_base)
-        else:
-            kb_name = f'{name.lower()}_{filename_no_extension}_{uuid4().hex}_kb'
-            kb = self._create_default_knowledge_base(agent, kb_name)
+            # Add file to agent's data if it hasn't been added already.
+            if 'tables' not in agent.data or f'files.{filename_no_extension}' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'files.{filename_no_extension}')
 
-        # Insert the entire file.
-        kb.insert_files(all_filenames)
+        # Add the description provided to the agent's prompt template.
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
 
-        # Make sure skill name is unique.
-        skill_name = f'{filename_no_extension}_retrieval_skill_{uuid4().hex}'
-        retrieval_params = {
-            'source': kb.name,
-            'description': description,
-        }
-        file_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent.skills.append(file_retrieval_skill)
         self.update(agent.name, agent)
 
-    def add_file(self, name: str, file_path: str, description: str, knowledge_base: str = None):
+    def add_file(self, name: str, file_path: str, description: str = None):
         """
         Add a file to the agent for retrieval.
 
         :param name: Name of the agent
         :param file_path: Path to the file to be added, or name of existing file.
         :param description: Description of the file. Used by agent to know when to do retrieval
-        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
         """
-        self.add_files(name, [file_path], description, knowledge_base)
+        self.add_files(name, [file_path], description)
 
     def add_webpages(
-            self,
-            name: str,
-            urls: List[str],
-            description: str,
-            knowledge_base: str = None,
-            crawl_depth: int = 1,
-            limit: int = None,
-            filters: List[str] = None
-            ):
+        self,
+        name: str,
+        urls: List[str],
+        description: str = None,
+        knowledge_base: str = None,
+        crawl_depth: int = 1,
+        limit: int = None,
+        filters: List[str] = None
+    ):
         """
         Add a list of webpages to the agent for retrieval.
 
@@ -403,25 +393,26 @@ class Agents(CollectionBase):
         # Insert crawled webpage.
         kb.insert_webpages(urls, crawl_depth=crawl_depth, filters=filters, limit=limit)
 
-        # Make sure skill name is unique.
-        skill_name = f'web_retrieval_skill_{uuid4().hex}'
-        retrieval_params = {
-            'source': kb.name,
-            'description': description,
-        }
-        webpage_retrieval_skill = self.skills.create(skill_name, 'retrieval', retrieval_params)
-        agent.skills.append(webpage_retrieval_skill)
+        # Add knowledge base to agent's data if it hasn't been added already.
+        if 'knowledge_bases' not in agent.data or kb.name not in agent.data['knowledge_bases']:
+            agent.data.setdefault('knowledge_bases', []).append(kb.name)
+
+        # Add the description provided to the agent's prompt template.
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
+
         self.update(agent.name, agent)
 
     def add_webpage(
-            self,
-            name: str,
-            url: str,
-            description: str,
-            knowledge_base: str = None,
-            crawl_depth: int = 1,
-            limit: int = None,
-            filters: List[str] = None):
+        self,
+        name: str,
+        url: str,
+        description: str = None,
+        knowledge_base: str = None,
+        crawl_depth: int = 1,
+        limit: int = None,
+        filters: List[str] = None
+    ):
         """
         Add a webpage to the agent for retrieval.
 
@@ -436,56 +427,61 @@ class Agents(CollectionBase):
         self.add_webpages(name, [url], description, knowledge_base=knowledge_base,
                           crawl_depth=crawl_depth, limit=limit, filters=filters)
 
-    def add_database(self, name: str, database: str, tables: List[str], description: str):
+    def add_database(self, name: str, database: str, tables: List[str] = None, description: str = None):
         """
         Add a database to the agent for retrieval.
 
         :param name: Name of the agent
         :param database: Name of the database to be added.
-        :param tables: List of tables to be added.
+        :param tables: List of tables to be added. If not provided, the entire database will be added.
         :param description: Description of the database. Used by agent to know when to do retrieval.
         """
         # Make sure database exists.
         db = self.databases.get(database)
-        # Make sure tables exist.
-        all_table_names = set([t.name for t in db.tables.list()])
-        for t in tables:
-            if t not in all_table_names:
-                raise ValueError(f'Table {t} does not exist in database {database}.')
 
-        # Make sure skill name is unique.
-        skill_name = f'{database}_sql_skill_{uuid4().hex}'
-        sql_params = {
-            'database': database,
-            'tables': tables,
-            'description': description,
-        }
-        database_sql_skill = self.skills.create(skill_name, 'sql', sql_params)
         agent = self.get(name)
 
-        if not agent.params:
-            agent.params = {}
-        if 'prompt_template' not in agent.params:
-            # Set default prompt template. This is for langchain agent check.
-            agent.params['prompt_template'] = 'using mindsdb sqltoolbox'
+        if tables:
+            # Ensure the tables exist.
+            all_table_names = set([t.name for t in db.tables.list()])
+            for t in tables:
+                if t not in all_table_names:
+                    raise ValueError(f'Table {t} does not exist in database {database}.')
 
-        agent.skills.append(database_sql_skill)
+            # Add table to agent's data if it hasn't been added already.
+            if 'tables' not in agent.data or f'{database}.{t}' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'{database}.{t}')
+
+        else:
+            # If no tables are provided, add the database itself.
+            if 'tables' not in agent.data or f'{database}.*' not in agent.data['tables']:
+                agent.data.setdefault('tables', []).append(f'{database}.*')
+
+        # Add the description provided to the agent's prompt template.
+        if description:
+            agent.prompt_template = (agent.prompt_template or '') + f'\n{description}'
+
         self.update(agent.name, agent)
 
     def create(
-            self,
-            name: str,
-            model: Union[Model, dict, str] = None,
-            provider: str = None,
-            skills: List[Union[Skill, str]] = None,
-            params: dict = None,
-            **kwargs) -> Agent:
+        self,
+        name: str,
+        model: Union[Model, str, dict] = None,
+        provider: str = None,
+        skills: List[Union[Skill, str]] = None,
+        data: dict = None,
+        prompt_template: str = None,
+        params: dict = None,
+        **kwargs
+    ) -> Agent:
         """
         Create new agent and return it
 
         :param name: Name of the agent to be created
-        :param model: Model to be used by the agent
+        :param model: Model to be used by the agent. This can be a Model object, a string with model name, or a dictionary with model parameters.
         :param skills: List of skills to be used by the agent. Currently only 'sql' is supported.
+        :param provider: Provider of the model, e.g. 'mindsdb', 'openai', etc.
+        :param data: Data to be used by the agent. This is usually a dictionary with 'tables' and/or 'knowledge_base' keys.
         :param params: Parameters for the agent
 
         :return: created agent object
@@ -507,17 +503,27 @@ class Agents(CollectionBase):
             params = {}
         params.update(kwargs)
 
-        if 'prompt_template' not in params:
-            params['prompt_template'] = _DEFAULT_LLM_PROMPT
-
-        if model is None:
-            model = _DEFAULT_LLM_MODEL
-        elif isinstance(model, Model):
-            model = model.name
+        model_name = None
+        if isinstance(model_name, Model):
+            model_name = model_name.name
             provider = 'mindsdb'
+            model = None
+        elif isinstance(model, str):
+            model_name = model
+            model = None
 
-        data = self.api.create_agent(self.project.name, name, model, provider, skill_names, params)
-        return Agent.from_json(data, self)
+        agent = self.api.create_agent(
+            self.project.name,
+            name,
+            model_name,
+            provider,
+            skill_names,
+            data,
+            model,
+            prompt_template,
+            params
+        )
+        return Agent.from_json(agent, self)
 
     def update(self, name: str, updated_agent: Agent):
         """
@@ -546,20 +552,36 @@ class Agents(CollectionBase):
             updated_skills.add(skill.name)
 
         existing_agent = self.api.agent(self.project.name, name)
-        existing_skills = set([s['name'] for s in existing_agent['skills']])
+
+        existing_skills = set([s['name'] for s in existing_agent.get('skills', [])])
         skills_to_add = updated_skills.difference(existing_skills)
         skills_to_remove = existing_skills.difference(updated_skills)
-        data = self.api.update_agent(
+
+        updated_model_name = None
+        updated_provider = updated_agent.provider
+        updated_model = None
+        if isinstance(updated_agent.model, Model):
+            updated_model_name = updated_agent.model.name
+            updated_provider = 'mindsdb'
+        elif isinstance(updated_agent.model, str):
+            updated_model_name = updated_agent.model
+        elif isinstance(updated_agent.model, dict):
+            updated_model = updated_agent.model
+
+        agent = self.api.update_agent(
             self.project.name,
             name,
             updated_agent.name,
-            updated_agent.provider,
-            updated_agent.model_name,
+            updated_provider,
+            updated_model_name,
             list(skills_to_add),
             list(skills_to_remove),
+            updated_agent.data,
+            updated_model,
+            updated_agent.prompt_template,
             updated_agent.params
         )
-        return Agent.from_json(data, self)
+        return Agent.from_json(agent, self)
 
     def drop(self, name: str):
         """
