@@ -192,9 +192,15 @@ class Agent:
             return False
         if self.provider != other.provider:
             return False
+        if self.data != other.data:
+            return False
+        if self.prompt_template != other.prompt_template:
+            return False
         if self.skills != other.skills:
             return False
         if self.params != other.params:
+            return False
+        if self.skills_extra_parameters != other.skills_extra_parameters:
             return False
         if self.created_at != other.created_at:
             return False
