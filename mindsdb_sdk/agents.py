@@ -87,6 +87,7 @@ class Agent:
             data: dict = {},
             prompt_template: str = None,
             params: dict = {},
+            skills_extra_parameters: dict = {},
             collection: CollectionBase = None
     ):
         self.name = name
@@ -98,6 +99,7 @@ class Agent:
         self.data = data
         self.prompt_template = prompt_template
         self.params = params
+        self.skills_extra_parameters = skills_extra_parameters
         self.collection = collection
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
@@ -190,9 +192,15 @@ class Agent:
             return False
         if self.provider != other.provider:
             return False
+        if self.data != other.data:
+            return False
+        if self.prompt_template != other.prompt_template:
+            return False
         if self.skills != other.skills:
             return False
         if self.params != other.params:
+            return False
+        if self.skills_extra_parameters != other.skills_extra_parameters:
             return False
         if self.created_at != other.created_at:
             return False
@@ -216,6 +224,7 @@ class Agent:
             json.get('data', {}),
             json.get('prompt_template'),
             json.get('params', {}),
+            json.get('skills_extra_parameters', {}),
             collection
         )
 
