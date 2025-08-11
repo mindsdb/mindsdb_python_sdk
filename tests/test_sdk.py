@@ -1508,7 +1508,7 @@ class TestAgents():
             },
             'data': {
                 'tables': ['test_database.test_table'],
-                'knowledge_bases': ['test_kb'],
+                'knowledge_bases': ['test_kb', 'test_kb2'],
             },
             'created_at': created_at,
             'updated_at': updated_at,
