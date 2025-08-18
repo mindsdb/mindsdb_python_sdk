@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
 import json
+import pandas as pd
 
 from mindsdb_sdk.knowledge_bases import KnowledgeBase
 from mindsdb_sdk.models import Model
@@ -171,6 +172,41 @@ class Agent:
         """
         self.collection.add_webpage(self.name, url, description, knowledge_base=knowledge_base,
                                     crawl_depth=crawl_depth, limit=limit, filters=filters)
+
+    def add_dataframe(
+            self,
+            df: pd.DataFrame,
+            description: str,
+            knowledge_base: str = None
+            ):
+        """
+        Add a list of webpages to the agent for retrieval.
+
+        :param df: dataframe to be added.
+        :param description: Description of the webpages. Used by agent to know when to do retrieval.
+        :param knowledge_base: Name of an existing knowledge base to be used. Will create a default knowledge base if not given.
+        """
+        if df is None or df.empty:
+            return
+
+        if knowledge_base is not None:
+            kb = self.collection.knowledge_bases.get(knowledge_base)
+        else:
+            kb_name = f'{self.name.lower()}_df_{uuid4().hex}_kb'
+            kb = self.collection._create_default_knowledge_base(self, kb_name)
+
+        # Insert crawled webpage.
+        kb.insert(df)
+
+        # Make sure skill name is unique.
+        skill_name = f'df_retrieval_skill_{uuid4().hex}'
+        retrieval_params = {
+            'source': kb.name,
+            'description': description,
+        }
+        dataframe_retrieval_skill = self.collection.skills.create(skill_name, 'retrieval', retrieval_params)
+        self.skills.append(dataframe_retrieval_skill)
+        self.collection.update(self.name, self)
 
     def add_database(self, database: str, tables: List[str], description: str):
         """
