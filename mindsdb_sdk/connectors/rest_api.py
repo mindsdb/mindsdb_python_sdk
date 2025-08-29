@@ -136,7 +136,7 @@ class RestAPI:
         r = self.session.get(self.url + f'/api/tree/{item}', params=params)
         _raise_for_status(r)
 
-        return r.json()  # Return raw JSON instead of DataFrame for more flexible processing
+        return pd.DataFrame(r.json())
 
     @staticmethod
     def read_file_as_bytes(file_path: str):

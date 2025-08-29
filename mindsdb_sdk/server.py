@@ -82,8 +82,8 @@ class Server(Project):
         >>> for db in tree:
         ...     print(f"Database: {db.name}, Type: {db.type}, Engine: {db.engine}")
         """
-        tree_data = self.api.objects_tree('')
-        return [TreeNode.from_dict(item) for item in tree_data]
+        df = self.api.objects_tree('')
+        return [TreeNode.from_dict(row.to_dict()) for _, row in df.iterrows()]
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

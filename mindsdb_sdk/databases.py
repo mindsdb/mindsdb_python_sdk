@@ -80,8 +80,8 @@ class Database:
         ...     else:
         ...         print(f"Table: {item.name}, Type: {item.type}")
         """
-        tree_data = self.api.objects_tree(self.name, with_schemas=with_schemas)
-        return [TreeNode.from_dict(item) for item in tree_data]
+        df = self.api.objects_tree(self.name, with_schemas=with_schemas)
+        return [TreeNode.from_dict(row.to_dict()) for _, row in df.iterrows()]
 
 
 class Databases(CollectionBase):
