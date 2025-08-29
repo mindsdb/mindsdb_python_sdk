@@ -1,9 +1,12 @@
+from typing import List
+
 from .agents import Agents
 from .databases import Databases
 from .projects import Project, Projects
 from .ml_engines import MLEngines
 from .handlers import Handlers
 from .skills import Skills
+from .tree import TreeNode
 
 
 class Server(Project):
@@ -58,6 +61,29 @@ class Server(Project):
         :return: server status info
         """
         return self.api.status()
+    
+    def tree(self) -> List[TreeNode]:
+        """
+        Get the tree structure of databases on the server.
+        
+        This returns a list of database nodes with their metadata including:
+        - name: database name
+        - class: node type ('db')
+        - type: database type ('data', 'project', 'system')
+        - engine: database engine
+        - deletable: whether the database can be deleted
+        - visible: whether the database is visible
+        
+        :return: List of TreeNode objects representing databases
+        
+        Example:
+        
+        >>> tree = server.tree()
+        >>> for db in tree:
+        ...     print(f"Database: {db.name}, Type: {db.type}, Engine: {db.engine}")
+        """
+        tree_data = self.api.objects_tree('')
+        return [TreeNode.from_dict(item) for item in tree_data]
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.api.url})'

@@ -128,11 +128,15 @@ class RestAPI:
         return pd.DataFrame(r.json())
 
     @_try_relogin
-    def objects_tree(self, item=''):
-        r = self.session.get(self.url + f'/api/tree/{item}')
+    def objects_tree(self, item='', with_schemas=False):
+        params = {}
+        if with_schemas:
+            params['all_schemas'] = 'true'
+        
+        r = self.session.get(self.url + f'/api/tree/{item}', params=params)
         _raise_for_status(r)
 
-        return pd.DataFrame(r.json())
+        return r.json()  # Return raw JSON instead of DataFrame for more flexible processing
 
     @staticmethod
     def read_file_as_bytes(file_path: str):
