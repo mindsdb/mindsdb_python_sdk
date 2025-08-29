@@ -1,7 +1,7 @@
-from typing import List, Union
+from typing import Dict, List, Union
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateDatabase
-from mindsdb_sql.parser.ast import DropDatabase, Identifier
+from mindsdb_sql_parser.ast.mindsdb import CreateDatabase
+from mindsdb_sql_parser.ast import DropDatabase, Identifier
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 from .tree import TreeNode
@@ -16,7 +16,7 @@ class Database:
     Allows to work with database (datasource): to use tables and make raw queries
 
     To run native query
-    At this moment query is just saved in Qeury object and not executed
+    At this moment query is just saved in Query object and not executed
 
     >>> query = database.query('select * from table1') # returns Query
 
@@ -28,11 +28,12 @@ class Database:
 
     """
 
-    def __init__(self, server, name, engine=None):
+    def __init__(self, server, name: str, engine: str = None, params: Dict = None):
         self.server = server
         self.name = name
         self.engine = engine
         self.api = server.api
+        self.params = params
 
         self.tables = Tables(self, self.api)
 
@@ -50,6 +51,7 @@ class Database:
         Make raw query to integration
 
         :param sql: sql of the query
+        :param database: name of database to query (uses current database by default)
         :return: Query object
         """
         return Query(self.api, sql, database=self.name)
@@ -95,7 +97,7 @@ class Databases(CollectionBase):
     # create
 
     >>> db = databases.create('example_db',
-    ...                                 type='postgres',
+    ...                                 engine='postgres',
     ...                                 connection_args={'host': ''})
 
     # drop database
@@ -111,11 +113,16 @@ class Databases(CollectionBase):
     def __init__(self, api):
         self.api = api
 
-    def _list_databases(self):
+    def _list_databases(self) -> Dict[str, Database]:
         data = self.api.sql_query(
-            "select NAME, ENGINE from information_schema.databases where TYPE='data'"
+            "select NAME, ENGINE, CONNECTION_DATA from information_schema.databases where TYPE='data'"
         )
-        return dict(zip(data.NAME, data.ENGINE))
+        name_to_db = {}
+        for _, row in data.iterrows():
+            name_to_db[row["NAME"]] = Database(
+                self, row["NAME"], engine=row["ENGINE"], params=row["CONNECTION_DATA"]
+            )
+        return name_to_db
 
     def list(self) -> List[Database]:
         """
@@ -124,9 +131,11 @@ class Databases(CollectionBase):
         :return: list of Database objects
         """
         databases = self._list_databases()
-        return [Database(self, name, engine=engine) for name, engine in databases.items()]
+        return list(databases.values())
 
-    def create(self, name: str, engine: Union[str, Handler], connection_args: dict) -> Database:
+    def create(
+        self, name: str, engine: Union[str, Handler], connection_args: Dict
+    ) -> Database:
         """
         Create new integration and return it
 
@@ -144,7 +153,7 @@ class Databases(CollectionBase):
             parameters=connection_args,
         )
         self.api.sql_query(ast_query.to_string())
-        return Database(self, name, engine=engine)
+        return Database(self, name, engine=engine, params=connection_args)
 
     def drop(self, name: str):
         """
@@ -165,4 +174,4 @@ class Databases(CollectionBase):
         databases = self._list_databases()
         if name not in databases:
             raise AttributeError("Database doesn't exist")
-        return Database(self, name, engine=databases[name])
+        return databases[name]

@@ -37,7 +37,8 @@ def _raise_for_status(response):
 
 
 class RestAPI:
-    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False, headers=None):
+    def __init__(self, url=None, login=None, password=None, api_key=None, is_managed=False,
+                 cookies=None, headers=None):
 
         self.url = url
         self.username = login
@@ -45,6 +46,9 @@ class RestAPI:
         self.api_key = api_key
         self.is_managed = is_managed
         self.session = requests.Session()
+
+        if cookies is not None:
+            self.session.cookies.update(cookies)
 
         self.session.headers['User-Agent'] = f'python-sdk/{__about__.__version__}'
         if headers is not None:
@@ -290,16 +294,46 @@ class RestAPI:
             yield json.loads(chunk.data)
 
     @_try_relogin
-    def create_agent(self, project: str, name: str, model: str = None, provider: str = None, skills: List[str] = None, params: dict = None):
+    def agent_completion_stream_v2(self, project: str, name: str, messages: List[dict]):
+        url = self.url + f'/api/projects/{project}/agents/{name}/completions/stream'
+        response = self.session.post(url, json={'messages': messages}, stream=True)
+
+        # Check for HTTP errors before processing the stream
+        response.raise_for_status()
+
+        client = SSEClient(response)
+
+        try:
+            for chunk in client.events():
+                yield chunk  # Stream SSE events
+        except Exception as e:
+            yield e
+
+    @_try_relogin
+    def create_agent(
+        self,
+        project: str,
+        name: str,
+        model_name: str = None,
+        provider: str = None,
+        skills: List[str] = None,
+        data: dict = None,
+        model: dict = None,
+        prompt_template: str = None,
+        params: dict = None
+    ):
         url = self.url + f'/api/projects/{project}/agents'
         r = self.session.post(
             url,
             json={
                 'agent': {
                     'name': name,
-                    'model_name': model,
+                    'model_name': model_name,
                     'provider': provider,
                     'skills': skills,
+                    'data': data,
+                    'model': model,
+                    'prompt_template': prompt_template,
                     'params': params
                 }
             }
@@ -309,24 +343,32 @@ class RestAPI:
 
     @_try_relogin
     def update_agent(
-            self,
-            project: str,
-            name: str,
-            updated_name: str,
-            updated_model: str,
-            skills_to_add: List[str],
-            skills_to_remove: List[str],
-            updated_params: dict
-            ):
+        self,
+        project: str,
+        name: str,
+        updated_name: str,
+        updated_provider: str,
+        updated_model_name: str,
+        skills_to_add: List[str],
+        skills_to_remove: List[str],
+        updated_data: dict,
+        updated_model: dict,
+        updated_prompt_template: str,
+        updated_params: dict
+    ):
         url = self.url + f'/api/projects/{project}/agents/{name}'
         r = self.session.put(
             url,
             json={
                 'agent': {
                     'name': updated_name,
-                    'model_name': updated_model,
+                    'model_name': updated_model_name,
+                    'provider': updated_provider,
                     'skills_to_add': skills_to_add,
                     'skills_to_remove': skills_to_remove,
+                    'data': updated_data,
+                    'model': updated_model,
+                    'prompt_template': updated_prompt_template,
                     'params': updated_params
                 }
             }
@@ -403,26 +445,7 @@ class RestAPI:
 
     # Knowledge Base operations.
     @_try_relogin
-    def insert_files_into_knowledge_base(self, project: str, knowledge_base_name: str, file_names: List[str]):
-        r = self.session.put(
-            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
-            json={
-                'knowledge_base': {
-                    'files': file_names
-                }
-            }
-        )
-        _raise_for_status(r)
-
-        return r.json()
-
-    @_try_relogin
-    def insert_webpages_into_knowledge_base(self, project: str, knowledge_base_name: str, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
-        data = {
-            'urls': urls,
-            'crawl_depth': crawl_depth,
-            'filters': [] if filters is None else filters
-        }
+    def insert_into_knowledge_base(self, project: str, knowledge_base_name: str, data):
         r = self.session.put(
             self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}',
             json={
@@ -432,3 +455,61 @@ class RestAPI:
         _raise_for_status(r)
 
         return r.json()
+
+    @_try_relogin
+    def list_knowledge_bases(self, project: str):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def get_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.get(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+        return r.json()
+
+    @_try_relogin
+    def delete_knowledge_base(self, project: str, knowledge_base_name):
+        r = self.session.delete(self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}')
+        _raise_for_status(r)
+
+    @_try_relogin
+    def create_knowledge_base(self, project: str, data):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases',
+            json={
+                'knowledge_base': data
+            }
+        )
+        _raise_for_status(r)
+
+        return r.json()
+
+    def knowledge_base_completion(self, project: str, knowledge_base_name, payload):
+        r = self.session.post(
+            self.url + f'/api/projects/{project}/knowledge_bases/{knowledge_base_name}/completions',
+            json=payload
+        )
+        _raise_for_status(r)
+        return r.json()
+    
+    def get_config(self):
+        """
+        Get MindsDB configuration.
+        
+        :return: Dictionary containing MindsDB configuration.
+        """
+        url = self.url + '/api/config'
+        r = self.session.get(url)
+        _raise_for_status(r)
+        return r.json()
+    
+    def update_config(self, config: dict):
+        """
+        Update MindsDB configuration with the provided settings.
+
+        :param config: Dictionary containing configuration settings.
+        """
+        url = self.url + '/api/config'
+        r = self.session.put(url, json=config)
+        _raise_for_status(r)

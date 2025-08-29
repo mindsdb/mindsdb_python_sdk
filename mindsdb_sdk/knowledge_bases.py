@@ -1,11 +1,10 @@
 import copy
 import json
-from typing import Union, List
+from typing import Union, List, Iterable
 
 import pandas as pd
 
-from mindsdb_sql.parser.dialects.mindsdb import CreateKnowledgeBase, DropKnowledgeBase
-from mindsdb_sql.parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
+from mindsdb_sql_parser.ast import Identifier, Star, Select, BinaryOperation, Constant, Insert
 
 from mindsdb_sdk.utils.sql import dict_to_binary_op, query_to_native_query
 from mindsdb_sdk.utils.objects_collection import CollectionBase
@@ -15,6 +14,19 @@ from .models import Model
 from .tables import Table
 from .query import Query
 from .databases import Database
+
+MAX_INSERT_SIZE = 1000
+
+
+def split_data(data: Union[pd.DataFrame, list], partition_size: int) -> Iterable:
+    """
+    Split data into chunks with partition_size and yield them out
+    """
+    num = 0
+    while num * partition_size < len(data):
+        # create results with partition
+        yield data[num * partition_size: (num + 1) * partition_size]
+        num += 1
 
 
 class KnowledgeBase(Query):
@@ -39,19 +51,19 @@ class KnowledgeBase(Query):
         self.table_name = Identifier(parts=[self.project.name, self.name])
 
         self.storage = None
-        if data['storage'] is not None:
-            # if name contents '.' there could be errors
+        if data.get('vector_database_table') is not None:
+            database = Database(project, data['vector_database'])
+            table = Table(database, data['vector_database_table'])
+            self.storage = table
 
-            parts = data['storage'].split('.')
-            if len(parts) == 2:
-                database_name, table_name = parts
-                database = Database(project, database_name)
-                table = Table(database, table_name)
-                self.storage = table
+        # models
+        self.embedding_model = data.get('embedding_model', {})
+        self.reranking_model = data.get('reranking_model', {})
 
-        self.model = None
-        if data['model'] is not None:
-            self.model = Model(self.project, {'name': data['model']})
+        # columns
+        self.metadata_columns = data.get('metadata_columns', [])
+        self.content_columns = data.get('content_columns', [])
+        self.id_column = data.get('id_column', None)
 
         params = data.get('params', {})
         if isinstance(params, str):
@@ -59,11 +71,6 @@ class KnowledgeBase(Query):
                 params = json.loads(params)
             except json.JSONDecodeError:
                 params = {}
-
-        # columns
-        self.metadata_columns = params.pop('metadata_columns', [])
-        self.content_columns = params.pop('content_columns', [])
-        self.id_column = params.pop('id_column', None)
 
         self.params = params
 
@@ -79,7 +86,7 @@ class KnowledgeBase(Query):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.project.name}.{self.name})'
 
-    def find(self, query: str, limit: int = 100):
+    def find(self, query: str, limit: int = 10):
         """
 
         Query data from knowledge base.
@@ -91,7 +98,7 @@ class KnowledgeBase(Query):
         >>> print(query.fetch())
 
         :param query: text query
-        :param limit: count of rows in result, default 100
+        :param limit: count of rows in result, default 10
         :return: Query object
         """
 
@@ -118,69 +125,131 @@ class KnowledgeBase(Query):
             ast_query.limit = Constant(self._limit)
         self.sql = ast_query.to_string()
 
-    def insert_files(self, file_paths: List[str]):
+    def insert_files(self, file_paths: List[str], params: dict = None):
         """
         Insert data from file to knowledge base
         """
-        self.api.insert_files_into_knowledge_base(self.project.name, self.name, file_paths)
+        data = {'files': file_paths}
+        if params:
+            data['params'] = params
 
-    def insert_webpages(self, urls: List[str], crawl_depth: int = 1, filters: List[str] = None):
+        self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data=data
+        )
+
+    def insert_webpages(self, urls: List[str], crawl_depth: int = 1,
+                        filters: List[str] = None, limit=None, params: dict = None):
         """
         Insert data from crawled URLs to knowledge base.
 
         :param urls: URLs to be crawled and inserted.
         :param crawl_depth: How deep to crawl from each base URL. 0 = scrape given URLs only
         :param filters: Include only URLs that match these regex patterns
+        :param limit: max count of pages to crawl
+        :param params: Runtime parameters for KB
         """
-        self.api.insert_webpages_into_knowledge_base(self.project.name, self.name, urls, crawl_depth=crawl_depth, filters=filters)
+        data={
+            'urls': urls,
+            'crawl_depth': crawl_depth,
+            'limit': limit,
+            'filters': [] if filters is None else filters,
+        }
+        if params:
+            data['params'] = params
+        self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data=data
+        )
 
-    def insert(self, data: Union[pd.DataFrame, Query, dict]):
+    def insert(self, data: Union[pd.DataFrame, Query, dict, list], params: dict = None):
         """
         Insert data to knowledge base
 
-        >>> # insert using query
-        >>> my_kb.insert(server.databases.example_db.tables.houses_sales.filter(type='house'))
         >>> # using dataframe
         >>> my_kb.insert(pd.read_csv('house_sales.csv'))
         >>> # using dict
         >>> my_kb.insert({'type': 'house', 'date': '2020-02-02'})
 
+        If id is already exists in knowledge base:
+        - it will be replaced
+        - `id` column can be defined by id_column param, see create knowledge base
+
+        :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
+        """
+
+        if isinstance(data, Query):
+            # for back compatibility
+            return self.insert_query(data)
+
+        if isinstance(data, dict):
+            data = [data]
+        elif isinstance(data, pd.DataFrame):
+            for df in split_data(data, MAX_INSERT_SIZE):
+                data = df.to_dict('records')
+                self.insert(data, params=params)
+            return
+        elif not isinstance(data, list):
+            raise ValueError("Unknown data type, accepted types: DataFrame, Query, dict, list")
+
+        # chunking a big input data
+        if len(data) > MAX_INSERT_SIZE:
+            for chunk in split_data(data, MAX_INSERT_SIZE):
+                self.insert(chunk, params=params)
+            return
+
+        data = {'rows': data}
+        if params:
+            data['params'] = params
+        return self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data=data,
+        )
+
+    def insert_query(self, data: Query, params: dict = None):
+        """
+        Insert data to knowledge base using query
+
+        >>> my_kb.insert(server.databases.example_db.tables.houses_sales.filter(type='house'))
+
         Data will be if id (defined by id_column param, see create knowledge base) is already exists in knowledge base
         it will be replaced
 
         :param data: Dataframe or Query object or dict.
+        :param params: Runtime parameters for KB
         """
-
-        if isinstance(data, dict):
-            data = pd.DataFrame([data])
-
-        if isinstance(data, pd.DataFrame):
-            # insert data
-            data_split = data.to_dict('split')
-
-            ast_query = Insert(
-                table=Identifier(self.table_name),
-                columns=data_split['columns'],
-                values=data_split['data']
-            )
-            sql = ast_query.to_string()
-
-        else:
-            # insert from select
+        if is_saving():
+            # generate insert from select query
             if data.database is not None:
                 ast_query = Insert(
-                    table=Identifier(self.table_name),
+                    table=self.table_name,
                     from_select=query_to_native_query(data)
                 )
                 sql = ast_query.to_string()
             else:
                 sql = f'INSERT INTO {self.table_name.to_string()} ({data.sql})'
 
-        if is_saving():
             # don't execute it right now, return query object
             return Query(self, sql, self.database)
 
-        self.api.sql_query(sql, self.database)
+        # query have to be in context of mindsdb project
+        data = {'query': data.sql}
+        if params:
+            data['params'] = params
+        self.api.insert_into_knowledge_base(
+            self.project.name,
+            self.name,
+            data=data
+        )
+
+    def completion(self, query, **data):
+        data['query'] = query
+
+        return self.api.knowledge_base_completion(self.project.name, self.name, data)
 
 
 class KnowledgeBases(CollectionBase):
@@ -212,24 +281,6 @@ class KnowledgeBases(CollectionBase):
         self.project = project
         self.api = api
 
-    def _list(self, name: str = None) -> List[KnowledgeBase]:
-
-        # TODO add filter by project. for now 'project' is empty
-        ast_query = Select(targets=[Star()], from_table=Identifier(parts=['information_schema', 'knowledge_bases']))
-        if name is not None:
-            ast_query.where = dict_to_binary_op({'name': name})
-
-        df = self.api.sql_query(ast_query.to_string(), database=self.project.name)
-
-        # columns to lower case
-        cols_map = {i: i.lower() for i in df.columns}
-        df = df.rename(columns=cols_map)
-
-        return [
-            KnowledgeBase(self.api, self.project, item)
-            for item in df.to_dict('records')
-        ]
-
     def list(self) -> List[KnowledgeBase]:
         """
 
@@ -239,7 +290,11 @@ class KnowledgeBases(CollectionBase):
 
         :return: list of knowledge bases
         """
-        return self._list()
+
+        return [
+            KnowledgeBase(self.api, self.project, item)
+            for item in self.api.list_knowledge_bases(self.project.name)
+        ]
 
     def get(self, name: str) -> KnowledgeBase:
         """
@@ -248,18 +303,15 @@ class KnowledgeBases(CollectionBase):
         :param name: name of the knowledge base
         :return: KnowledgeBase object
         """
-        item = self._list(name)
-        if len(item) == 1:
-            return item[0]
-        elif len(item) == 0:
-            raise AttributeError("KnowledgeBase doesn't exist")
-        else:
-            raise RuntimeError("Several knowledgeBases with the same name")
+
+        data = self.api.get_knowledge_base(self.project.name, name)
+        return KnowledgeBase(self.api, self.project, data)
 
     def create(
         self,
         name: str,
-        model: Model = None,
+        embedding_model: dict = None,
+        reranking_model: dict = None,
         storage: Table = None,
         metadata_columns: list = None,
         content_columns: list = None,
@@ -272,7 +324,8 @@ class KnowledgeBases(CollectionBase):
 
         >>> kb = server.knowledge_bases.create(
         ...   'my_kb',
-        ...   model=server.models.emb_model,
+        ...   embedding_model={'provider': 'openai', 'model': 'text-embedding-ada-002', 'api_key': 'sk-...'},
+        ...   reranking_model={'provider': 'openai', 'model': 'gpt-4', 'api_key': 'sk-...'},
         ...   storage=server.databases.pvec.tables.tbl1,
         ...   metadata_columns=['date', 'author'],
         ...   content_columns=['review', 'description'],
@@ -281,7 +334,8 @@ class KnowledgeBases(CollectionBase):
         ...)
 
         :param name: name of the knowledge base
-        :param model: embedding model, optional. Default: 'sentence_transformers' will be used (defined in mindsdb server)
+        :param embedding_model: embedding model, optional. Default: OpenAI will be the default provider
+        :param reranking_model: reranking model, optional. Default: OpenAI will be the default provider
         :param storage: vector storage, optional. Default: chromadb database will be created
         :param metadata_columns: columns to use as metadata, optional. Default: all columns which are not content and id
         :param content_columns: columns to use as content, optional. Default: all columns except id column
@@ -290,42 +344,30 @@ class KnowledgeBases(CollectionBase):
         :return: created KnowledgeBase object
         """
 
-        params_out = {}
+        payload = {
+            'name': name,
+        }
 
-        if metadata_columns is not None:
-            params_out['metadata_columns'] = metadata_columns
+        if embedding_model:
+            payload['embedding_model'] = embedding_model
+        if reranking_model:
+            payload['reranking_model'] = reranking_model
+        if metadata_columns:
+            payload['metadata_columns'] = metadata_columns
+        if content_columns:
+            payload['content_columns'] = content_columns
+        if id_column:
+            payload['id_column'] = id_column
+        if params:
+            payload['params'] = params
 
-        if content_columns is not None:
-            params_out['content_columns'] = content_columns
+        if storage:
+            payload['storage'] = {
+                'database': storage.db.name,
+                'table': storage.name
+            }
 
-        if id_column is not None:
-            params_out['id_column'] = id_column
-
-        if params is not None:
-            params_out.update(params)
-
-        if model is not None:
-            model_name = Identifier(parts=[model.project.name, model.name])
-        else:
-            model_name = None
-
-        if storage is not None:
-            storage_name = Identifier(parts=[storage.db.name, storage.name])
-        else:
-            storage_name = None
-
-        ast_query = CreateKnowledgeBase(
-            Identifier(parts=[self.project.name, name]),
-            model=model_name,
-            storage=storage_name,
-            params=params_out
-        )
-        sql = ast_query.to_string()
-
-        if is_saving():
-            return Query(self, sql)
-
-        self.api.sql_query(sql)
+        self.api.create_knowledge_base(self.project.name, data=payload)
 
         return self.get(name)
 
@@ -336,10 +378,4 @@ class KnowledgeBases(CollectionBase):
         :return:
         """
 
-        ast_query = DropKnowledgeBase(Identifier(parts=[self.project.name, name]))
-        sql = ast_query.to_string()
-
-        if is_saving():
-            return Query(self, sql)
-
-        self.api.sql_query(sql)
+        return self.api.delete_knowledge_base(self.project.name, name)

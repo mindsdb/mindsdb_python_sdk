@@ -7,6 +7,7 @@ from .ml_engines import MLEngines
 from .handlers import Handlers
 from .skills import Skills
 from .tree import TreeNode
+from .config import Config
 
 
 class Server(Project):
@@ -50,6 +51,8 @@ class Server(Project):
 
         self.ml_handlers = Handlers(self.api, 'ml')
         self.data_handlers = Handlers(self.api, 'data')
+
+        self.config = Config(api)
 
     def status(self) -> dict:
         """
