@@ -4,6 +4,7 @@ from mindsdb_sql_parser.ast.mindsdb import CreateDatabase
 from mindsdb_sql_parser.ast import DropDatabase, Identifier
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
+from .tree import TreeNode
 
 from .query import Query
 from .tables import Tables
@@ -54,6 +55,35 @@ class Database:
         :return: Query object
         """
         return Query(self.api, sql, database=self.name)
+    
+    def tree(self, with_schemas: bool = False) -> List[TreeNode]:
+        """
+        Get the tree structure of tables and schemas within this database.
+        
+        This returns a list of table/schema nodes with their metadata including:
+        - name: table/schema name
+        - class: node type ('table', 'schema', 'job')
+        - type: table type ('table', 'view', 'job', 'system view')
+        - engine: table engine (if applicable)
+        - deletable: whether the item can be deleted
+        - schema: schema name (for tables)
+        - children: nested tables (for schemas)
+        
+        :param with_schemas: Whether to include schema information for data databases
+        :return: List of TreeNode objects representing tables/schemas
+        
+        Example:
+        
+        >>> db = server.databases.get('my_postgres')
+        >>> tree = db.tree(with_schemas=True)
+        >>> for item in tree:
+        ...     if item.class_ == 'schema':
+        ...         print(f"Schema: {item.name} with {len(item.children)} tables")
+        ...     else:
+        ...         print(f"Table: {item.name}, Type: {item.type}")
+        """
+        df = self.api.objects_tree(self.name, with_schemas=with_schemas)
+        return [TreeNode.from_dict(row.to_dict()) for _, row in df.iterrows()]
 
 
 class Databases(CollectionBase):
