@@ -82,6 +82,12 @@ class RestAPI:
 
         _raise_for_status(r)
 
+        # Use newer MindsDB auth that uses a token
+        if 'application/json' in r.headers.get('Content-Type', ''):
+            resp_json = r.json()
+            if isinstance(resp_json, dict) and "token" in resp_json:
+                self.session.headers['Authorization'] = f'Bearer {resp_json["token"]}'
+
     @_try_relogin
     def sql_query(self, sql, database=None, lowercase_columns=False):
 
