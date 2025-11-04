@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 
-from mindsdb_sql_parser.ast.mindsdb import CreateDatabase
+from mindsdb_sql_parser.ast.mindsdb import AlterDatabase, CreateDatabase
 from mindsdb_sql_parser.ast import DropDatabase, Identifier
 
 from mindsdb_sdk.utils.objects_collection import CollectionBase
@@ -175,3 +175,19 @@ class Databases(CollectionBase):
         if name not in databases:
             raise AttributeError("Database doesn't exist")
         return databases[name]
+
+    def update(self, name: str, connection_args: Dict) -> Database:
+        """
+        Update integration connection parameters
+
+        :param name: name of integration
+        :param connection_args: new connection parameters
+        :return: updated Database object
+        """
+        ast_query = AlterDatabase(
+            name=Identifier(name),
+            altered_params={
+                "parameters": connection_args},
+        )
+        self.api.sql_query(ast_query.to_string())
+        return self.get(name)
