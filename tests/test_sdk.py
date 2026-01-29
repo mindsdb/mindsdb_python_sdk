@@ -107,11 +107,11 @@ class BaseFlow:
         assert call_args[1]['json']['params'] == params
 
         # check prediction
-        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+        assert pred_df.equals(pd.DataFrame(data_out))
 
         # predict using dict
-        pred_df = model.predict({ 'a': 1 })
-        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+        pred_df = model.predict({'a': 1})
+        assert pred_df.equals(pd.DataFrame(data_out))
 
         # using  deferred query
         response_mock(mock_post, pd.DataFrame(data_out))  # will be used sql/query
@@ -121,7 +121,7 @@ class BaseFlow:
 
         check_sql_call(mock_post,
                        f'SELECT m.* FROM (SELECT * FROM {query.database} (select a from t1)) AS t JOIN {model.project.name}.{model_name} AS m USING x="1"')
-        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+        assert pred_df.equals(pd.DataFrame(data_out))
 
         # using table
         table0 = database.tables.tbl0
@@ -129,7 +129,7 @@ class BaseFlow:
 
         check_sql_call(mock_post,
                        f'SELECT m.* FROM (SELECT * FROM {table0.db.name}.tbl0) AS t JOIN {model.project.name}.{model_name} AS m')
-        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+        assert pred_df.equals(pd.DataFrame(data_out))
 
 
         # time series prediction
@@ -138,7 +138,7 @@ class BaseFlow:
 
         check_sql_call(mock_post,
                        f'SELECT m.* FROM (SELECT * FROM {query.database} (select * from t1 where type="house" and saledate>latest)) as t JOIN {model.project.name}.{model_name} AS m')
-        assert (pred_df == pd.DataFrame(data_out)).all().bool()
+        assert pred_df.equals(pd.DataFrame(data_out))
 
         # -----------  model managing  --------------
         response_mock(
@@ -524,7 +524,7 @@ class Test(BaseFlow):
 
         check_sql_call(mock_post, sql)
 
-        assert (data == result).all().bool()
+        assert data.equals(result)
 
         # test tables
         response_mock(mock_post, pd.DataFrame([{'name': 't1'}]))
@@ -990,7 +990,7 @@ class CustomPredictor():
 
         check_sql_call(mock_post, sql)
 
-        assert (data == result).all().bool()
+        assert data.equals(result)
 
         # test tables
         response_mock(mock_post, pd.DataFrame([{'name': 't1'}]))
