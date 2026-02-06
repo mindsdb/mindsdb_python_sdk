@@ -332,7 +332,7 @@ class Model:
         """
         Return description of the model
 
-        :param type: describe type (for lightwood is models, ensemble, features), optional
+        :param type: describe type, optional
         :return: dataframe with result of description
         """
         if self.version is not None:
@@ -455,7 +455,7 @@ class Models(CollectionBase):
         >>> model = models.create(
         ...   'rentals_model',
         ...   predict='price',
-        ...   engine='lightwood',
+        ...   engine='my_byom_engine',
         ...   database='example_db',
         ...   query='select * from table',
         ...   options={
