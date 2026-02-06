@@ -29,7 +29,7 @@ class Server(Project):
 
     def __init__(self, api):
         # server is also mindsdb project
-        self.databases = Databases(api)
+        self.databases = Databases(self, api)
         self.ml_engines = MLEngines(api)
         super().__init__(self, api, 'mindsdb')
 
