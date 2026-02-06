@@ -4,3 +4,4 @@ mindsdb-sql >= 0.7.0, < 0.8.0
 
 sphinx
 sphinx-rtd-theme
+urllib3>=2.6.3 # not directly required, pinned by Snyk to avoid a vulnerability
