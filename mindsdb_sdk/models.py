@@ -341,6 +341,7 @@ class Model:
         identifier = self._get_identifier()
         if type is not None:
             identifier.parts.append(type)
+            identifier.is_quoted.append(False)
         ast_query = Describe(identifier)
 
         sql = ast_query.to_string()
