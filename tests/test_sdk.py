@@ -1,19 +1,16 @@
-import pytest
-
 import datetime as dt
 from unittest.mock import Mock
 from unittest.mock import patch
 
+import pytest
 import pandas as pd
 from mindsdb_sql_parser import parse_sql
 
-from mindsdb_sdk.models import ModelVersion, Model
-from mindsdb_sdk.tables import Table
 import mindsdb_sdk
-
+from mindsdb_sdk.models import ModelVersion
+from mindsdb_sdk.tables import Table
 from mindsdb_sdk.agents import Agent
 from mindsdb_sdk.connect import DEFAULT_LOCAL_API_URL, DEFAULT_CLOUD_API_URL
-from mindsdb_sdk.skills import SQLSkill
 from mindsdb_sdk.connectors import rest_api
 
 # patch _raise_for_status
@@ -1461,7 +1458,6 @@ class TestAgents():
                 'name': 'test_agent',
                 'model_name': None,
                 'provider': None,
-                'skills': [],
                 'model': {
                     'model_name': 'gpt-3.5-turbo',
                     'provider': 'openai',
@@ -1557,8 +1553,6 @@ class TestAgents():
                 'name': 'test_agent',
                 'model_name': None,
                 'provider': None,
-                'skills_to_add': [],
-                'skills_to_remove': [],
                 'data': {
                     'tables': ['test_database.test_table'],
                     'knowledge_bases': ['test_kb', 'test_kb2'],
@@ -1679,8 +1673,6 @@ class TestAgents():
                     'provider': 'openai',
                     'api_key': 'sk-...',
                 },
-                'skills_to_add': [],
-                'skills_to_remove': [],
                 'data': {
                     'tables': ['test_database.test_table', 'files.tokaido_rules'],
                     'knowledge_bases': ['test_kb'],
@@ -1780,8 +1772,6 @@ class TestAgents():
                     'provider': 'openai',
                     'api_key': 'sk-...',
                 },
-                'skills_to_add': [],
-                'skills_to_remove': [],
                 'data': {
                     'tables': ['test_database.test_table'],
                     'knowledge_bases': ['test_kb', 'existing_kb']
@@ -1880,8 +1870,6 @@ class TestAgents():
                     'provider': 'openai',
                     'api_key': 'sk-...',
                 },
-                'skills_to_add': [],
-                'skills_to_remove': [],
                 'data': {
                     'tables': ['test_database.test_table', 'existing_db.existing_table'],
                     'knowledge_bases': ['test_kb'],
@@ -1889,116 +1877,6 @@ class TestAgents():
             }
         }
         assert agent_update_json == expected_agent_json
-
-
-class TestSkills():
-    @patch('requests.Session.get')
-    def test_list(self, mock_get):
-        response_mock(mock_get, [])
-        server = mindsdb_sdk.connect()
-        # Check API call.
-        assert len(server.skills.list()) == 0
-        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-
-        created_at = dt.datetime(2000, 3, 1, 9, 30)
-        updated_at = dt.datetime(2001, 3, 1, 9, 30)
-        response_mock(mock_get, [
-            {
-                'id': 1,
-                'name': 'test_skill',
-                'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description' },
-                'type': 'sql'
-            }
-        ])
-        all_skills = server.skills.list()
-        assert len(all_skills) == 1
-
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
-        assert all_skills[0] == expected_skill
-
-    @patch('requests.Session.get')
-    def test_get(self, mock_get):
-        server = mindsdb_sdk.connect()
-        response_mock(mock_get,
-            {
-                'id': 1,
-                'name': 'test_skill',
-                'project_id': 1,
-                'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
-                'type': 'sql'
-            }
-        )
-        skill = server.skills.get('test_skill')
-        # Check API call.
-        assert mock_get.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
-        assert skill == expected_skill
-
-    @patch('requests.Session.post')
-    def test_create(self, mock_post):
-        data = {
-            'id': 1,
-            'name': 'test_skill',
-            'project_id': 1,
-            'params': {'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'},
-            'type': 'test'
-        }
-        response_mock(mock_post, data)
-
-        # Create the skill.
-        server = mindsdb_sdk.connect()
-        new_skill = server.skills.create(
-            'test_skill',
-            'sql',
-            params={'tables': ['test_table'], 'database': 'test_database', 'description': 'test_description'}
-        )
-        # Check API call.
-        assert mock_post.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills'
-        assert mock_post.call_args[1]['json'] == {
-           'skill': {
-                'name': 'test_skill',
-                'type': 'sql',
-                'params': {'database': 'test_database', 'tables': ['test_table'], 'description': 'test_description'}
-            }
-        }
-        expected_skill = SQLSkill('test_skill', ['test_table'], 'test_database', 'test_description')
-
-        assert new_skill == expected_skill
-
-    @patch('requests.Session.put')
-    def test_update(self, mock_put):
-        data = {
-            'id': 1,
-            'name': 'test_skill',
-            'project_id': 1,
-            'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'},
-            'type': 'sql'
-        }
-        response_mock(mock_put, data)
-
-        server = mindsdb_sdk.connect()
-        expected_skill = SQLSkill('test_skill', ['updated_table'], 'updated_database', 'updated_description')
-
-        updated_skill = server.skills.update('test_skill', expected_skill)
-        # Check API call.
-        assert mock_put.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
-        assert mock_put.call_args[1]['json'] == {
-           'skill': {
-                'name': 'test_skill',
-                'type': 'sql',
-                'params': {'tables': ['updated_table'], 'database': 'updated_database', 'description': 'updated_description'}
-            }
-        }
-
-        assert updated_skill == expected_skill
-
-    @patch('requests.Session.delete')
-    def test_delete(self, mock_delete):
-        server = mindsdb_sdk.connect()
-        server.skills.drop('test_skill')
-        # Check API call.
-        assert mock_delete.call_args[0][0] == f'{DEFAULT_LOCAL_API_URL}/api/projects/mindsdb/skills/test_skill'
 
 
 class TestConfig():

@@ -110,8 +110,9 @@ class Databases(CollectionBase):
 
     """
 
-    def __init__(self, api):
+    def __init__(self, server, api):
         self.api = api
+        self.server = server
 
     def _list_databases(self) -> Dict[str, Database]:
         data = self.api.sql_query(
@@ -120,7 +121,7 @@ class Databases(CollectionBase):
         name_to_db = {}
         for _, row in data.iterrows():
             name_to_db[row["NAME"]] = Database(
-                self, row["NAME"], engine=row["ENGINE"], params=row["CONNECTION_DATA"]
+                self.server, row["NAME"], engine=row["ENGINE"], params=row["CONNECTION_DATA"]
             )
         return name_to_db
 
@@ -153,7 +154,7 @@ class Databases(CollectionBase):
             parameters=connection_args,
         )
         self.api.sql_query(ast_query.to_string())
-        return Database(self, name, engine=engine, params=connection_args)
+        return Database(self.server, name, engine=engine, params=connection_args)
 
     def drop(self, name: str):
         """
