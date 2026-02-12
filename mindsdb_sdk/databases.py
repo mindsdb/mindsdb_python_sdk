@@ -174,7 +174,7 @@ class Databases(CollectionBase):
         """
         databases = self._list_databases()
         if name not in databases:
-            raise AttributeError("Database doesn't exist")
+            raise AttributeError(f"Database '{name}' doesn't exist")
         return databases[name]
 
     def update(self, name: str, connection_args: Dict) -> Database:
