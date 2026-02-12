@@ -1,13 +1,12 @@
-from requests.exceptions import HTTPError
 from typing import Iterable, List, Union
 from urllib.parse import urlparse
 from uuid import uuid4
 import datetime
-import json
+
+from requests.exceptions import HTTPError
 
 from mindsdb_sdk.knowledge_bases import KnowledgeBase
 from mindsdb_sdk.models import Model
-from mindsdb_sdk.skills import Skill
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 
@@ -82,24 +81,20 @@ class Agent:
             created_at: datetime.datetime,
             updated_at: datetime.datetime,
             model: Union[Model, str, dict] = None,
-            skills: List[Skill] = [],
             provider: str = None,
             data: dict = {},
             prompt_template: str = None,
             params: dict = {},
-            skills_extra_parameters: dict = {},
             collection: CollectionBase = None
     ):
         self.name = name
         self.created_at = created_at
         self.updated_at = updated_at
         self.model = model
-        self.skills = skills
         self.provider = provider
         self.data = data
         self.prompt_template = prompt_template
         self.params = params
-        self.skills_extra_parameters = skills_extra_parameters
         self.collection = collection
 
     def completion(self, messages: List[dict]) -> AgentCompletion:
@@ -178,7 +173,7 @@ class Agent:
 
         :param database: Name of the database to be added.
         :param tables: List of tables to be added.
-        :param description: Description of the database tables. Used by the agent to know when to use SQL skill.
+        :param description: Description of the database tables. Used by the agent to know when to query the database.
         """
         self.collection.add_database(self.name, database, tables, description)
 
@@ -196,11 +191,7 @@ class Agent:
             return False
         if self.prompt_template != other.prompt_template:
             return False
-        if self.skills != other.skills:
-            return False
         if self.params != other.params:
-            return False
-        if self.skills_extra_parameters != other.skills_extra_parameters:
             return False
         if self.created_at != other.created_at:
             return False
@@ -208,10 +199,6 @@ class Agent:
 
     @classmethod
     def from_json(cls, json: dict, collection: CollectionBase):
-        skills = []
-        if json.get('skills'):
-            skills = [Skill.from_json(skill) for skill in json['skills']]
-
         model = json.get('model') or json.get('model_name')
 
         return cls(
@@ -219,12 +206,10 @@ class Agent:
             json['created_at'],
             json['updated_at'],
             model,
-            skills,
             json.get('provider'),
             json.get('data', {}),
             json.get('prompt_template'),
             json.get('params', {}),
-            json.get('skills_extra_parameters', {}),
             collection
         )
 
@@ -238,7 +223,6 @@ class Agents(CollectionBase):
 
         self.knowledge_bases = project.knowledge_bases
         self.models = project.models
-        self.skills = project.skills
 
         self.databases = project.server.databases
         self.ml_engines = project.server.ml_engines
@@ -477,7 +461,6 @@ class Agents(CollectionBase):
         name: str,
         model: Union[Model, str, dict] = None,
         provider: str = None,
-        skills: List[Union[Skill, str]] = None,
         data: dict = None,
         prompt_template: str = None,
         params: dict = None,
@@ -488,26 +471,12 @@ class Agents(CollectionBase):
 
         :param name: Name of the agent to be created
         :param model: Model to be used by the agent. This can be a Model object, a string with model name, or a dictionary with model parameters.
-        :param skills: List of skills to be used by the agent. Currently only 'sql' is supported.
         :param provider: Provider of the model, e.g. 'mindsdb', 'openai', etc.
         :param data: Data to be used by the agent. This is usually a dictionary with 'tables' and/or 'knowledge_base' keys.
         :param params: Parameters for the agent
 
         :return: created agent object
         """
-        skills = skills or []
-        skill_names = []
-        for skill in skills:
-            if isinstance(skill, str):
-                # Check if skill exists.
-                # TODO what this line does?
-                _ = self.skills.get(skill)
-                skill_names.append(skill)
-                continue
-            # Create the skill if it doesn't exist.
-            _ = self.skills.create(skill.name, skill.type, skill.params)
-            skill_names.append(skill.name)
-
         if params is None:
             params = {}
         params.update(kwargs)
@@ -526,7 +495,6 @@ class Agents(CollectionBase):
             name,
             model_name,
             provider,
-            skill_names,
             data,
             model,
             prompt_template,
@@ -543,29 +511,6 @@ class Agents(CollectionBase):
 
         :return: updated agent object
         """
-        updated_skills = set()
-        for skill in updated_agent.skills:
-            if isinstance(skill, str):
-                # Skill must exist.
-                _ = self.skills.get(skill)
-                updated_skills.add(skill)
-                continue
-            try:
-                # Create the skill if it doesn't exist.
-                _ = self.skills.get(skill.name)
-            except HTTPError as e:
-                if e.response.status_code != 404:
-                    raise e
-                # Doesn't exist
-                _ = self.skills.create(skill.name, skill.type, skill.params)
-            updated_skills.add(skill.name)
-
-        existing_agent = self.api.agent(self.project.name, name)
-
-        existing_skills = set([s['name'] for s in existing_agent.get('skills', [])])
-        skills_to_add = updated_skills.difference(existing_skills)
-        skills_to_remove = existing_skills.difference(updated_skills)
-
         updated_model_name = None
         updated_provider = updated_agent.provider
         updated_model = None
@@ -583,8 +528,6 @@ class Agents(CollectionBase):
             updated_agent.name,
             updated_provider,
             updated_model_name,
-            list(skills_to_add),
-            list(skills_to_remove),
             updated_agent.data,
             updated_model,
             updated_agent.prompt_template,

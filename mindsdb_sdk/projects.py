@@ -5,7 +5,6 @@ from mindsdb_sql_parser.ast import DropDatabase
 from mindsdb_sql_parser.ast import Identifier
 
 from mindsdb_sdk.agents import Agents
-from mindsdb_sdk.skills import Skills
 from mindsdb_sdk.utils.objects_collection import CollectionBase
 
 from .models import Models
@@ -77,7 +76,6 @@ class Project:
 
         self.knowledge_bases = KnowledgeBases(self, api)
 
-        self.skills = Skills(self, api)
         self.agents = Agents(self, api)
 
         self.minds = self.agents #alias

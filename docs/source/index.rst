@@ -121,7 +121,6 @@ API documentation
    jobs
 
    knowledge_bases
-   skills
    agents
 
 
