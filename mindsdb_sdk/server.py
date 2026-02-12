@@ -1,11 +1,9 @@
 from typing import List
 
-from .agents import Agents
 from .databases import Databases
 from .projects import Project, Projects
 from .ml_engines import MLEngines
 from .handlers import Handlers
-from .skills import Skills
 from .tree import TreeNode
 from .config import Config
 
@@ -29,9 +27,9 @@ class Server(Project):
 
     """
 
-    def __init__(self, api, skills: Skills = None, agents: Agents = None):
+    def __init__(self, api):
         # server is also mindsdb project
-        self.databases = Databases(api)
+        self.databases = Databases(self, api)
         self.ml_engines = MLEngines(api)
         super().__init__(self, api, 'mindsdb')
 

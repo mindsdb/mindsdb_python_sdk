@@ -322,7 +322,6 @@ class RestAPI:
         name: str,
         model_name: str = None,
         provider: str = None,
-        skills: List[str] = None,
         data: dict = None,
         model: dict = None,
         prompt_template: str = None,
@@ -336,7 +335,6 @@ class RestAPI:
                     'name': name,
                     'model_name': model_name,
                     'provider': provider,
-                    'skills': skills,
                     'data': data,
                     'model': model,
                     'prompt_template': prompt_template,
@@ -355,8 +353,6 @@ class RestAPI:
         updated_name: str,
         updated_provider: str,
         updated_model_name: str,
-        skills_to_add: List[str],
-        skills_to_remove: List[str],
         updated_data: dict,
         updated_model: dict,
         updated_prompt_template: str,
@@ -370,8 +366,6 @@ class RestAPI:
                     'name': updated_name,
                     'model_name': updated_model_name,
                     'provider': updated_provider,
-                    'skills_to_add': skills_to_add,
-                    'skills_to_remove': skills_to_remove,
                     'data': updated_data,
                     'model': updated_model,
                     'prompt_template': updated_prompt_template,
@@ -385,67 +379,6 @@ class RestAPI:
     @_try_relogin
     def delete_agent(self, project: str, name: str):
         url = self.url + f'/api/projects/{project}/agents/{name}'
-        r = self.session.delete(url)
-        _raise_for_status(r)
-
-    # Skills operations.
-    @_try_relogin
-    def skills(self, project: str):
-        r = self.session.get(self.url + f'/api/projects/{project}/skills')
-        _raise_for_status(r)
-
-        return r.json()
-
-    @_try_relogin
-    def skill(self, project: str, name: str):
-        r = self.session.get(self.url + f'/api/projects/{project}/skills/{name}')
-        _raise_for_status(r)
-
-        return r.json()
-
-    @_try_relogin
-    def create_skill(self, project: str, name: str, type: str, params: dict):
-        url = self.url + f'/api/projects/{project}/skills'
-        r = self.session.post(
-            url,
-            json={
-               'skill': {
-                    'name': name,
-                    'type': type,
-                    'params': params
-                }
-            }
-        )
-        _raise_for_status(r)
-
-        return r.json()
-
-    @_try_relogin
-    def update_skill(
-            self,
-            project: str,
-            name: str,
-            updated_name: str,
-            updated_type: str,
-            updated_params: dict
-            ):
-        url = self.url + f'/api/projects/{project}/skills/{name}'
-        r = self.session.put(
-            url,
-            json={
-               'skill': {
-                    'name': updated_name,
-                    'type': updated_type,
-                    'params': updated_params
-                }
-            }
-        )
-        _raise_for_status(r)
-        return r.json()
-
-    @_try_relogin
-    def delete_skill(self, project: str, name: str):
-        url = self.url + f'/api/projects/{project}/skills/{name}'
         r = self.session.delete(url)
         _raise_for_status(r)
 
